@@ -3,26 +3,32 @@ const uws = require('uWebSockets.js')
 const LogTrait = require('../utils/logtrait')
 
 class ServiceAuth extends LogTrait {
-  constructor (options) {
+  constructor (config) {
     super()
     this.listenSocken = null
-    this.path = options.path
-    this.port = options.port
-    this.authorizedKeys = options.authorizedKeys
+    this.path = config.path
+    this.port = config.port
+    this.authorizedKeys = config.authorizedKeys
   }
 
   start () {
     return new Promise((resolve, reject) => {
       uws.App({}).ws(this.path, {
         open: (ws, req) => {
-          this.log('websocket opened')
-
           const authToken = req.getHeader('x-auth-token')
           if (!this.authorizedKeys.includes(authToken)) {
             this.log('authorization failed, closing socket')
             return ws.close()
           }
-          this.log('authorization successful')
+          this.log('client authorized successful')
+        },
+        message: (ws, buffer, isBinary) => {
+          const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
+          return this.received(JSON.parse(message))
+            .then(response => {
+              const message = JSON.stringify(response)
+              return ws.send(message, isBinary)
+            })
         },
         close: (ws, code, message) => {
           this.log('websocket closed')
@@ -50,6 +56,8 @@ class ServiceAuth extends LogTrait {
       this.log('already stopped')
     }
   }
+
+  received (request) { return Promise.resolve(request) }
 }
 
 module.exports = ServiceAuth

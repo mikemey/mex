@@ -6,11 +6,11 @@ const ServiceAuth = require('../../src/security/serviceauth')
 const testOptions = {
   path: '/somep',
   port: 12000,
-  authorizedKeys: ['test-token']
+  authorizedKeys: ['auth-test-token']
 }
 const testUrl = (path = testOptions.path) => `ws://localhost:${testOptions.port}${path}`
 
-describe.only('Service authorization', () => {
+describe('Service authorization', () => {
   const serviceauth = new ServiceAuth(testOptions)
   before(() => serviceauth.start())
   after(() => serviceauth.stop())
