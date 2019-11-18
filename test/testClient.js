@@ -12,18 +12,18 @@ class TestClient {
         authorizedKeys: [testToken]
       }
     }
-    this.wsOptions = { headers: { 'X-AUTH-TOKEN': testToken } }
+    this.headers = { 'X-AUTH-TOKEN': testToken }
   }
 
   debugLog (message) {
     if (this.debug) console.log(`[TEST-CLIENT] ${message}`)
   }
 
-  connect () {
+  connect (headers = this.headers, path = this.config.wss.path) {
     return new Promise((resolve, reject) => {
-      const wssConfig = this.config.wss
-      const url = `ws://localhost:${wssConfig.port}${wssConfig.path}`
-      this.ws = new WebSocket(url, this.wsOptions)
+      const port = this.config.wss.port
+      const url = `ws://localhost:${port}${path}`
+      this.ws = new WebSocket(url, { headers })
       this.ws.on('open', resolve)
       this.ws.on('error', reject)
     })
