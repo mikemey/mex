@@ -6,8 +6,10 @@ describe('Service authorization', () => {
   const testClient = new TestClient()
   const svcConfig = testClient.config.wss
   const serviceauth = new ServiceAuth(svcConfig)
+
   before(() => serviceauth.start())
   after(() => serviceauth.stop())
+  afterEach(() => testClient.close())
 
   describe('should allow WS connection', () => {
     it('when correct access token', () => testClient.connect())

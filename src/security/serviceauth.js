@@ -22,14 +22,7 @@ class ServiceAuth extends LogTrait {
           }
           this.log('client authorized successful')
         },
-        message: (ws, buffer, isBinary) => {
-          const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
-          return this.received(JSON.parse(message))
-            .then(response => {
-              const message = JSON.stringify(response)
-              return ws.send(message, isBinary)
-            })
-        },
+        message: (ws, buffer, isBinary) => this._processMessage(ws, buffer, isBinary),
         close: (ws, code, message) => {
           this.log('websocket closed')
         }
@@ -55,6 +48,20 @@ class ServiceAuth extends LogTrait {
     } else {
       this.log('already stopped')
     }
+  }
+
+  _processMessage (ws, buffer, isBinary) {
+    return new Promise((resolve, reject) => {
+      try {
+        const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
+        resolve(JSON.parse(message))
+      } catch (err) { reject(err) }
+    }).then(request =>
+      this.received(request)
+    ).then(response => {
+      const message = JSON.stringify(response)
+      return ws.send(message, isBinary)
+    })
   }
 
   received (request) { return Promise.resolve(request) }
