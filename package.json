@@ -14,7 +14,7 @@
   },
   "scripts": {
     "lint": "standard",
-    "test": "mocha 'test/**/**.spec.js'",
+    "test": "mocha 'test/**/**.spec.js' -r chai/register-should",
     "~test": "nodemon -x 'npm run test'",
     "build": "npm run lint && npm run test"
   },
@@ -27,7 +27,6 @@
     "chai": "^4.2.0",
     "mocha": "^6.2.2",
     "nodemon": "^1.19.4",
-    "should": "^13.2.3",
     "standard": "^14.3.1"
   },
   "nodemonConfig": {
