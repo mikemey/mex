@@ -3,7 +3,10 @@ class LogTrait {
     this.category = category || this.constructor.name
   }
 
-  log (msg) { console.log(`[${this.category}] ${msg}`) }
+  log (msg, obj) {
+    console.log(`[${this.category}] ${msg}`)
+    if (obj) console.log(obj)
+  }
 }
 
 module.exports = LogTrait

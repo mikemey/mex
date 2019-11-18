@@ -51,17 +51,22 @@ class ServiceAuth extends LogTrait {
   }
 
   _processMessage (ws, buffer, isBinary) {
+    let requestObject = {}
     return new Promise((resolve, reject) => {
       try {
         const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
-        resolve(JSON.parse(message))
+        requestObject = JSON.parse(message)
+        resolve(requestObject)
       } catch (err) { reject(err) }
-    }).then(request =>
-      this.received(request)
-    ).then(response => {
-      const message = JSON.stringify(response)
-      return ws.send(message, isBinary)
-    })
+    }).then(req => this.received(req))
+      .catch(err => {
+        this.log('processing error', err)
+        return { status: 'error', message: requestObject }
+      })
+      .then(response => {
+        const message = JSON.stringify(response)
+        return ws.send(message, isBinary)
+      })
   }
 
   received (request) { return Promise.resolve(request) }

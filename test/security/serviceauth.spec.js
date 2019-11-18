@@ -38,3 +38,31 @@ describe('Service authorization', () => {
     )
   })
 })
+
+describe('Service implementation', () => {
+  const testClient = new TestClient()
+  class FailingService extends ServiceAuth {
+    constructor () {
+      super(testClient.config.wss)
+    }
+
+    received (message) {
+      return Promise.reject(Error('test-error'))
+    }
+  }
+
+  const failService = new FailingService()
+  before(() => failService.start())
+  after(() => failService.stop())
+  afterEach(() => testClient.close())
+
+  it('processing failure should result in error response', () => {
+    const request = { action: 'test' }
+    return testClient.connect()
+      .then(() => testClient.send(request))
+      .then(result => {
+        result.status.should.equal('error')
+        result.message.should.deep.equal(request)
+      })
+  })
+})
