@@ -19,6 +19,7 @@
     "~test": "nodemon -x 'npm run alltest -s'"
   },
   "dependencies": {
+    "@hapi/joi": "^16.1.7",
     "bitcoin-core": "^3.0.0",
     "mongoose": "^5.7.11",
     "passport-local-mongoose": "^5.0.1",

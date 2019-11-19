@@ -1,8 +1,8 @@
 class ClientError extends Error {
-  constructor (message, fatal = true) {
+  constructor (message, response, fatal = true) {
     super(message)
     this.name = this.constructor.name
-    this.clientMessage = message
+    this.clientResponse = response
     this.fatal = fatal
   }
 }

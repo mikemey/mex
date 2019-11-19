@@ -1,5 +1,5 @@
 
 const TestClient = require('./testClient')
-const tus = require('./tus')
+const trand = require('./trand')
 
-module.exports = { TestClient, tus }
+module.exports = { TestClient, trand }

@@ -67,7 +67,7 @@ class ServiceAuth extends LogTrait {
       .catch(err => {
         this.log('processing error:', err)
         if (err.fatal) { data.closeConnection = true }
-        if (err.clientMessage) { return wsmessages.nok(err.clientMessage) }
+        if (err.clientResponse) { return err.clientResponse }
         this.errorLog(err)
         return wsmessages.error(data.originalReq)
       })

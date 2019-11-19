@@ -54,12 +54,12 @@ describe('Service implementation', () => {
   const failService = new FailingService()
   before(() => failService.start())
   after(() => failService.stop())
+  beforeEach(() => testClient.connect())
   afterEach(() => testClient.close())
 
   it('processing failure should result in error response', () => {
     const request = { action: 'test' }
-    return testClient.connect()
-      .then(() => testClient.send(request))
+    return testClient.send(request)
       .then(result => {
         result.status.should.equal('error')
         result.message.should.deep.equal(request)

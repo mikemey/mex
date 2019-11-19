@@ -1,9 +1,9 @@
-const { TestClient, tus } = require('../utils')
+const { TestClient, trand } = require('../utils')
 
 const { RegisterService, model } = require('../../src/session')
 const { dbconnection } = require('../../src/utils')
 
-describe('Register service', () => {
+describe('RegisterService', () => {
   const testClient = new TestClient()
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
@@ -15,9 +15,10 @@ describe('Register service', () => {
     .then(() => registerSvc.start())
   )
   after(() => registerSvc.stop().then(() => dbconnection.close()))
+  beforeEach(() => testClient.connect())
   afterEach(() => testClient.close())
 
-  const registerReq = (name = tus.randEmail(), pass = tus.randPass(), action = 'register') => {
+  const registerReq = (name = trand.randEmail(), pass = trand.randPass(), action = 'register') => {
     return { action, name, pass }
   }
 
@@ -25,15 +26,18 @@ describe('Register service', () => {
     action: 'register', status: 'ok'
   })
 
-  const assertNok = message => result => result.should.deep.equal({
-    status: 'nok', message
-  })
+  const expectNokResponse = (req, message) => testClient.send(req)
+    .then(result => result.should.deep.equal({ action: 'register', status: 'nok', message }))
+    .then(() => testClient.isOpen().should.equal(true, 'open socket'))
+
+  const expectError = req => testClient.send(req)
+    .then(result => result.should.deep.equal({ status: 'error', message: 'invalid request' }))
+    .then(() => testClient.isOpen().should.equal(false, 'closed socket'))
 
   describe('successful registration', () => {
     it('single user', () => {
       const request = registerReq()
-      return testClient.connect()
-        .then(() => testClient.send(request))
+      return testClient.send(request)
         .then(assertRegisterOk)
         .then(() => model.Account.findByUsername(request.name))
         .then(account => {
@@ -44,39 +48,61 @@ describe('Register service', () => {
     it('multiple user', () => {
       const r1 = registerReq()
       const r2 = registerReq()
-      return testClient.connect()
-        .then(() => testClient.send(r1)).then(assertRegisterOk)
+      return testClient.send(r1).then(assertRegisterOk)
         .then(() => testClient.send(r2)).then(assertRegisterOk)
     })
   })
 
-  describe('rejected registration', () => {
-    afterEach(() => testClient.close())
-
-    it('reject too short password', () => {
+  describe('rejects registration:', () => {
+    it('duplicate user name', () => {
+      const request = registerReq()
+      return testClient.send(request).then(assertRegisterOk)
+        .then(() => expectNokResponse(request, `duplicate name [${request.name}]`))
     })
 
-    it('reject duplicate user name', () => {
-      const username = tus.randEmail()
-      const req = registerReq(username)
-      return testClient.connect()
-        .then(() => testClient.send(req)).then(assertRegisterOk)
-        .then(() => testClient.send(req)).then(assertNok(`duplicate name [${username}]`))
+    it('username not an email', () => {
+      const request = registerReq(trand.randStr(7))
+      return expectNokResponse(request, 'email invalid')
+    })
+
+    it('password too short', () => {
+      const request = registerReq(undefined, trand.randStr(7))
+      return expectNokResponse(request, 'password invalid')
+    })
+
+    it('password too long', () => {
+      const request = registerReq(undefined, trand.randStr(31))
+      return expectNokResponse(request, 'password invalid')
     })
   })
 
   describe('fatal client errors', () => {
-    it('reject unknown action', () => {
+    it('invalid action', () =>
+      expectError(registerReq(undefined, undefined, 'registerX'))
+    )
+
+    it('additional request parameters', () => {
       const req = registerReq()
-      req.action = 'test'
-      return testClient.connect()
-        .then(() => testClient.send(req)).then(assertNok('unknown action'))
-        .then(() => {
-          testClient.isOpen().should.equal(false, 'closed client socket')
-        })
+      req.additional = 'param'
+      return expectError(req)
     })
 
-    it('reject when unknown request properties', () => {
+    it('missing action parameter', () => {
+      const req = registerReq()
+      delete req.action
+      return expectError(req)
+    })
+
+    it('missing name parameter', () => {
+      const req = registerReq()
+      delete req.name
+      return expectError(req)
+    })
+
+    it('missing password parameter', () => {
+      const req = registerReq()
+      delete req.pass
+      return expectError(req)
     })
   })
 })
