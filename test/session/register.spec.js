@@ -18,8 +18,8 @@ describe('RegisterService', () => {
   beforeEach(() => testClient.connect())
   afterEach(() => testClient.close())
 
-  const registerReq = (name = trand.randEmail(), pass = trand.randPass(), action = 'register') => {
-    return { action, name, pass }
+  const registerReq = (email = trand.randEmail(), password = trand.randPass(), action = 'register') => {
+    return { action, email, password }
   }
 
   const assertRegisterOk = result => result.should.deep.equal({
@@ -39,9 +39,9 @@ describe('RegisterService', () => {
       const request = registerReq()
       return testClient.send(request)
         .then(assertRegisterOk)
-        .then(() => model.Account.findByUsername(request.name))
+        .then(() => model.Account.findByUsername(request.email))
         .then(account => {
-          account.username.should.equal(request.name)
+          account.email.should.equal(request.email)
         })
     })
 
@@ -57,7 +57,7 @@ describe('RegisterService', () => {
     it('duplicate user name', () => {
       const request = registerReq()
       return testClient.send(request).then(assertRegisterOk)
-        .then(() => expectNokResponse(request, `duplicate name [${request.name}]`))
+        .then(() => expectNokResponse(request, `duplicate name [${request.email}]`))
     })
 
     it('username not an email', () => {
@@ -93,15 +93,15 @@ describe('RegisterService', () => {
       return expectError(req)
     })
 
-    it('missing name parameter', () => {
+    it('missing email parameter', () => {
       const req = registerReq()
-      delete req.name
+      delete req.email
       return expectError(req)
     })
 
     it('missing password parameter', () => {
       const req = registerReq()
-      delete req.pass
+      delete req.password
       return expectError(req)
     })
   })

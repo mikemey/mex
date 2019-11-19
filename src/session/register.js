@@ -12,10 +12,10 @@ const responses = wsmessages.withAction(ACT_REGISTER)
 
 const requestSchema = Joi.object({
   action: Joi.string().valid(ACT_REGISTER).required(),
-  name: Joi.string()
+  email: Joi.string()
     .ruleset.email({ minDomainSegments: 2 }).rule({ message: 'email invalid', warn: true })
     .required(),
-  pass: Joi.string()
+  password: Joi.string()
     .ruleset.pattern(/^[a-zA-Z0-9]{8,30}$/).rule({ message: 'password invalid', warn: true })
     .required()
 })
@@ -38,10 +38,10 @@ class RegisterService extends ServiceAuth {
 
   received (message) {
     validateMessage(message)
-    return Account.register({ username: message.name }, message.pass)
+    return Account.register({ email: message.email }, message.password)
       .then(() => responses.ok())
       .catch(err => {
-        if (isUserExists(err)) { return responses.nok(`duplicate name [${message.name}]`) }
+        if (isUserExists(err)) { return responses.nok(`duplicate name [${message.email}]`) }
         throw err
       })
   }
