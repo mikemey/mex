@@ -1,4 +1,4 @@
-const TestClient = require('../testClient')
+const { TestClient } = require('../utils')
 
 const ServiceAuth = require('../../src/security/serviceauth')
 

@@ -1,6 +1,6 @@
 const uws = require('uWebSockets.js')
 
-const LogTrait = require('../utils/logtrait')
+const { LogTrait, wsrequests } = require('../utils')
 
 class ServiceAuth extends LogTrait {
   constructor (config) {
@@ -23,8 +23,11 @@ class ServiceAuth extends LogTrait {
           this.log('client authorized successful')
         },
         message: (ws, buffer, isBinary) => this._processMessage(ws, buffer, isBinary),
+        drain: (ws) => {
+          this.log(`socket backpressure: ${ws.getBufferedAmount()}`)
+        },
         close: (ws, code, message) => {
-          this.log('websocket closed')
+          this.log('socket closed')
         }
       }).listen(this.port, socket => {
         if (socket) {
@@ -51,21 +54,34 @@ class ServiceAuth extends LogTrait {
   }
 
   _processMessage (ws, buffer, isBinary) {
-    let requestObject = {}
+    const data = { originalReq: null, closeConnection: false }
     return new Promise((resolve, reject) => {
       try {
         const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
-        requestObject = JSON.parse(message)
-        resolve(requestObject)
+        data.originalReq = JSON.parse(message)
+        this.log('received:', data.originalReq)
+        resolve(data.originalReq)
       } catch (err) { reject(err) }
     }).then(req => this.received(req))
       .catch(err => {
-        this.log('processing error', err)
-        return { status: 'error', message: requestObject }
+        this.log('processing error:', err)
+        if (err.fatal) { data.closeConnection = true }
+        if (err.clientMessage) { return wsrequests.nok(err.clientMessage) }
+        return wsrequests.error(data.originalReq)
       })
       .then(response => {
+        this.log('responding:', response)
         const message = JSON.stringify(response)
         return ws.send(message, isBinary)
+      })
+      .then(sendResult => {
+        const buffered = ws.getBufferedAmount()
+        this.log(`send result: ${sendResult}, backpressure: ${buffered}`)
+        if (buffered > 0) { throw new Error('deal with backpressure!') }
+        if (data.closeConnection) {
+          this.log('closing connection')
+          return ws.end()
+        }
       })
   }
 
