@@ -1,6 +1,7 @@
 
 const LogTrait = require('./logtrait')
-const wsrequests = require('./wsrequests')
+const wsmessages = require('./wsmessages')
 const errors = require('./errors')
+const dbconnection = require('./dbconnection')
 
-module.exports = { LogTrait, wsrequests, errors }
+module.exports = { LogTrait, wsmessages, errors, dbconnection }

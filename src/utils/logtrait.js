@@ -10,6 +10,8 @@ class LogTrait {
       if (obj) { console.log(obj) }
     }
   }
+
+  errorLog (err) { console.log(err) }
 }
 
 module.exports = LogTrait

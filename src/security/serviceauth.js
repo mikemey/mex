@@ -1,6 +1,6 @@
 const uws = require('uWebSockets.js')
 
-const { LogTrait, wsrequests } = require('../utils')
+const { LogTrait, wsmessages } = require('../utils')
 
 class ServiceAuth extends LogTrait {
   constructor (config) {
@@ -51,6 +51,7 @@ class ServiceAuth extends LogTrait {
     } else {
       this.log('already stopped')
     }
+    return Promise.resolve()
   }
 
   _processMessage (ws, buffer, isBinary) {
@@ -66,8 +67,9 @@ class ServiceAuth extends LogTrait {
       .catch(err => {
         this.log('processing error:', err)
         if (err.fatal) { data.closeConnection = true }
-        if (err.clientMessage) { return wsrequests.nok(err.clientMessage) }
-        return wsrequests.error(data.originalReq)
+        if (err.clientMessage) { return wsmessages.nok(err.clientMessage) }
+        this.errorLog(err)
+        return wsmessages.error(data.originalReq)
       })
       .then(response => {
         this.log('responding:', response)

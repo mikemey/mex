@@ -1,21 +1,26 @@
 const ServiceAuth = require('../security/serviceauth')
-const ClientError = require('../utils/errors')
+const { errors, wsmessages } = require('../utils')
+const ClientError = errors.ClientError
+const { Account } = require('./model')
+
+const isUserExists = err => err.name === 'UserExistsError'
 
 class RegisterService extends ServiceAuth {
-  constructor (config) {
-    super(config.wss)
+  constructor (wssconfig) {
+    super(wssconfig)
     this.users = []
   }
 
   received (message) {
     if (message.action === 'register') {
-      if (this.users.includes(message.name)) {
-        throw new ClientError(`duplicate name [${message.name}]`)
-      }
-      this.users.push(message.name)
-      return { action: message.action, status: 'ok' }
+      return Account.register({ username: message.name }, message.pass)
+        .then(() => wsmessages.ok(message.action))
+        .catch(err => {
+          if (isUserExists(err)) { return wsmessages.nok(`duplicate name [${message.name}]`) }
+          throw err
+        })
     }
-    throw new ClientError('unknown action', true)
+    throw new ClientError('unknown action')
   }
 }
 module.exports = RegisterService

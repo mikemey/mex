@@ -1,16 +1,15 @@
 const WebSocket = require('ws')
 
 const testToken = 'test-token'
+
 class TestClient {
   constructor () {
     this.debug = false
     this.ws = null
-    this.config = {
-      wss: {
-        path: '/test',
-        port: 12001,
-        authorizedKeys: [testToken]
-      }
+    this.wssconfig = {
+      path: '/test',
+      port: 12001,
+      authorizedKeys: [testToken]
     }
     this.headers = { 'X-AUTH-TOKEN': testToken }
   }
@@ -22,9 +21,9 @@ class TestClient {
     }
   }
 
-  connect (headers = this.headers, path = this.config.wss.path) {
+  connect (headers = this.headers, path = this.wssconfig.path) {
     return new Promise((resolve, reject) => {
-      const port = this.config.wss.port
+      const port = this.wssconfig.port
       const url = `ws://localhost:${port}${path}`
       this.ws = new WebSocket(url, { headers })
 

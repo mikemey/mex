@@ -4,7 +4,7 @@ const ServiceAuth = require('../../src/security/serviceauth')
 
 describe('Service authorization', () => {
   const testClient = new TestClient()
-  const svcConfig = testClient.config.wss
+  const svcConfig = testClient.wssconfig
   const serviceauth = new ServiceAuth(svcConfig)
 
   before(() => serviceauth.start())
@@ -43,7 +43,7 @@ describe('Service implementation', () => {
   const testClient = new TestClient()
   class FailingService extends ServiceAuth {
     constructor () {
-      super(testClient.config.wss)
+      super(testClient.wssconfig)
     }
 
     received (message) {

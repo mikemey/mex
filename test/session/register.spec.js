@@ -1,13 +1,20 @@
 const { TestClient, tus } = require('../utils')
 
-const RegisterService = require('../../src/session/register')
+const { RegisterService, model } = require('../../src/session')
+const { dbconnection } = require('../../src/utils')
 
 describe('Register service', () => {
   const testClient = new TestClient()
-  const registerSvc = new RegisterService(testClient.config)
+  const dbconfig = {
+    url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
+  }
+  const registerSvc = new RegisterService(testClient.wssconfig)
 
-  before(() => registerSvc.start())
-  after(() => registerSvc.stop())
+  before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
+    .then(() => model.Account.deleteMany())
+    .then(() => registerSvc.start())
+  )
+  after(() => registerSvc.stop().then(() => dbconnection.close()))
   afterEach(() => testClient.close())
 
   const registerReq = (name = tus.randEmail(), pass = tus.randPass(), action = 'register') => {
@@ -28,6 +35,10 @@ describe('Register service', () => {
       return testClient.connect()
         .then(() => testClient.send(request))
         .then(assertRegisterOk)
+        .then(() => model.Account.findByUsername(request.name))
+        .then(account => {
+          account.username.should.equal(request.name)
+        })
     })
 
     it('multiple user', () => {
