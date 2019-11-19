@@ -15,8 +15,8 @@
   "scripts": {
     "lint": "standard",
     "alltest": "mocha 'test/**/**.spec.js' -r chai/register-should",
-    "test": "npm run lint && npm run alltest",
-    "~test": "nodemon -x 'npm run alltest'"
+    "test": "npm run lint -s && npm run alltest -s",
+    "~test": "nodemon -x 'npm run alltest -s'"
   },
   "dependencies": {
     "bitcoin-core": "^3.0.0",
