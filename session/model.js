@@ -2,15 +2,15 @@ const passportLocalMongoose = require('passport-local-mongoose')
 
 const mg = require('../utils').dbconnection.mongoose
 
-const AccountSchema = new mg.Schema({
+const CredentialsSchema = new mg.Schema({
   email: { type: String, index: true },
   password: String
 })
-AccountSchema.plugin(passportLocalMongoose, {
+CredentialsSchema.plugin(passportLocalMongoose, {
   usernameField: 'email',
   usernameLowerCase: true,
   usernameUnique: true
 })
 
-const Account = mg.model('Account', AccountSchema)
-module.exports = { Account }
+const Credentials = mg.model('Credentials', CredentialsSchema)
+module.exports = { Credentials }

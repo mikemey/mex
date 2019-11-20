@@ -11,7 +11,7 @@ describe('RegisterService', () => {
   const registerSvc = new RegisterService(testClient.wssconfig)
 
   before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
-    .then(() => model.Account.deleteMany())
+    .then(() => model.Credentials.deleteMany())
     .then(() => registerSvc.start())
   )
   after(() => registerSvc.stop().then(() => dbconnection.close()))
@@ -39,9 +39,9 @@ describe('RegisterService', () => {
       const request = registerReq()
       return testClient.send(request)
         .then(assertRegisterOk)
-        .then(() => model.Account.findByUsername(request.email))
-        .then(account => {
-          account.email.should.equal(request.email)
+        .then(() => model.Credentials.findByUsername(request.email))
+        .then(creds => {
+          creds.email.should.equal(request.email)
         })
     })
 

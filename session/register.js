@@ -3,7 +3,7 @@ const Joi = require('@hapi/joi')
 const ServiceAuth = require('../security/serviceauth')
 const { errors, wsmessages } = require('../utils')
 const ClientError = errors.ClientError
-const { Account } = require('./model')
+const { Credentials } = require('./model')
 
 const isUserExists = err => err.name === 'UserExistsError'
 
@@ -38,7 +38,7 @@ class RegisterService extends ServiceAuth {
 
   received (message) {
     validateMessage(message)
-    return Account.register({ email: message.email }, message.password)
+    return Credentials.register({ email: message.email }, message.password)
       .then(() => responses.ok())
       .catch(err => {
         if (isUserExists(err)) { return responses.nok(`duplicate name [${message.email}]`) }
