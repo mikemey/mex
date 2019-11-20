@@ -36,7 +36,7 @@ class ServiceAuth extends LogTrait {
           this.listenSocket = socket
           resolve()
         } else {
-          const msg = `already started on port ${this.port}`
+          const msg = `failed to listen on port ${this.port}`
           this.log(msg)
           reject(Error(msg))
         }

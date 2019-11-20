@@ -3,7 +3,7 @@ const { TestClient, trand } = require('../testtools')
 const { RegisterService, model } = require('../session')
 const { dbconnection } = require('../utils')
 
-describe('RegisterService', () => {
+describe('SessionService register', () => {
   const testClient = new TestClient()
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
