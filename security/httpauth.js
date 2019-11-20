@@ -76,7 +76,15 @@ class HttpAuth extends LogTrait {
     app.use(this.config.path, pathRouter)
 
     pathRouter.get('/version', (_, res) => res.status(200).send(this.config.version))
+    const serviceRouter = this.getRouter()
+    if (serviceRouter) {
+      pathRouter.use('/', serviceRouter)
+    }
     return app
+  }
+
+  getRouter () {
+    throw new Error('missing getRouter() implementation')
   }
 
   stop () {

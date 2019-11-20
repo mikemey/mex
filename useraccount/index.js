@@ -9,6 +9,10 @@ class UserAccountService extends HTTPAuth {
     super(fullConfig)
     this.server = null
   }
+
+  getRouter () {
+    return () => { }
+  }
 }
 
 module.exports = UserAccountService

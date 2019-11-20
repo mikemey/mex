@@ -1,3 +1,4 @@
+const express = require('express')
 const chai = require('chai')
 const should = chai.should()
 chai.use(require('chai-http'))
@@ -13,6 +14,21 @@ describe('HTTP authorization', () => {
     version: 'test-ver-45254',
     interface: '0.0.0.0',
     suppressRequestLog: []
+  }
+
+  const agent = chai.request.agent(`http://localhost:${config.port}${config.path}`)
+
+  class HTTPAuthImpl extends HTTPAuth {
+    constructor () {
+      super(config)
+      this.response = 'hey you'
+    }
+
+    getRouter () {
+      const router = express.Router()
+      router.get('/test', (_, res) => res.status(200).send(this.response))
+      return router
+    }
   }
 
   describe('config checks', () => {
@@ -64,44 +80,32 @@ describe('HTTP authorization', () => {
   })
 
   describe('default responses', () => {
-    it('serves version', () => {
-      const httpauth = new HTTPAuth(config)
-      return httpauth.start()
-        .then(() => chai.request
-          .agent(`http://localhost:${config.port}${config.path}`)
-          .get('/version'))
-        .then(res => {
-          res.text.should.startWith(config.version)
-        })
-        .finally(() => httpauth.stop())
-    })
+    const httpauth = new HTTPAuthImpl(config)
+    before(() => httpauth.start())
+    after(() => httpauth.stop())
+
+    it('serves version', () => agent.get('/version')
+      .then(res => res.text.should.startWith(config.version))
+    )
+
+    it('serves provided route', () => agent.get(config.path)
+      .then(res => res.text.should.equal(httpauth.response))
+    )
   })
 
-  // xdescribe('service implementation error', () => {
-  // const testClient = new TestClient()
-  // class FailingService extends WSAuth {
-  //   constructor () {
-  //     super(testClient.wssconfig)
-  //   }
+  describe('service implementation error', () => {
+    class NoRouteService extends HTTPAuth {
+      constructor () {
+        super(config)
+      }
+    }
 
-  //   received (_) {
-  //     return Promise.reject(Error('test-error'))
-  //   }
-  // }
-
-  // const failService = new FailingService()
-  // before(() => failService.start())
-  // after(() => failService.stop())
-  // beforeEach(() => testClient.connect())
-  // afterEach(() => testClient.close())
-
-  // it('processing failure should result in error response', () => {
-  //   const request = { action: 'test' }
-  //   return testClient.send(request)
-  //     .then(result => {
-  //       result.status.should.equal('error')
-  //       result.message.should.deep.equal(request)
-  //     })
-  // })
-  // })
+    it('when getRouter implementation missing', () => {
+      let serviceFailed = true
+      return new NoRouteService().start()
+        .then(() => { serviceFailed = false })
+        .catch(err => err.message.should.equal('missing getRouter() implementation'))
+        .finally(() => serviceFailed.should.equal(true, 'expected error'))
+    })
+  })
 })
