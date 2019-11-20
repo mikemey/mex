@@ -8,7 +8,7 @@ describe('UserAccountService', () => {
   before(() => orchestrator.start())
   after(() => orchestrator.stop())
 
-  it.only('responds with version', () => orchestrator.agent().get('/version')
+  it('responds with version', () => orchestrator.agent().get('/version')
     .then(res => {
       res.text.should.startWith(uas.version)
     })

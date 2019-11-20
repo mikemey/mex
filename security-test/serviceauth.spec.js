@@ -44,7 +44,7 @@ describe('Service authorization', () => {
     it('when already running', () => serviceauth.start()
       .then(() => { throw new Error('expected error') })
       .catch(err => {
-        err.message.should.equal(`already started on port ${svcConfig.port}`)
+        err.message.should.equal(`failed to listen on port ${svcConfig.port}`)
       })
     )
   })
