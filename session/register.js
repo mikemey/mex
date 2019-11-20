@@ -13,10 +13,12 @@ const responses = wsmessages.withAction(ACT_REGISTER)
 const requestSchema = Joi.object({
   action: Joi.string().valid(ACT_REGISTER).required(),
   email: Joi.string()
-    .ruleset.email({ minDomainSegments: 2 }).rule({ message: 'email invalid', warn: true })
+    .email({ minDomainSegments: 2 })
+    .rule({ message: 'email invalid', warn: true })
     .required(),
   password: Joi.string()
-    .ruleset.pattern(/^[a-zA-Z0-9]{8,30}$/).rule({ message: 'password invalid', warn: true })
+    .pattern(/^[a-zA-Z0-9]{8,30}$/)
+    .rule({ message: 'password invalid', warn: true })
     .required()
 })
 
