@@ -1,7 +1,7 @@
-const { TestClient, trand } = require('../utils')
+const { TestClient, trand } = require('../testtools')
 
-const { RegisterService, model } = require('../../src/session')
-const { dbconnection } = require('../../src/utils')
+const { RegisterService, model } = require('../session')
+const { dbconnection } = require('../utils')
 
 describe('RegisterService', () => {
   const testClient = new TestClient()

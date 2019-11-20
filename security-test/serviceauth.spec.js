@@ -1,6 +1,6 @@
-const { TestClient } = require('../utils')
+const { TestClient } = require('../testtools')
 
-const ServiceAuth = require('../../src/security/serviceauth')
+const ServiceAuth = require('../security/serviceauth')
 
 describe('Service authorization', () => {
   const testClient = new TestClient()
