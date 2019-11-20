@@ -14,7 +14,7 @@
   },
   "scripts": {
     "lint": "standard",
-    "alltest": "mocha 'security-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' -r chai/register-should chai-http",
+    "alltest": "mocha 'security-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' -r chai/register-should",
     "test": "npm run lint -s && npm run alltest -s",
     "~test": "nodemon -x 'npm run alltest -s'"
   },
