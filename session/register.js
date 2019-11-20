@@ -1,6 +1,6 @@
 const Joi = require('@hapi/joi')
 
-const ServiceAuth = require('../security/serviceauth')
+const { WSAuth } = require('../security')
 const { errors, wsmessages } = require('../utils')
 const ClientError = errors.ClientError
 const { Credentials } = require('./model')
@@ -30,7 +30,7 @@ const validateMessage = msg => {
   }
 }
 
-class RegisterService extends ServiceAuth {
+class RegisterService extends WSAuth {
   constructor (wssconfig) {
     super(wssconfig)
     this.users = []

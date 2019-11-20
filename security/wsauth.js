@@ -2,7 +2,7 @@ const uws = require('uWebSockets.js')
 
 const { LogTrait, wsmessages } = require('../utils')
 
-class ServiceAuth extends LogTrait {
+class WSAuth extends LogTrait {
   constructor (config) {
     super()
     this.listenSocken = null
@@ -91,4 +91,4 @@ class ServiceAuth extends LogTrait {
   received (request) { return Promise.resolve(request) }
 }
 
-module.exports = ServiceAuth
+module.exports = WSAuth

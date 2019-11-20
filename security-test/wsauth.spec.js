@@ -1,14 +1,14 @@
 const { TestClient, trand } = require('../testtools')
 
-const ServiceAuth = require('../security/serviceauth')
+const { WSAuth } = require('../security')
 
-describe('Service authorization', () => {
+describe('Websocket authorization', () => {
   const testClient = new TestClient()
   const svcConfig = testClient.wssconfig
-  const serviceauth = new ServiceAuth(svcConfig)
+  const wsauth = new WSAuth(svcConfig)
 
-  before(() => serviceauth.start())
-  after(() => serviceauth.stop())
+  before(() => wsauth.start())
+  after(() => wsauth.stop())
   afterEach(() => testClient.close())
 
   describe('should allow WS connection', () => {
@@ -40,8 +40,8 @@ describe('Service authorization', () => {
     })
   })
 
-  describe('service start error', () => {
-    it('when already running', () => serviceauth.start()
+  describe('server start error', () => {
+    it('when already running', () => wsauth.start()
       .then(() => { throw new Error('expected error') })
       .catch(err => {
         err.message.should.equal(`failed to listen on port ${svcConfig.port}`)
@@ -52,7 +52,7 @@ describe('Service authorization', () => {
 
 describe('Service implementation', () => {
   const testClient = new TestClient()
-  class FailingService extends ServiceAuth {
+  class FailingService extends WSAuth {
     constructor () {
       super(testClient.wssconfig)
     }
