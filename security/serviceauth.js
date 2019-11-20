@@ -14,6 +14,7 @@ class ServiceAuth extends LogTrait {
   start () {
     return new Promise((resolve, reject) => {
       uws.App({}).ws(this.path, {
+        maxPayloadLength: 4 * 1024,
         open: (ws, req) => {
           const authToken = req.getHeader('x-auth-token')
           if (!this.authorizedKeys.includes(authToken)) {

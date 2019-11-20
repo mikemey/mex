@@ -1,4 +1,4 @@
-const { TestClient } = require('../testtools')
+const { TestClient, trand } = require('../testtools')
 
 const ServiceAuth = require('../security/serviceauth')
 
@@ -15,7 +15,7 @@ describe('Service authorization', () => {
     it('when correct access token', () => testClient.connect())
   })
 
-  describe('should disallow WS connection', () => {
+  describe('should close WS connection', () => {
     const expectSocketHangup = (headers, path) => testClient.connect(headers, path)
       .then(() => { throw new Error('expected websocket to close') })
       .catch(err => {
@@ -23,10 +23,21 @@ describe('Service authorization', () => {
       })
 
     it('when no access token', () => expectSocketHangup({}))
+
     it('when no invalid token', () => expectSocketHangup(
       { 'X-AUTH-TOKEN': svcConfig.authorizedKeys[0] + 'x' }
     ))
+
     it('when incorrect path', () => expectSocketHangup(undefined, svcConfig.path + 'x'))
+
+    it('when payload too large', () => {
+      const request = { action: trand.randStr(4 * 1024) }
+      return testClient.connect()
+        .then(() => testClient.send(request))
+        .then(() => {
+          testClient.isOpen().should.equal(false, 'socket closed')
+        })
+    })
   })
 
   describe('service start error', () => {
@@ -46,7 +57,7 @@ describe('Service implementation', () => {
       super(testClient.wssconfig)
     }
 
-    received (message) {
+    received (_) {
       return Promise.reject(Error('test-error'))
     }
   }

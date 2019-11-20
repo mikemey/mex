@@ -29,7 +29,6 @@ class TestClient {
 
       this.ws.on('open', resolve)
       this.ws.on('error', reject)
-      // this.ws.on('close', () => { this.ws = null })
     })
   }
 
@@ -41,7 +40,7 @@ class TestClient {
         resolve(JSON.parse(raw))
       })
       this.ws.on('close', (code, reason) => {
-        this.debugLog('on close')
+        this.debugLog(`on close: ${code} [${reason}]`)
         resolve()
       })
       this.ws.on('error', err => {
