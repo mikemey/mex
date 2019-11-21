@@ -22,12 +22,18 @@ describe('HTTP authorization', () => {
       super(config)
       this.testResponse = 'hey you'
       this.testEndpoint = '/theend'
+      this.testFailEndpoint = '/fail'
     }
 
     getRouter () {
       const router = express.Router()
       router.get(this.testEndpoint, (_, res) => res.send(this.testResponse))
       router.post(this.testEndpoint, (_, res) => res.send(this.testResponse))
+      router.get(this.testFailEndpoint, (_, res) => {
+        const err = new Error('test error')
+        delete err.stack
+        throw err
+      })
       return router
     }
   }
@@ -102,6 +108,13 @@ describe('HTTP authorization', () => {
 
     it('serves 404 when invalid route', () => agent.get(httpauth.testEndpoint + 'x')
       .then(res => res.should.have.status(404))
+    )
+
+    it('serves 500 when server error', () => agent.get(httpauth.testFailEndpoint)
+      .then(res => {
+        res.should.have.status(500)
+        return agent.get(httpauth.testEndpoint)
+      }).then(res => res.should.have.status(200))
     )
 
     it('response has session', () => chai.request(serverPath).get(httpauth.testEndpoint)

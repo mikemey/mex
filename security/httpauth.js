@@ -39,8 +39,9 @@ const sessionStore = config => cookieSession({
 const csrfProtection = errorLog => {
   const tokens = new Tokens({})
   const secret = tokens.secretSync()
+  const skipMethods = ['GET', 'HEAD', 'OPTIONS']
   return (req, res, next) => {
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    if (!skipMethods.includes(req.method)) {
       const recvToken = req.session.csrf
       if (!tokens.verify(secret, recvToken)) {
         errorLog('csrf token verification failed')
@@ -63,6 +64,12 @@ const requestLogger = suppressList => {
     res.statusCode === 304
 
   return morgan(format, { skip })
+}
+
+const errorLogger = errorFunc => (err, req, res, next) => {
+  errorFunc(`ERROR: ${err.message}`)
+  errorFunc(err)
+  res.status(500).end()
 }
 
 const addIfAvailable = (routing, path, router) => {
@@ -122,10 +129,7 @@ class HttpAuth extends LogTrait {
     addIfAvailable(pathRouter.get.bind(pathRouter), '/version', createVersionEndpoint(this.config.version))
     addIfAvailable(pathRouter.use.bind(pathRouter), '/', this.getRouter())
 
-    app.use((err, req, res, next) => {
-      this.errorLog(`ERROR: ${err.message}`, err)
-      res.status(500).end()
-    })
+    app.use(errorLogger(errorFunc))
     return app
   }
 
