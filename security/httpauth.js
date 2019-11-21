@@ -35,6 +35,15 @@ const requestLogger = suppressList => {
   return morgan(format, { skip })
 }
 
+const addIfAvailable = (routing, path, router) => {
+  if (router) { routing(path, router) }
+}
+
+const createVersionEndpoint = version => {
+  const response = `${version} (${moment.utc().toISOString()})`
+  return (_, res) => res.send(response)
+}
+
 class HttpAuth extends LogTrait {
   constructor (config) {
     super()
@@ -47,9 +56,6 @@ class HttpAuth extends LogTrait {
     validateConfig(this.config)
 
     return new Promise((resolve, reject) => {
-      const now = moment.utc().toISOString()
-      this.config.version = `${this.config.version} (${now})`
-
       const server = this.createServer().listen(this.config.port, this.config.interface, () => {
         this.log(`started on port ${server.address().port}`)
         this.log(`server version: ${this.config.version}`)
@@ -77,11 +83,10 @@ class HttpAuth extends LogTrait {
     const pathRouter = express.Router()
     app.use(this.config.path, pathRouter)
 
-    pathRouter.get('/version', (_, res) => res.status(200).send(this.config.version))
-    const serviceRouter = this.getRouter()
-    if (serviceRouter) {
-      pathRouter.use('/', serviceRouter)
-    }
+    addIfAvailable(
+      pathRouter.get.bind(pathRouter), '/version', createVersionEndpoint(this.config.version)
+    )
+    addIfAvailable(pathRouter.use.bind(pathRouter), '/', this.getRouter())
     return app
   }
 
