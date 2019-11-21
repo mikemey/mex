@@ -10,7 +10,7 @@ describe('HTTP authorization', () => {
 
   const config = {
     port: 12012,
-    path: '/test',
+    path: '/testhttpauth',
     version: 'test-ver-45254',
     interface: '0.0.0.0',
     suppressRequestLog: []
@@ -21,12 +21,13 @@ describe('HTTP authorization', () => {
   class HTTPAuthImpl extends HTTPAuth {
     constructor () {
       super(config)
-      this.response = 'hey you'
+      this.testResponse = 'hey you'
+      this.testEndpoint = '/theend'
     }
 
     getRouter () {
       const router = express.Router()
-      router.get('/test', (_, res) => res.status(200).send(this.response))
+      router.get(this.testEndpoint, (_, res) => res.status(200).send(this.testEndpoint))
       return router
     }
   }
@@ -57,7 +58,7 @@ describe('HTTP authorization', () => {
       { version: '1', interface: '127.0.0.1', path: '/path', suppressRequestLog: [] },
       '"port" is required')
     )
-    it('port too large', () => checkConfigError(
+    it('port not valid', () => checkConfigError(
       { version: '1', interface: '127.0.0.1', port: 65536, path: '/path', suppressRequestLog: [] },
       '"port" must be a valid port')
     )
@@ -88,8 +89,12 @@ describe('HTTP authorization', () => {
       .then(res => res.text.should.startWith(config.version))
     )
 
-    it('serves provided route', () => agent.get(config.path)
-      .then(res => res.text.should.equal(httpauth.response))
+    it('serves implemented route', () => agent.get(httpauth.testEndpoint)
+      .then(res => res.text.should.equal(httpauth.testEndpoint))
+    )
+
+    it('serves 404 when invalid route', () => agent.get(httpauth.testEndpoint + 'x')
+      .then(res => res.status.should.equal(404))
     )
   })
 
