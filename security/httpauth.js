@@ -11,6 +11,8 @@ const { LogTrait } = require('../utils')
 const SESSION_COOKIE_NAME = 'x-session'
 
 const configSchema = Joi.object({
+  secret: Joi.string().min(12)
+    .rule({ message: '"secret" too short' }).required(),
   version: Joi.string().required(),
   interface: Joi.string().ip()
     .rule({ message: '"interface" not valid' }).required(),
@@ -29,7 +31,7 @@ const validateConfig = config => {
 
 const sessionStore = config => cookieSession({
   name: SESSION_COOKIE_NAME,
-  secret: 'sdafkjq3rajp;kc;',
+  secret: config.secret,
   path: config.path,
   httpOnly: true,
   signed: true,
