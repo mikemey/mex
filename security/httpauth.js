@@ -71,6 +71,8 @@ class HttpAuth extends LogTrait {
 
     const suppressList = this.config.suppressRequestLog.map(entry => `${this.config.path}${entry}`)
     app.use(requestLogger(suppressList))
+    app.set('views', './views')
+    app.set('view engine', 'pug')
 
     const pathRouter = express.Router()
     app.use(this.config.path, pathRouter)

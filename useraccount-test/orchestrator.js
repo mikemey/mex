@@ -1,5 +1,6 @@
 const chai = require('chai')
 chai.use(require('chai-http'))
+const cheerio = require('cheerio')
 
 const UserAccountService = require('../useraccount')
 // const { dbconnection } = require('../utils')
@@ -26,4 +27,6 @@ const stop = () => services.uas.stop()
 
 const agent = () => chai.request.agent(`http://localhost:${serviceConfig.port}${serviceConfig.path}`)
 
-module.exports = { start, stop, agent }
+const asHtml = res => cheerio.load(res.text)
+
+module.exports = { start, stop, agent, asHtml }
