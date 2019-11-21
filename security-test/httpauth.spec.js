@@ -1,3 +1,4 @@
+const cookie = require('cookie')
 const express = require('express')
 const chai = require('chai')
 const should = chai.should()
@@ -16,8 +17,6 @@ describe('HTTP authorization', () => {
     suppressRequestLog: []
   }
 
-  const agent = chai.request.agent(`http://localhost:${config.port}${config.path}`)
-
   class HTTPAuthImpl extends HTTPAuth {
     constructor () {
       super(config)
@@ -27,7 +26,8 @@ describe('HTTP authorization', () => {
 
     getRouter () {
       const router = express.Router()
-      router.get(this.testEndpoint, (_, res) => res.status(200).send(this.testEndpoint))
+      router.get(this.testEndpoint, (_, res) => res.send(this.testResponse))
+      router.post(this.testEndpoint, (_, res) => res.send(this.testResponse))
       return router
     }
   }
@@ -81,20 +81,51 @@ describe('HTTP authorization', () => {
   })
 
   describe('default responses', () => {
+    const SESSION_COOKIE_NAME = 'x-session'
+    const serverPath = `http://localhost:${config.port}${config.path}`
     const httpauth = new HTTPAuthImpl(config)
+    const agent = chai.request.agent(serverPath)
+
     before(() => httpauth.start())
     after(() => httpauth.stop())
 
     it('serves version', () => agent.get('/version')
-      .then(res => res.text.should.startWith(config.version))
+      .then(res => {
+        res.should.have.status(200)
+        res.text.should.startWith(config.version)
+      })
     )
 
     it('serves implemented route', () => agent.get(httpauth.testEndpoint)
-      .then(res => res.text.should.equal(httpauth.testEndpoint))
+      .then(res => res.text.should.equal(httpauth.testResponse))
     )
 
     it('serves 404 when invalid route', () => agent.get(httpauth.testEndpoint + 'x')
-      .then(res => res.status.should.equal(404))
+      .then(res => res.should.have.status(404))
+    )
+
+    it('response has session', () => chai.request(serverPath).get(httpauth.testEndpoint)
+      .then(res => {
+        const session = res.header['set-cookie']
+          .map(header => cookie.parse(header))
+          .find(cookie => cookie[SESSION_COOKIE_NAME])
+        should.exist(session, 'session cookie')
+      })
+    )
+
+    it('valid session pass through', () => agent.get(httpauth.testEndpoint)
+      .then(res => {
+        res.should.have.status(200)
+        return agent.post(httpauth.testEndpoint)
+      }).then(res => {
+        res.should.have.status(200)
+        res.text.should.equal(httpauth.testResponse)
+      })
+    )
+
+    it('error response when post without csrf', () => chai.request(serverPath)
+      .post(httpauth.testEndpoint)
+      .then(res => { res.should.have.status(403) })
     )
   })
 

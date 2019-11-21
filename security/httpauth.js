@@ -1,10 +1,14 @@
 const bodyParser = require('body-parser')
+const cookieSession = require('cookie-session')
+const Tokens = require('csrf')
 const express = require('express')
 const moment = require('moment')
 const morgan = require('morgan')
 const Joi = require('@hapi/joi')
 
 const { LogTrait } = require('../utils')
+
+const SESSION_COOKIE_NAME = 'x-session'
 
 const configSchema = Joi.object({
   version: Joi.string().required(),
@@ -20,6 +24,32 @@ const validateConfig = config => {
   const validation = configSchema.validate(config)
   if (validation.error) {
     throw new Error(validation.error.message)
+  }
+}
+
+const sessionStore = config => cookieSession({
+  name: SESSION_COOKIE_NAME,
+  secret: 'sdafkjq3rajp;kc;',
+  path: config.path,
+  httpOnly: true,
+  signed: true,
+  maxAge: 2 * 60 * 60 * 1000
+})
+
+const csrfProtection = errorLog => {
+  const tokens = new Tokens({})
+  const secret = tokens.secretSync()
+  return (req, res, next) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      const recvToken = req.session.csrf
+      if (!tokens.verify(secret, recvToken)) {
+        errorLog('csrf token verification failed')
+        return res.status(403).end()
+      }
+    }
+    const csrfToken = tokens.create(secret)
+    req.session.csrf = csrfToken
+    next()
   }
 }
 
@@ -51,6 +81,8 @@ class HttpAuth extends LogTrait {
     this.config = config
   }
 
+  getRouter () { throw new Error('missing getRouter() implementation') }
+
   start () {
     if (this.server) { throw new Error('server already started') }
     validateConfig(this.config)
@@ -72,6 +104,7 @@ class HttpAuth extends LogTrait {
   }
 
   createServer () {
+    const errorFunc = this.errorLog.bind(this)
     const app = express()
     app.use(bodyParser.json())
 
@@ -80,18 +113,20 @@ class HttpAuth extends LogTrait {
     app.set('views', './views')
     app.set('view engine', 'pug')
 
+    app.use(sessionStore(this.config))
+    app.use(csrfProtection(errorFunc))
+
     const pathRouter = express.Router()
     app.use(this.config.path, pathRouter)
 
-    addIfAvailable(
-      pathRouter.get.bind(pathRouter), '/version', createVersionEndpoint(this.config.version)
-    )
+    addIfAvailable(pathRouter.get.bind(pathRouter), '/version', createVersionEndpoint(this.config.version))
     addIfAvailable(pathRouter.use.bind(pathRouter), '/', this.getRouter())
-    return app
-  }
 
-  getRouter () {
-    throw new Error('missing getRouter() implementation')
+    app.use((err, req, res, next) => {
+      this.errorLog(`ERROR: ${err.message}`, err)
+      res.status(500).end()
+    })
+    return app
   }
 
   stop () {
