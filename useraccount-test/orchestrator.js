@@ -18,10 +18,7 @@ const services = {
   uas: new UserAccountService(serviceConfig)
 }
 
-const start = () => {
-  process.env.TESTING = true
-  return services.uas.start()
-}
+const start = () => services.uas.start()
 
 const stop = () => services.uas.stop()
 
