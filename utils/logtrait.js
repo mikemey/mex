@@ -1,17 +1,28 @@
+
+const categoryLog = category => msg => {
+  console.log(`[${category}] ${msg}`)
+}
+
 class LogTrait {
   constructor (category) {
-    this.category = category || this.constructor.name
+    this.categoryLog = categoryLog(category || this.constructor.name)
     this.debug = false
   }
 
   log (msg, obj) {
     if (this.debug) {
-      console.log(`[${this.category}] ${msg}`)
+      this.categoryLog(msg)
       if (obj) { console.log(obj) }
     }
   }
 
-  errorLog (err) { console.log(err) }
+  errorLog (err) {
+    if (typeof err === 'string' || err instanceof String) {
+      this.categoryLog(err)
+    } else {
+      console.log(err)
+    }
+  }
 }
 
 module.exports = LogTrait

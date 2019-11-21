@@ -77,15 +77,18 @@ class WSAuth extends LogTrait {
         const message = JSON.stringify(response)
         return ws.send(message, isBinary)
       })
-      .then(sendResult => {
+      .then(sendResultOk => {
         const buffered = ws.getBufferedAmount()
-        this.log(`send result: ${sendResult}, backpressure: ${buffered}`)
-        if (buffered > 0) { throw new Error('deal with backpressure!') }
-        if (data.closeConnection) {
-          this.log('closing connection')
-          return ws.end()
-        }
+        this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
+        if (!sendResultOk) { this.sendingError('send result NOK', ws.close.bind(ws)) }
+        if (buffered > 0) { this.sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }
+        if (data.closeConnection) { this.sendingError('closing connection', ws.end.bind(ws)) }
       })
+  }
+
+  sendingError (message, closeWs) {
+    this.errorLog(message)
+    closeWs()
   }
 
   received (request) { return Promise.resolve(request) }
