@@ -5,6 +5,7 @@ logs
 
 **/node_modules
 **/*scratch
+cypress
 
 .idea
 *.iml
