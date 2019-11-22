@@ -1,4 +1,4 @@
-const orchestrator = require('./orchestrator')
+const orchestrator = require('../orchestrator')
 
 describe('UserAccount register', () => {
   before(() => orchestrator.start())
