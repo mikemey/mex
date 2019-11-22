@@ -8,7 +8,7 @@ class WSAuth extends LogTrait {
     this.listenSocken = null
     this.path = config.path
     this.port = config.port
-    this.authorizedKeys = config.authorizedKeys
+    this.authorizedTokens = config.authorizedTokens
   }
 
   start () {
@@ -17,7 +17,7 @@ class WSAuth extends LogTrait {
         maxPayloadLength: 4 * 1024,
         open: (ws, req) => {
           const authToken = req.getHeader('x-auth-token')
-          if (!this.authorizedKeys.includes(authToken)) {
+          if (!this.authorizedTokens.includes(authToken)) {
             this.log('authorization failed, closing socket')
             return ws.close()
           }

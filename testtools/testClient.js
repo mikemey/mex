@@ -9,7 +9,7 @@ class TestClient {
     this.wssconfig = {
       path: '/test',
       port: 12001,
-      authorizedKeys: [testToken]
+      authorizedTokens: [testToken]
     }
     this.headers = { 'X-AUTH-TOKEN': testToken }
   }

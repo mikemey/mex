@@ -25,7 +25,7 @@ describe('Websocket authorization', () => {
     it('when no access token', () => expectSocketHangup({}))
 
     it('when no invalid token', () => expectSocketHangup(
-      { 'X-AUTH-TOKEN': svcConfig.authorizedKeys[0] + 'x' }
+      { 'X-AUTH-TOKEN': svcConfig.authorizedTokens[0] + 'x' }
     ))
 
     it('when incorrect path', () => expectSocketHangup(undefined, svcConfig.path + 'x'))
