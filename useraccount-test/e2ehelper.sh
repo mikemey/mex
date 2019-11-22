@@ -105,17 +105,17 @@ function wait_for_server () {
   server_baseUrl=$(extract_from_output "$server_baseurl_re")
   pid=$(extract_from_output "${server_pid_re}")
   check_is_number "$pid" "server not started! got:\n$pid"
-  [[ ${exit_code} ]] && return
+  [[ ${exit_code} -ne 0 ]] && return
 
-  printf "waiting for process ${pid} @ ${server_baseUrl}): "
+  printf "waiting for pid [${pid}] at ${server_baseUrl} "
   while [[ ${server_startup_retries} > 0 && `curl -s -o /dev/null -w "%{http_code}" ${server_baseUrl}` == "000" ]]; do
-    sleep 1.3
+    sleep 0.2
     printf "$server_startup_retries "
     server_startup_retries=`expr ${server_startup_retries} - 1`
   done
 
   if [[ ${server_startup_retries} > 0 ]]; then
-    echo "server started"
+    echo "... started"
   else
     error_message "server NOT running!"
   fi
@@ -135,4 +135,4 @@ function error_message () {
 }
 
 main
-exit ${exit_code}
+exit "$exit_code"
