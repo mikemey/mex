@@ -1,3 +1,4 @@
+const should = require('chai').should()
 const { TestClient, trand } = require('../testtools')
 
 const { WSAuth } = require('../security')
@@ -47,6 +48,36 @@ describe('Websocket authorization', () => {
         err.message.should.equal(`failed to listen on port ${svcConfig.port}`)
       })
     )
+
+    const allowedConfig = { path: '/test-123', port: 18000, authorizedTokens: ['a-token'] }
+    const configWith = (overwrite, expectedMessage) => {
+      const errconfig = Object.assign({}, allowedConfig, overwrite)
+      return checkConfigError(errconfig, expectedMessage)
+    }
+
+    const configWithout = (deleteField, expectedMessage) => {
+      const errconfig = Object.assign({}, allowedConfig)
+      delete errconfig[deleteField]
+      return checkConfigError(errconfig, expectedMessage)
+    }
+
+    const checkConfigError = (errconfig, expectedMessage) => {
+      try {
+        new WSAuth(errconfig).start()
+        should.fail('expected error')
+      } catch (err) {
+        err.message.should.equal(expectedMessage)
+      }
+    }
+
+    it('path required', () => configWithout('path', '"path" is required'))
+    it('path invalid', () => configWith({ path: '12345678901' }, '"path" not valid'))
+    it('port required', () => configWithout('port', '"port" is required'))
+    it('port not valid', () => configWith({ port: '70123' }, '"port" must be a valid port'))
+    it('authorizedTokens required', () => configWithout('authorizedTokens', '"authorizedTokens" is required'))
+    it('authorizedTokens not an array', () => configWith({ authorizedTokens: 'lala' }, '"authorizedTokens" must be an array'))
+    it('authorizedTokens contains non-string', () =>
+      configWith({ authorizedTokens: ['lala', 3] }, '"authorizedTokens[1]" must be a string'))
   })
 })
 

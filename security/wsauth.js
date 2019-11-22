@@ -1,23 +1,37 @@
 const uws = require('uWebSockets.js')
+const Joi = require('@hapi/joi')
 
 const { LogTrait, wsmessages } = require('../utils')
+
+const configSchema = Joi.object({
+  port: Joi.number().port().required(),
+  path: Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/)
+    .rule({ message: '"path" not valid' }).required(),
+  authorizedTokens: Joi.array().items(Joi.string()).required()
+})
+
+const validateConfig = config => {
+  const validation = configSchema.validate(config)
+  if (validation.error) {
+    throw new Error(validation.error.message)
+  }
+}
 
 class WSAuth extends LogTrait {
   constructor (config) {
     super()
     this.listenSocken = null
-    this.path = config.path
-    this.port = config.port
-    this.authorizedTokens = config.authorizedTokens
+    this.config = config
   }
 
   start () {
+    validateConfig(this.config)
     return new Promise((resolve, reject) => {
-      uws.App({}).ws(this.path, {
+      uws.App({}).ws(this.config.path, {
         maxPayloadLength: 4 * 1024,
         open: (ws, req) => {
           const authToken = req.getHeader('x-auth-token')
-          if (!this.authorizedTokens.includes(authToken)) {
+          if (!this.config.authorizedTokens.includes(authToken)) {
             this.log('authorization failed, closing socket')
             return ws.close()
           }
@@ -30,13 +44,13 @@ class WSAuth extends LogTrait {
         close: (ws, code, message) => {
           this.log('socket closed')
         }
-      }).listen(this.port, socket => {
+      }).listen(this.config.port, socket => {
         if (socket) {
-          this.log(`listening on port ${this.port}`)
+          this.log(`listening on port ${this.config.port}`)
           this.listenSocket = socket
           resolve()
         } else {
-          const msg = `failed to listen on port ${this.port}`
+          const msg = `failed to listen on port ${this.config.port}`
           this.log(msg)
           reject(Error(msg))
         }
