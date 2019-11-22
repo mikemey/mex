@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 
 const { HTTPAuth } = require('../security')
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
@@ -13,6 +14,11 @@ class UserAccountService extends HTTPAuth {
 
     process.on('SIGTERM', this.stop.bind(this))
     process.on('SIGINT', () => this.stop.bind(this))
+  }
+
+  setupApp (app) {
+    app.set('views', path.join(__dirname, '/views'))
+    app.set('view engine', 'pug')
   }
 
   addRoutes (router) {

@@ -117,8 +117,6 @@ class HttpAuth extends LogTrait {
     const suppressList = this.config.suppressRequestLog.map(entry => `${this.config.path}${entry}`)
     app.use(requestLogger(suppressList))
     this.setupApp(app)
-    app.set('views', './viewsold')
-    app.set('view engine', 'pug')
 
     app.use(sessionStore(this.config))
     app.use(csrfProtection(errorFunc))
