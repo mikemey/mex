@@ -1,5 +1,4 @@
 const cookie = require('cookie')
-const express = require('express')
 const chai = require('chai')
 const should = chai.should()
 chai.use(require('chai-http'))
@@ -24,8 +23,7 @@ describe('HTTP authorization', () => {
       this.testFailEndpoint = '/fail'
     }
 
-    getRouter () {
-      const router = express.Router()
+    addRoutes (router) {
       router.get(this.testEndpoint, (_, res) => res.send(this.testResponse))
       router.post(this.testEndpoint, (_, res) => res.send(this.testResponse))
       router.get(this.testFailEndpoint, (_, res) => {
@@ -33,7 +31,6 @@ describe('HTTP authorization', () => {
         delete err.stack
         throw err
       })
-      return router
     }
   }
 

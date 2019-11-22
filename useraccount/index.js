@@ -1,5 +1,4 @@
 const fs = require('fs')
-const express = require('express')
 
 const { HTTPAuth } = require('../security')
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
@@ -16,10 +15,8 @@ class UserAccountService extends HTTPAuth {
     process.on('SIGINT', () => this.stop.bind(this))
   }
 
-  getRouter () {
-    const router = express.Router()
+  addRoutes (router) {
     router.use('/register', registerRouter())
-    return router
   }
 }
 

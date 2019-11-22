@@ -11,10 +11,7 @@ describe('UserAccount register', () => {
     }
 
     it('has all required fields', () => orchestrator.agent().get('/register')
-      .then(res => {
-        // res.should.have.header('x-csrf-token')
-        return orchestrator.asHtml(res)
-      })
+      .then(res => orchestrator.asHtml(res))
       .then(html => {
         checkField(html('#email'), 'email', 'Email')
         checkField(html('#password'), 'password', 'Password')

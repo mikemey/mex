@@ -74,10 +74,6 @@ const errorLogger = errorFunc => (err, req, res, next) => {
   res.status(500).end()
 }
 
-const addIfAvailable = (routing, path, router) => {
-  if (router) { routing(path, router) }
-}
-
 const createVersionEndpoint = version => {
   const response = `${version} (${moment.utc().toISOString()})`
   return (_, res) => res.send(response)
@@ -90,7 +86,8 @@ class HttpAuth extends LogTrait {
     this.config = config
   }
 
-  getRouter () { throw new Error('missing getRouter() implementation') }
+  setupApp (app) { }
+  addRoutes (router) { throw new Error('missing addRoutes() implementation') }
 
   start () {
     if (this.server) { throw new Error('server already started') }
@@ -119,7 +116,8 @@ class HttpAuth extends LogTrait {
 
     const suppressList = this.config.suppressRequestLog.map(entry => `${this.config.path}${entry}`)
     app.use(requestLogger(suppressList))
-    app.set('views', './views')
+    this.setupApp(app)
+    app.set('views', './viewsold')
     app.set('view engine', 'pug')
 
     app.use(sessionStore(this.config))
@@ -128,8 +126,8 @@ class HttpAuth extends LogTrait {
     const pathRouter = express.Router()
     app.use(this.config.path, pathRouter)
 
-    addIfAvailable(pathRouter.get.bind(pathRouter), '/version', createVersionEndpoint(this.config.version))
-    addIfAvailable(pathRouter.use.bind(pathRouter), '/', this.getRouter())
+    pathRouter.get('/version', createVersionEndpoint(this.config.version))
+    this.addRoutes(pathRouter)
 
     app.use(errorLogger(errorFunc))
     return app

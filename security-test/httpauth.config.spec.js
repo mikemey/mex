@@ -60,7 +60,7 @@ describe('HTTP authorization configuration', () => {
       let serviceFailed = true
       return new NoRouteService().start()
         .then(() => { serviceFailed = false })
-        .catch(err => err.message.should.equal('missing getRouter() implementation'))
+        .catch(err => err.message.should.equal('missing addRoutes() implementation'))
         .finally(() => serviceFailed.should.equal(true, 'expected error'))
     })
   })
