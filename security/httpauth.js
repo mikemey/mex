@@ -11,14 +11,11 @@ const { LogTrait } = require('../utils')
 const SESSION_COOKIE_NAME = 'x-session'
 
 const configSchema = Joi.object({
-  secret: Joi.string().min(12)
-    .rule({ message: '"secret" too short' }).required(),
+  secret: Joi.string().min(12).message('"secret" too short').required(),
   version: Joi.string().required(),
-  interface: Joi.string().ip()
-    .rule({ message: '"interface" not valid' }).required(),
+  interface: Joi.string().ip().message('"interface" not valid').required(),
   port: Joi.number().port().required(),
-  path: Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/)
-    .rule({ message: '"path" not valid' }).required(),
+  path: Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/).message('"path" not valid').required(),
   suppressRequestLog: Joi.array().items(Joi.string()).required()
 })
 

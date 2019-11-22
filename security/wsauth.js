@@ -6,7 +6,7 @@ const { LogTrait, wsmessages } = require('../utils')
 const configSchema = Joi.object({
   port: Joi.number().port().required(),
   path: Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/)
-    .rule({ message: '"path" not valid' }).required(),
+    .message('"path" not valid').required(),
   authorizedTokens: Joi.array().items(Joi.string()).required()
 })
 
