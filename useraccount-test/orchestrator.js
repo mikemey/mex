@@ -18,6 +18,10 @@ const services = {
   uas: new UserAccountService(serviceConfig)
 }
 
+const debug = enable => {
+  services.uas.debug = enable
+}
+
 const start = () => services.uas.start()
 
 const stop = () => services.uas.stop()
@@ -26,4 +30,4 @@ const agent = () => chai.request.agent(`http://localhost:${serviceConfig.port}${
 
 const asHtml = res => cheerio.load(res.text)
 
-module.exports = { start, stop, agent, asHtml }
+module.exports = { start, stop, agent, asHtml, debug }

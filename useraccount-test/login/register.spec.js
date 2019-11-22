@@ -1,6 +1,6 @@
 const orchestrator = require('../orchestrator')
 
-describe.only('UserAccount register', () => {
+describe('UserAccount register', () => {
   const agent = orchestrator.agent()
   before(() => orchestrator.start())
   after(() => orchestrator.stop())
@@ -18,6 +18,17 @@ describe.only('UserAccount register', () => {
         checkField(html('#email'), 'email', 'Email')
         checkField(html('#password'), 'password', 'Password')
         checkField(html('#confirmation'), 'password', 'Confirmation')
+      })
+    )
+
+    it('post forwards to login page', () => agent.get('/register')
+      .then(() => agent.post('/register').redirects(false)
+        .send('email=first@email.com')
+        .send('password=supersecret')
+        .send('confirmation=supersecret')
+      ).then(res => {
+        res.should.have.status(303)
+        res.should.have.header('location', /.*login$/)
       })
     )
   })

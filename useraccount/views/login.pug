@@ -1,14 +1,12 @@
 extends layout.pug
 block variables
-  - var page_title = 'registration'
+  - var page_title = 'login'
 
 block content
-  h2 Registration
+  h2 Login
   form(method="POST")
     label(for="email") Email
     input#email(type="email" name="email" placeholder="Email")
     label(for="password") Password
     input#password(type="password" name="password" placeholder="Password")
-    label(for="password-confirm") Password confirmation
-    input#confirmation(type="password" name="confirmation" placeholder="Confirmation")
-    button#register(type="submit") Register
+    button#register(type="submit") Login
