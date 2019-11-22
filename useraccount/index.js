@@ -11,6 +11,9 @@ class UserAccountService extends HTTPAuth {
     const fullConfig = Object.assign(defconfig, config)
     super(fullConfig)
     this.server = null
+
+    process.on('SIGTERM', this.stop.bind(this))
+    process.on('SIGINT', () => this.stop.bind(this))
   }
 
   getRouter () {

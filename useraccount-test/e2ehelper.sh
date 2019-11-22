@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+
+test_dir="${BASH_SOURCE%/*}"
+
+action="$1"
+e2e_output="$test_dir/tmp.out.e2e"
+server_bin="node $test_dir/orchestrator.e2e.js"
+cypress_bin="npx cypress run"
+
+server_startup_retries=10
+server_baseUrl=
+ex_code=0
+
+sed_any_group="\(.*\)"
+sed_number_group="\([0-9]*\)"
+server_baseurl_re="^baseurl=${sed_any_group}$"
+server_pid_re="^pid=${sed_number_group}$"
+
+function print_usage () {
+  echo -e "\n usage: $(basename -- $0) [ start | stop ]"
+  echo -e "\nStarts/stops e2e tests"
+  echo -e "\t- service binary: (${server_bin})"
+  echo -e "\t- cypress binary: (${cypress_bin})"
+  echo -e "All outputs are redirected to '${e2e_output}'"
+}
+
+function main () {
+  case "$action" in
+    "start" )
+      start_e2e_infrastructure
+    ;;
+    "stop" )
+      stop_e2e_infrastructure
+    ;;
+    "run" )
+      start_e2e_infrastructure
+      if [[ $server_baseUrl ]]; then
+        pushd . > /dev/null
+        cd $test_dir
+        CYPRESS_baseUrl="$server_baseUrl" ${cypress_bin}
+        popd > /dev/null
+      else
+        echo "ERROR: baseUrl not set, aborting"
+      fi
+      stop_e2e_infrastructure
+    ;;
+    * )
+      print_usage
+      error_message "command not recognized: >$action< \nmust be either '$(basename $0) start' or '$(basename $0) stop'"
+    ;;
+  esac
+}
+
+function start_e2e_infrastructure () {
+  [[ -f "$e2e_output" ]] && \
+      echo "$(basename "$e2e_output") exists, shutting down existing e2e infrastructure..." && \
+      stop_e2e_infrastructure
+  echo "new session $(date)" > "$e2e_output"
+  start_server
+  wait_for_server
+}
+
+function stop_e2e_infrastructure () {
+  [[ ! -f "$e2e_output" ]] && error_message "$e2e_output not found!"
+  kill "$(extract_from_output "$server_pid_re")" && echo "server stopped."
+  rm "$e2e_output"
+  echo "e2e infrastructure stopped."
+}
+
+function start_server () {
+  echo "starting server..."
+  ${server_bin} >> "$e2e_output" 2>&1 &
+}
+
+function wait_for_server () {
+  sleep 1
+  server_baseUrl=$(extract_from_output "$server_baseurl_re")
+  pid=$(extract_from_output "${server_pid_re}")
+  check_is_number "$pid" "server not started! got:\n$pid"
+
+  printf "waiting for process ${pid} @ ${server_baseUrl}): "
+  while [[ ${server_startup_retries} > 0 && `curl -s -o /dev/null -w "%{http_code}" ${server_baseUrl}` == "000" ]]; do
+    sleep 1.3
+    printf "$server_startup_retries "
+    server_startup_retries=`expr ${server_startup_retries} - 1`
+  done
+
+  if [[ ${server_startup_retries} > 0 ]]; then
+    echo "server started"
+  else
+    error_message "server NOT running!"
+  fi
+}
+
+function extract_from_output () {
+  echo `sed -n -e 's/'"$1"'/\1/p' "$e2e_output"`
+}
+
+function check_is_number () {
+  ! [[ "$1" =~ ^[0-9]+$ ]] && error_message "$2"
+}
+
+function error_message () {
+  printf "${FG_LIGHT_RED}\n$*${FG_DEFAULT}\n"
+  exit 1
+}
+
+main; exit

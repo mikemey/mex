@@ -1,0 +1,9 @@
+{
+  "testFiles": "**/*.spec.cy.js",
+  "defaultCommandTimeout": 500,
+  "fixturesFolder": false,
+  "integrationFolder": "",
+  "supportFile": false,
+  "pluginsFile": false,
+  "video": false
+}

@@ -6,7 +6,7 @@ const categoryLog = category => msg => {
 class LogTrait {
   constructor (category) {
     this.categoryLog = categoryLog(category || this.constructor.name)
-    this.debug = false
+    this.debug = process.env.TESTING === undefined
   }
 
   log (msg, obj) {
