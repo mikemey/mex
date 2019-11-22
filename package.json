@@ -18,7 +18,7 @@
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s",
     "~test": "nodemon -x 'npm run alltest -s'",
-    "e2e": "./useraccount-test/e2ehelper.sh run"
+    "e2e": "./useraccount-test/e2ehelper.sh"
   },
   "dependencies": {
     "@hapi/joi": "^16.1.7",

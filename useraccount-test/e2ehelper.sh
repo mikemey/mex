@@ -2,10 +2,25 @@
 
 test_dir="${BASH_SOURCE%/*}"
 
-action="$1"
+command="${1:-run}"
+
+action=
+cypress_cmd="invalid-state"
+if [[ ${command} == "run" ]]; then
+  action="fullrun"
+  cypress_cmd="run"
+fi
+if [[ ${command} == "open" ]]; then
+  action="fullrun"
+  cypress_cmd="open"
+fi
+if [[ -z ${action} ]]; then
+  action="${command}"
+fi
+
 e2e_output="$test_dir/tmp.out.e2e"
 server_bin="node $test_dir/orchestrator.e2e.js"
-cypress_bin="npx cypress run"
+cypress_bin="npx cypress ${cypress_cmd}"
 
 server_startup_retries=10
 server_baseUrl=
@@ -17,10 +32,15 @@ server_baseurl_re="^baseurl=${sed_any_group}$"
 server_pid_re="^pid=${sed_number_group}$"
 
 function print_usage () {
-  echo -e "\n usage: $(basename -- $0) [ start | stop ]"
-  echo -e "\nStarts/stops e2e tests"
-  echo -e "\t- service binary: (${server_bin})"
-  echo -e "\t- cypress binary: (${cypress_bin})"
+  echo -e "\n usage: $(basename -- $0) [ start | stop | run | open ]"
+  echo -e "\nCommands:"
+  echo -e "  start           starts service"
+  echo -e "  stop            stops service"
+  echo -e "  run   (default) runs cypress tests (including start/stop commands)"
+  echo -e "  open            opens cypress UI (including start/stop commands)"
+  echo -e "\nConfigured binaries:"
+  echo -e "  service binary: (${server_bin})"
+  echo -e "  cypress binary: (${cypress_bin})"
   echo -e "All outputs are redirected to '${e2e_output}'"
 }
 
@@ -32,9 +52,9 @@ function main () {
     "stop" )
       stop_e2e_infrastructure
     ;;
-    "run" )
+    "fullrun" )
       start_e2e_infrastructure
-      [[ $exit_code -eq 0 ]] && start_cypress
+      [[ ${exit_code} -eq 0 ]] && start_cypress
       stop_e2e_infrastructure
     ;;
     * )
@@ -64,9 +84,9 @@ function stop_e2e_infrastructure () {
 }
 
 function start_cypress () {
-  if [[ $server_baseUrl ]]; then
+  if [[ ${server_baseUrl} ]]; then
     pushd . > /dev/null
-    cd $test_dir
+    cd ${test_dir}
     CYPRESS_baseUrl="$server_baseUrl" ${cypress_bin}
     exit_code=$?
     popd > /dev/null
@@ -85,7 +105,7 @@ function wait_for_server () {
   server_baseUrl=$(extract_from_output "$server_baseurl_re")
   pid=$(extract_from_output "${server_pid_re}")
   check_is_number "$pid" "server not started! got:\n$pid"
-  [[ $exit_code ]] && return
+  [[ ${exit_code} ]] && return
 
   printf "waiting for process ${pid} @ ${server_baseUrl}): "
   while [[ ${server_startup_retries} > 0 && `curl -s -o /dev/null -w "%{http_code}" ${server_baseUrl}` == "000" ]]; do
@@ -115,4 +135,4 @@ function error_message () {
 }
 
 main
-exit $exit_code
+exit ${exit_code}
