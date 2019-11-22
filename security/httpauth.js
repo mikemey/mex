@@ -80,10 +80,10 @@ const createVersionEndpoint = version => {
 }
 
 class HttpAuth extends LogTrait {
-  constructor (config) {
+  constructor (httpconfig) {
     super()
     this.server = null
-    this.config = config
+    this.httpconfig = httpconfig
   }
 
   setupApp (app) { }
@@ -91,12 +91,12 @@ class HttpAuth extends LogTrait {
 
   start () {
     if (this.server) { throw new Error('server already started') }
-    validateConfig(this.config)
+    validateConfig(this.httpconfig)
 
     return new Promise((resolve, reject) => {
-      const server = this.createServer().listen(this.config.port, this.config.interface, () => {
+      const server = this.createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {
         this.log(`started on port ${server.address().port}`)
-        this.log(`server version: ${this.config.version}`)
+        this.log(`server version: ${this.httpconfig.version}`)
         this.server = server
         resolve(server)
       })
@@ -114,17 +114,17 @@ class HttpAuth extends LogTrait {
     const app = express()
     app.use(bodyParser.json())
 
-    const suppressList = this.config.suppressRequestLog.map(entry => `${this.config.path}${entry}`)
+    const suppressList = this.httpconfig.suppressRequestLog.map(entry => `${this.httpconfig.path}${entry}`)
     app.use(requestLogger(suppressList))
     this.setupApp(app)
 
-    app.use(sessionStore(this.config))
+    app.use(sessionStore(this.httpconfig))
     app.use(csrfProtection(errorFunc))
 
     const pathRouter = express.Router()
-    app.use(this.config.path, pathRouter)
+    app.use(this.httpconfig.path, pathRouter)
 
-    pathRouter.get('/version', createVersionEndpoint(this.config.version))
+    pathRouter.get('/version', createVersionEndpoint(this.httpconfig.version))
     this.addRoutes(pathRouter)
 
     app.use(errorLogger(errorFunc))

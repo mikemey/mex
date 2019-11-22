@@ -1,10 +1,16 @@
 {
-  "secret": "secretsecretsecret",
-  "version": "0.1.0",
-  "interface": "127.0.0.1",
-  "port": 11012,
-  "path": "/useraccounts",
-  "suppressRequestLog": [
-    "/version"
-  ]
+  "httpauth": {
+    "secret": "secretsecretsecret",
+    "version": "0.1.0",
+    "interface": "127.0.0.1",
+    "port": 11012,
+    "path": "/useraccounts",
+    "suppressRequestLog": [
+      "/version"
+    ]
+  },
+  "sessionService": {
+    "url": "",
+    "authToken": ""
+  }
 }
