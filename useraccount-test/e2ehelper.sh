@@ -9,7 +9,7 @@ cypress_bin="npx cypress run"
 
 server_startup_retries=10
 server_baseUrl=
-ex_code=0
+exit_code=0
 
 sed_any_group="\(.*\)"
 sed_number_group="\([0-9]*\)"
@@ -34,14 +34,7 @@ function main () {
     ;;
     "run" )
       start_e2e_infrastructure
-      if [[ $server_baseUrl ]]; then
-        pushd . > /dev/null
-        cd $test_dir
-        CYPRESS_baseUrl="$server_baseUrl" ${cypress_bin}
-        popd > /dev/null
-      else
-        echo "ERROR: baseUrl not set, aborting"
-      fi
+      [[ $exit_code -eq 0 ]] && start_cypress
       stop_e2e_infrastructure
     ;;
     * )
@@ -61,10 +54,25 @@ function start_e2e_infrastructure () {
 }
 
 function stop_e2e_infrastructure () {
-  [[ ! -f "$e2e_output" ]] && error_message "$e2e_output not found!"
+  if [[ ! -f "$e2e_output" ]]; then
+    error_message "session log file not found: $e2e_output"
+    return
+  fi
   kill "$(extract_from_output "$server_pid_re")" && echo "server stopped."
   rm "$e2e_output"
   echo "e2e infrastructure stopped."
+}
+
+function start_cypress () {
+  if [[ $server_baseUrl ]]; then
+    pushd . > /dev/null
+    cd $test_dir
+    CYPRESS_baseUrl="$server_baseUrl" ${cypress_bin}
+    exit_code=$?
+    popd > /dev/null
+  else
+    error_message "ERROR: baseUrl not set, aborting"
+  fi
 }
 
 function start_server () {
@@ -77,6 +85,7 @@ function wait_for_server () {
   server_baseUrl=$(extract_from_output "$server_baseurl_re")
   pid=$(extract_from_output "${server_pid_re}")
   check_is_number "$pid" "server not started! got:\n$pid"
+  [[ $exit_code ]] && return
 
   printf "waiting for process ${pid} @ ${server_baseUrl}): "
   while [[ ${server_startup_retries} > 0 && `curl -s -o /dev/null -w "%{http_code}" ${server_baseUrl}` == "000" ]]; do
@@ -102,7 +111,8 @@ function check_is_number () {
 
 function error_message () {
   printf "${FG_LIGHT_RED}\n$*${FG_DEFAULT}\n"
-  exit 1
+  exit_code=1
 }
 
-main; exit
+main
+exit $exit_code
