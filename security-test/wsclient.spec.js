@@ -33,43 +33,31 @@ describe('Websocket client', () => {
     it('authToken too short', () => withKey({ authToken: '1234567890123456789' }, '"authToken" too short'))
   })
 
-  xdescribe('connection to server', () => {
+  describe('connection to server', () => {
     const port = 12532
     const path = '/mockuasauth'
     const authToken = 'use-this-token-for-the-test'
     const mockServer = new TestServer(port, path)
 
-    // before(() => mockServer.start())
-    // after(() => mockServer.stop())
+    before(() => mockServer.start())
+    after(() => mockServer.stop())
 
     it('uses configured authorization key', () => {
-      const config = { url: `ws://localhost:${port}${path}`, authToken }
-
-      const uas = new WSClient(config)
-      uas.debug = true
-      const wssmock = mockServer(port, path)
-      return wssmock.start()
-        .then(() => uas.start())
-        .then(() => wssmock.received.authTokens.should.include(authToken))
-        .finally(() => {
-          console.log('------ CALLING STOP ON UserAccountService')
-          uas.stop()
-        })
-        .finally(() => {
-          console.log('------ CALLING STOP ON mockServer')
-          wssmock.stop()
-        })
+      const uas = new WSClient({ url: `ws://localhost:${port}${path}`, authToken })
+      return uas.start()
+        .then(() => mockServer.received.authTokens.should.include(authToken))
+        .finally(() => uas.stop())
     })
 
-    it('when down respond with server error', () => {
+    xit('when down respond with server error', () => {
       throw Error('not impl')
     })
 
-    it('connects when server delayed start', () => {
+    xit('connects when server delayed start', () => {
       throw Error('not impl')
     })
 
-    it('reconnects after server restart', () => {
+    xit('reconnects after server restart', () => {
       throw Error('not impl')
     })
   })

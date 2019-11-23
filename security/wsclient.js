@@ -1,3 +1,4 @@
+const WebSocket = require('ws')
 const Joi = require('@hapi/joi')
 
 const { LogTrait } = require('../utils')
@@ -17,15 +18,38 @@ const validateConfig = config => {
 class WSClient extends LogTrait {
   constructor (config) {
     super()
-    this.config = config
+    this.wsconfig = config
+    this.ws = null
+    this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
   }
 
   start () {
-    validateConfig(this.config)
-    return Promise.resolve()
+    validateConfig(this.wsconfig)
+    return new Promise((resolve, reject) => {
+      this.log(`connecting to: ${this.wsconfig.url}`)
+      this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
+
+      this.ws.on('open', () => {
+        this.log('connection established')
+        resolve()
+      })
+      this.ws.on('close', () => {
+        this.log('connection closed')
+        resolve()
+      })
+      this.ws.on('error', reject)
+    })
   }
 
-  stop () { return Promise.resolve() }
+  stop () {
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.log('closing connection')
+        this.ws.close()
+      }
+      this.ws = null
+    }
+  }
 }
 
 module.exports = WSClient

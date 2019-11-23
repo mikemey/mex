@@ -1,6 +1,9 @@
 const uws = require('uWebSockets.js')
-class TestServer {
+const { LogTrait } = require('../utils')
+
+class TestServer extends LogTrait {
   constructor (port, path) {
+    super()
     this.port = port
     this.path = path
     this.received = { authTokens: [] }
@@ -10,12 +13,12 @@ class TestServer {
   start () {
     return new Promise((resolve, reject) => {
       uws.App({}).ws(this.path, {
-        open: (ws, req) => {
-          console.log(`MOCK SERVER connected: ${ws.getRemoteAddress()}`)
+        open: (_, req) => {
+          this.log('incoming connection')
           this.received.authTokens.push(req.getHeader('x-auth-token'))
         }
       }).listen(this.port, socket => {
-        console.log(`MOCK SERVER open: ${this.port}`)
+        this.log(`listening on: ${this.port}`)
         this.listenSocket = socket
         if (socket) { resolve() }
       })
@@ -24,7 +27,7 @@ class TestServer {
 
   stop () {
     return new Promise((resolve, reject) => {
-      console.log('MOCK SERVER stop')
+      this.log('stop')
       if (this.listenSocket) {
         uws.us_listen_socket_close(this.listenSocket)
         this.listenSocket = null
@@ -32,8 +35,6 @@ class TestServer {
       resolve()
     })
   }
-
-  getReceived () { return this.received }
 }
 
 module.exports = TestServer
