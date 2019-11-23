@@ -4,14 +4,16 @@ const { TestServer } = require('../testtools')
 const { WSClient } = require('../security')
 
 describe('Websocket client', () => {
-  const wsclient = config => new WSClient(config)
+  const port = 12345
+  const path = 'testwsclient'
+  const authToken = '12345678901234567890'
+  const defConfig = { url: `ws://localhost:${port}/${path}`, authToken }
+  const defaultClient = (config = defConfig) => new WSClient(config)
 
   describe('configuration checks', () => {
-    const defConfig = { url: 'ws://localhost:1234/test', authToken: '12345678901234567890' }
-
     const checkConfigError = (errconfig, expectedMessage) => {
       try {
-        wsclient(errconfig).start()
+        defaultClient(errconfig).start()
         should.fail('expected error')
       } catch (err) {
         err.message.should.equal(expectedMessage)
@@ -33,32 +35,55 @@ describe('Websocket client', () => {
     it('authToken too short', () => withKey({ authToken: '1234567890123456789' }, '"authToken" too short'))
   })
 
-  describe('connection to server', () => {
-    const port = 12532
-    const path = '/mockuasauth'
-    const authToken = 'use-this-token-for-the-test'
+  describe.only('connection to server', () => {
     const mockServer = new TestServer(port, path)
+    const wsclient = defaultClient()
+    mockServer.debug = true
+    wsclient.debug = true
 
     before(() => mockServer.start())
     after(() => mockServer.stop())
+    afterEach(() => wsclient.stop())
 
-    it('uses configured authorization key', () => {
-      const uas = new WSClient({ url: `ws://localhost:${port}${path}`, authToken })
-      return uas.start()
-        .then(() => mockServer.received.authTokens.should.include(authToken))
-        .finally(() => uas.stop())
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+    it('uses configured authorization key', () => wsclient.start()
+      .then(() => delay(10))
+      .then(() => mockServer.received.authTokens.should.include(authToken))
+    )
+
+    it('when closed - throws Error', () => {
+      wsclient.isReady().should.equal(false)
+      return wsclient.send({})
+        .then(() => { throw new Error('expected error') })
+        .catch(err => { err.message.should.equal('not started') })
     })
 
-    xit('when down respond with server error', () => {
-      throw Error('not impl')
-    })
+    xit('when sending failed - throws Error', () => wsclient.start()
+      .then(() => {
+        wsclient.isReady().should.equal(true)
+        return mockServer.stop()
+      }).then(() => {
+        wsclient.isReady().should.equal(false)
+        return wsclient.send({})
+      }).then(() => { throw new Error('expected error') })
+      .catch(err => err.message.should.equal('disconnected'))
+    )
 
-    xit('connects when server delayed start', () => {
-      throw Error('not impl')
-    })
+    const msg1 = { msg: 1 }
+    const msg2 = { msg: 2 }
+    xit('reconnects after server restart', () => wsclient.start()
+      .then(() => wsclient.send(msg1))
+      .then(() => mockServer.stop())
+      .then(() => wsclient.send({}))
+      .then(() => { throw new Error('expected error') })
+      .catch(err => err.message.should.equal('disconnected'))
+      .then(() => mockServer.start())
+      .then(() => wsclient.send(msg2))
+      .then(() => mockServer.received.messages.should.deep.equal([msg1, msg2]))
+    )
 
-    xit('reconnects after server restart', () => {
-      throw Error('not impl')
-    })
+    xit('recovers from remote socket.close', () => wsclient.start())
+    xit('recovers from remote socket.end', () => wsclient.start())
   })
 })
