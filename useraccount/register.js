@@ -1,6 +1,6 @@
 const express = require('express')
 
-const registerRouter = () => {
+const registerRouter = sessionClient => {
   const router = express.Router()
 
   router.get('/', (_, res) => res.render('register'))

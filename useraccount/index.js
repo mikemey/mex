@@ -2,12 +2,11 @@ const fs = require('fs')
 const path = require('path')
 const Joi = require('@hapi/joi')
 
+const { SessionServiceClient } = require('../session')
+
 const configSchema = Joi.object({
-  httpauth: Joi.object().min(1).message('"httpauth" is required'),
-  sessionService: Joi.object({
-    url: Joi.string().uri(),
-    authToken: Joi.string().min(20).message('"sessionService.authToken" too short')
-  })
+  httpauth: Joi.object().min(1).required(),
+  sessionService: Joi.object().min(1).required()
 })
 
 const validateConfig = config => {
@@ -30,14 +29,20 @@ class UserAccountService extends HTTPAuth {
     super(config.httpauth)
     this.config = config
     this.server = null
-
+    this.sessionClient = new SessionServiceClient(config.sessionService)
     process.on('SIGTERM', this.stop.bind(this))
     process.on('SIGINT', () => this.stop.bind(this))
   }
 
   start () {
     validateConfig(this.config)
-    return super.start()
+    return this.sessionClient.start()
+      .then(() => super.start())
+  }
+
+  stop () {
+    return this.sessionClient.stop()
+      .then(() => super.stop())
   }
 
   setupApp (app) {
@@ -46,7 +51,7 @@ class UserAccountService extends HTTPAuth {
   }
 
   addRoutes (router) {
-    router.use('/register', registerRouter())
+    router.use('/register', registerRouter(this.sessionClient))
     router.use('/login', loginRouter())
   }
 }

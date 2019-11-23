@@ -3,30 +3,26 @@ chai.use(require('chai-http'))
 const cheerio = require('cheerio')
 
 const UserAccountService = require('../useraccount')
-// const { dbconnection } = require('../utils')
 
-// before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
-// after(() => userAccountService.stop().then(() => dbconnection.close()))
+const sessionMockConfig = { path: '/sessionmock', port: 12500 }
 
-const serviceConfig = {
-  path: '/test',
-  port: 12011
+const httpauth = { path: '/test', port: 12011 }
+const sessionService = {
+  url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
+  authToken: 'not-used-in-tests-75678'
 }
-// const dbconfig = { url: 'mongodb://127.0.0.1:27017', name: 'mex-test' }
 
-const services = {
-  uas: new UserAccountService(serviceConfig)
-}
+const service = new UserAccountService({ httpauth, sessionService })
 
 const debug = enable => {
-  services.uas.debug = enable
+  service.debug = enable
 }
 
-const start = () => services.uas.start()
+const start = () => service.start()
 
-const stop = () => services.uas.stop()
+const stop = () => service.stop()
 
-const agent = () => chai.request.agent(`http://localhost:${serviceConfig.port}${serviceConfig.path}`)
+const agent = () => chai.request.agent(`http://localhost:${httpauth.port}${httpauth.path}`)
 
 const asHtml = res => cheerio.load(res.text)
 
