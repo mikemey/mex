@@ -9,14 +9,21 @@ class TestServer extends LogTrait {
     this.port = port
     this.path = path
     this.listenSocket = null
-    this.oneTimeResponsePromise = null
+    this.defaultResponse = { status: 'ok' }
+    this._defaultInterceptors = {
+      responsePromise: Promise.resolve(this.defaultResponse)
+    }
+    this.interceptors = {}
+    this.resetInterceptors()
+  }
+
+  resetInterceptors () {
+    this.interceptors = Object.assign({}, this._defaultInterceptors)
   }
 
   start () {
     this.clients = []
     this.received = { authTokens: [], messages: [] }
-    this.nextResponse = { status: 'ok' }
-    this.oneTimeResponsePromise = null
     return new Promise((resolve, reject) => {
       if (this.listenSocket) {
         return reject(Error('TestServer already started'))
@@ -54,30 +61,21 @@ class TestServer extends LogTrait {
         this.log('received:', req)
         resolve(req)
       } catch (err) { reject(err) }
-    }).then(req => this.responseFor(req))
-      .then(response => {
-        this.log('responding:', response)
-        const message = JSON.stringify(response)
-        return ws.send(message)
-      })
-      .then(sendResultOk => {
-        const buffered = ws.getBufferedAmount()
-        this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
-        if (!sendResultOk || buffered > 0) { throw new Error('TestServer: sending failed') }
-      })
-      .catch(err => {
-        this.log('processing error', err)
-        this._removeClient(ws)
-      })
-  }
-
-  responseFor (request) {
-    this.received.messages.push(request)
-    const responsePromise = this.oneTimeResponsePromise === null
-      ? Promise.resolve(this.nextResponse)
-      : this.oneTimeResponsePromise
-    this.oneTimeResponsePromise = null
-    return responsePromise
+    }).then(request => {
+      this.received.messages.push(request)
+      return this.interceptors.responsePromise
+    }).then(response => {
+      this.log('responding:', response)
+      const message = JSON.stringify(response)
+      return ws.send(message)
+    }).then(sendResultOk => {
+      const buffered = ws.getBufferedAmount()
+      this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
+      if (!sendResultOk || buffered > 0) { throw new Error('TestServer: sending failed') }
+    }).catch(err => {
+      this.log('processing error', err)
+      this._removeClient(ws)
+    })
   }
 
   stop () {

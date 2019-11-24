@@ -54,63 +54,73 @@ describe('Websocket client', () => {
     const wsclient = defaultClient()
 
     beforeEach(() => mockServer.start())
-    afterEach(() => {
-      return wsclient.stop()
-        .then(() => mockServer.stop())
-    })
+    afterEach(() => wsclient.stop().then(() => mockServer.stop()))
 
     const delay = ms => () => new Promise(resolve => setTimeout(resolve, ms))
+    const message = data => { return { mid: data } }
 
-    it('uses configured authorization key', () => wsclient.send({})
+    const canSendResponse = () => {
+      mockServer.resetInterceptors()
+      return wsclient.send(message('hello'))
+        .then(response => {
+          response.should.deep.equal(mockServer.defaultResponse)
+          mockServer.received.messages.should.deep.include(message('hello'))
+        })
+    }
+
+    it('uses configured authorization key', () => wsclient.send(message(0))
       .then(() => mockServer.received.authTokens.should.include(authToken))
     )
 
-    it('can send immediately', () => wsclient.send({})
-      .then(() => wsclient.send({}))
+    it('can resend after stopping', () => wsclient.send(message('i_1'))
+      .then(() => wsclient.send(message('i_2')))
       .then(() => wsclient.stop()).then(delay(10))
-      .then(() => wsclient.send({}))
+      .then(() => wsclient.send(message('i_3')))
       .then(() => mockServer.received.messages.should.have.length(3))
     )
 
-    it('when sending failed - throws Error and tries to reconnect', () => mockServer.stop()
-      .then(() => wsclient.send({}))
+    it('resend after server restart', () => wsclient.send(message('s 1'))
+      .then(() => {
+        mockServer.received.messages.should.deep.equal([message('s 1')])
+        return mockServer.stop()
+      }).then(delay(10))
+      .then(() => mockServer.start())
+      .then(canSendResponse)
+    )
+
+    it('stopped server - throws Error and tries to reconnect', () => mockServer.stop()
+      .then(() => wsclient.send(message('stop 1')))
       .then(() => { throw new Error('expected error') })
       .catch(err => err.message.should.equal('disconnected'))
       .then(() => mockServer.start())
-      .then(reconnectsWhenServerAvailable)
+      .then(canSendResponse)
     )
 
-    it('when response timed out - throws Error and tries to reconnect', () => {
+    it('response times out - throws Error and tries to reconnect', () => {
       wsclient.wsconfig.sendTimeout = 5
-      mockServer.oneTimeResponsePromise = setTimeoutPromise(20).then(() => { return { how: 'isthis' } })
-      return wsclient.send({})
+      mockServer.interceptors.responsePromise = setTimeoutPromise(20).then(() => { return { not: 'this' } })
+      return wsclient.send(message('to 1'))
         .then(() => { throw new Error('expected error') })
         .catch(err => {
+          mockServer.resetInterceptors()
           wsclient.wsconfig.sendTimeout = defConfig.sendTimeout
           err.message.should.equal('response timed out')
         })
-        .then(reconnectsWhenServerAvailable)
+        .then(canSendResponse)
     })
-
-    const testMessage = { hello: 1 }
-    const reconnectsWhenServerAvailable = () => wsclient.send(testMessage)
-      .then(response => {
-        response.should.deep.equal(mockServer.nextResponse)
-        mockServer.received.messages.should.deep.include(testMessage)
-      })
 
     it('multiple clients can connect/reconnect', () => {
       const client2 = defaultClient()
       const client3 = defaultClient()
-      const msg = num => { return { client: num } }
-      const client1Send = () => wsclient.send(msg(1))
-      const client2Send = () => client2.send(msg(2))
-      const client3Send = () => client3.send(msg(3))
+      const client1Send = () => wsclient.send(message(1))
+      const client2Send = () => client2.send(message(2))
+      const client3Send = () => client3.send(message(3))
       return client1Send().then(client3Send)
         .then(() => wsclient.stop()).then(delay(10))
         .then(client2Send).then(client2Send).then(client1Send)
-        .then(() => mockServer.received.messages
-          .should.deep.equal([msg(1), msg(3), msg(2), msg(2), msg(1)]))
+        .then(() => mockServer.received.messages.should.deep.equal(
+          [message(1), message(3), message(2), message(2), message(1)]
+        ))
     })
 
     xit('recovers from remote socket.close', () => wsclient.stop())
