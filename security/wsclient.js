@@ -103,12 +103,16 @@ class WSClient extends LogTrait {
   }
 
   stop () {
-    if (this.ws) {
-      this.log('closing connection')
-      this.ws.close()
-    }
-    this.ws = null
-    return Promise.resolve()
+    return new Promise((resolve, reject) => {
+      if (this.ws) {
+        this.log('closing connection')
+        this.ws.prependOnceListener('close', resolve)
+        this.ws.prependOnceListener('error', resolve)
+        this.ws.close()
+      } else {
+        resolve()
+      }
+    }).finally(() => { this.ws = null })
   }
 }
 

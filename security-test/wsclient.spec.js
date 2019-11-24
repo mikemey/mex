@@ -81,7 +81,7 @@ describe('Websocket client', () => {
 
     it('can resend after stopping', () => wsclient.send(message('i_1'))
       .then(() => wsclient.send(message('i_2')))
-      .then(() => wsclient.stop()).then(delay(10))
+      .then(() => wsclient.stop())
       .then(() => wsclient.send(message('i_3')))
       .then(() => mockServer.received.messages.should.have.length(3))
     )
@@ -119,7 +119,7 @@ describe('Websocket client', () => {
       const client2Send = () => client2.send(message(2))
       const client3Send = () => client3.send(message(3))
       return client1Send().then(client3Send)
-        .then(() => wsclient.stop()).then(delay(10))
+        .then(() => wsclient.stop())
         .then(client2Send).then(client2Send).then(client1Send)
         .then(() => mockServer.received.messages.should.deep.equal(
           [message(1), message(3), message(2), message(2), message(1)]
@@ -152,6 +152,8 @@ describe('Websocket client', () => {
     })
 
     it('clean resend after socket.end after response', () => {
+      mockServer.debug = true
+      wsclient.debug = true
       mockServer.interceptors.afterResponse = ws => ws.end()
       return wsclient.send(message('works out'))
         .then(() => mockServer.resetInterceptors())
