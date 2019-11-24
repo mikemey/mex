@@ -25,7 +25,7 @@ describe('SessionService register', () => {
   after(() => registerSvc.stop().then(() => dbconnection.close()))
   afterEach(() => wsClient.stop())
 
-  const registerReq = (email = trand.randEmail(), password = trand.randPass(), action = 'register') => {
+  const registerReq = ({ email = trand.randEmail(), password = trand.randPass(), action = 'register' } = {}) => {
     return { action, email, password }
   }
 
@@ -49,9 +49,7 @@ describe('SessionService register', () => {
       return wsClient.send(request)
         .then(assertRegisterOk)
         .then(() => model.Credentials.findByUsername(request.email))
-        .then(creds => {
-          creds.email.should.equal(request.email)
-        })
+        .then(creds => creds.email.should.equal(request.email))
     })
 
     it('multiple user', () => {
@@ -60,6 +58,10 @@ describe('SessionService register', () => {
       return wsClient.send(r1).then(assertRegisterOk)
         .then(() => wsClient.send(r2)).then(assertRegisterOk)
     })
+
+    it('password allows special characters', () => wsClient.send(registerReq({
+      password: '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+    })).then(assertRegisterOk))
   })
 
   describe('rejects registration:', () => {
@@ -70,25 +72,23 @@ describe('SessionService register', () => {
     })
 
     it('username not an email', () => {
-      const request = registerReq(trand.randStr(7))
+      const request = registerReq({ email: trand.randStr(7) })
       return expectNokResponse(request, 'email invalid')
     })
 
     it('password too short', () => {
-      const request = registerReq(undefined, trand.randStr(7))
+      const request = registerReq({ password: trand.randStr(7) })
       return expectNokResponse(request, 'password invalid')
     })
 
     it('password too long', () => {
-      const request = registerReq(undefined, trand.randStr(31))
+      const request = registerReq({ password: trand.randStr(51) })
       return expectNokResponse(request, 'password invalid')
     })
   })
 
   describe('fatal client errors', () => {
-    it('invalid action', () =>
-      expectError(registerReq(undefined, undefined, 'registerX'))
-    )
+    it('invalid action', () => expectError(registerReq({ action: 'registerX' })))
 
     it('additional request parameters', () => {
       const req = registerReq()

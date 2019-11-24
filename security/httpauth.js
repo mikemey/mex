@@ -6,25 +6,18 @@ const moment = require('moment')
 const morgan = require('morgan')
 const Joi = require('@hapi/joi')
 
-const { LogTrait } = require('../utils')
+const { LogTrait, Validator } = require('../utils')
 
 const SESSION_COOKIE_NAME = 'x-session'
 
 const configSchema = Joi.object({
-  secret: Joi.string().min(12).message('"secret" too short').required(),
+  secret: Validator.secretToken('secret'),
   version: Joi.string().required(),
   interface: Joi.string().ip().message('"interface" not valid').required(),
   port: Joi.number().port().required(),
-  path: Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/).message('"path" not valid').required(),
-  suppressRequestLog: Joi.array().items(Joi.string()).required()
+  path: Validator.path,
+  suppressRequestLog: Joi.array().items(Validator.path.optional()).required()
 })
-
-const validateConfig = config => {
-  const validation = configSchema.validate(config)
-  if (validation.error) {
-    throw new Error(validation.error.message)
-  }
-}
 
 const sessionStore = config => cookieSession({
   name: SESSION_COOKIE_NAME,
@@ -88,7 +81,7 @@ class HttpAuth extends LogTrait {
 
   start () {
     if (this.server) { throw new Error('server already started') }
-    validateConfig(this.httpconfig)
+    Validator.oneTimeValidation(configSchema, this.httpconfig)
 
     return new Promise((resolve, reject) => {
       const server = this.createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {

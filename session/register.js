@@ -1,7 +1,7 @@
 const Joi = require('@hapi/joi')
 
 const { WSAuth } = require('../security')
-const { errors, wsmessages } = require('../utils')
+const { errors, wsmessages, Validator } = require('../utils')
 const ClientError = errors.ClientError
 const { Credentials } = require('./model')
 
@@ -12,34 +12,22 @@ const responses = wsmessages.withAction(ACT_REGISTER)
 
 const requestSchema = Joi.object({
   action: Joi.string().valid(ACT_REGISTER).required(),
-  email: Joi.string()
-    .email({ minDomainSegments: 2 })
-    .rule({ message: 'email invalid', warn: true })
-    .required(),
-  password: Joi.string()
-    .pattern(/^[a-zA-Z0-9]{8,30}$/)
-    .rule({ message: 'password invalid', warn: true })
-    .required()
+  email: Validator.email({ warn: true }),
+  password: Validator.password({ warn: true })
 })
-
-const validateMessage = msg => {
-  const result = requestSchema.validate(msg)
-  if (result.error) {
-    throw new ClientError('invalid request', wsmessages.error('invalid request'))
-  }
-  if (result.warning) {
-    throw new ClientError(result.warning.message, responses.nok(result.warning.message), false)
-  }
-}
 
 class RegisterService extends WSAuth {
   constructor (wssconfig) {
     super(wssconfig)
     this.users = []
+    this.requestCheck = Validator.createCheck(requestSchema, {
+      onError: () => { throw new ClientError('invalid request', wsmessages.error('invalid request')) },
+      onWarning: message => { throw new ClientError(message, responses.nok(message), false) }
+    })
   }
 
   received (message) {
-    validateMessage(message)
+    this.requestCheck(message)
     return Credentials.register({ email: message.email }, message.password)
       .then(() => responses.ok())
       .catch(err => {

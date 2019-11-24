@@ -7,7 +7,7 @@ const { HTTPAuth } = require('../security')
 
 describe('HTTP authorization', () => {
   const config = {
-    secret: '123456789012',
+    secret: '12345678901234567890',
     port: 12012,
     path: '/testhttpauth',
     version: 'test-123',

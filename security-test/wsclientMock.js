@@ -68,7 +68,6 @@ class WSClientMock extends LogTrait {
       this.log('sending:', request)
       const message = JSON.stringify(request)
       this.ws.send(message, err => {
-        console.log('ws.send CALLBACK')
         if (err) {
           this.log('sending error:', err)
           reject(err)
@@ -77,7 +76,6 @@ class WSClientMock extends LogTrait {
         }
       })
       if (this.interceptors.afterSendAction) {
-        console.log('running afterSendAction')
         this.log('running afterSendAction')
         this.interceptors.afterSendAction(this.ws)
       }

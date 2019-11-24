@@ -1,21 +1,13 @@
 const uws = require('uWebSockets.js')
 const Joi = require('@hapi/joi')
 
-const { LogTrait, wsmessages } = require('../utils')
+const { LogTrait, Validator, wsmessages } = require('../utils')
 
 const configSchema = Joi.object({
   port: Joi.number().port().required(),
-  path: Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/)
-    .message('"path" not valid').required(),
-  authorizedTokens: Joi.array().items(Joi.string()).required()
+  path: Validator.path,
+  authorizedTokens: Joi.array().items(Validator.secretToken('authorizedToken')).required()
 })
-
-const validateConfig = config => {
-  const validation = configSchema.validate(config)
-  if (validation.error) {
-    throw new Error(validation.error.message)
-  }
-}
 
 class WSAuth extends LogTrait {
   constructor (config) {
@@ -25,7 +17,7 @@ class WSAuth extends LogTrait {
   }
 
   start () {
-    validateConfig(this.config)
+    Validator.oneTimeValidation(configSchema, this.config)
     return new Promise((resolve, reject) => {
       uws.App({}).ws(this.config.path, {
         maxPayloadLength: 4 * 1024,

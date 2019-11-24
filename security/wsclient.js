@@ -3,26 +3,19 @@ const Joi = require('@hapi/joi')
 const util = require('util')
 const setTimeoutPromise = util.promisify(setTimeout)
 
-const { LogTrait } = require('../utils')
+const { LogTrait, Validator } = require('../utils')
 
 const configSchema = Joi.object({
   url: Joi.string().uri().required(),
-  authToken: Joi.string().min(20).message('"authToken" too short').required(),
+  authToken: Validator.secretToken('authToken'),
   timeout: Joi.number().min(20).max(2000).required()
 })
-
-const validateConfig = config => {
-  const validation = configSchema.validate(config)
-  if (validation.error) {
-    throw new Error(validation.error.message)
-  }
-}
 
 class WSClient extends LogTrait {
   constructor (config) {
     super()
     this.wsconfig = config
-    validateConfig(this.wsconfig)
+    Validator.oneTimeValidation(configSchema, this.wsconfig)
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
   }

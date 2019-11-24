@@ -127,7 +127,7 @@ describe('WebsocketServer authorization', () => {
     it('authorizedTokens required', () => configWithout('authorizedTokens', '"authorizedTokens" is required'))
     it('authorizedTokens not an array', () => configWith({ authorizedTokens: 'lala' }, '"authorizedTokens" must be an array'))
     it('authorizedTokens contains non-string', () =>
-      configWith({ authorizedTokens: ['lala', 3] }, '"authorizedTokens[1]" must be a string'))
+      configWith({ authorizedTokens: ['abcdefghijklmnopqrst', 3] }, '"authorizedTokens[1]" must be a string'))
   })
 
   describe('service implementation error', () => {
