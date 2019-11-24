@@ -36,13 +36,11 @@ class UserAccountService extends HTTPAuth {
 
   start () {
     validateConfig(this.config)
-    return this.sessionClient.start()
-      .then(() => super.start())
+    return super.start()
   }
 
   stop () {
-    return this.sessionClient.stop()
-      .then(() => super.stop())
+    return super.stop()
   }
 
   setupApp (app) {

@@ -1,14 +1,14 @@
 const WebSocket = require('ws')
 const Joi = require('@hapi/joi')
-
 const util = require('util')
-const setImmediatePromise = util.promisify(setImmediate)
+const setTimeoutPromise = util.promisify(setTimeout)
 
 const { LogTrait } = require('../utils')
 
 const configSchema = Joi.object({
   url: Joi.string().uri().required(),
-  authToken: Joi.string().min(20).message('"authToken" too short').required()
+  authToken: Joi.string().min(20).message('"authToken" too short').required(),
+  sendTimeout: Joi.number().min(20).max(2000).required()
 })
 
 const validateConfig = config => {
@@ -22,57 +22,94 @@ class WSClient extends LogTrait {
   constructor (config) {
     super()
     this.wsconfig = config
+    validateConfig(this.wsconfig)
     this.ws = null
-    this.checkInterval = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
   }
 
-  start () {
-    validateConfig(this.wsconfig)
-    // this.checkInterval = setInterval(() => {
-    //   console.log(`${__filename}`, new Date())
-    // }, 1)
-    // this.checkInterval.unref()
-    return setImmediatePromise().then(() => this.checkConnection())
+  _isConnected () {
+    if (this.ws === null) return Promise.resolve(false)
+    switch (this.ws.readyState) {
+      case WebSocket.CLOSED:
+        return Promise.resolve(false)
+      case WebSocket.CLOSING:
+      case WebSocket.CONNECTING:
+        return setTimeoutPromise(1).then(() => this._isOpen(this.ws))
+      case WebSocket.OPEN:
+        return Promise.resolve(true)
+      default: throw new Error(`unexpected WebSocket state [${this.ws.readyState}]`)
+    }
   }
 
-  checkConnection () {
-    if (this.isReady()) { return }
-    this.connect()
-  }
-
-  connect () {
-    this.log(`connecting to: ${this.wsconfig.url}`)
-    this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
-    this.ws.on('open', () => this.log('connection established'))
-    this.ws.on('close', (code, reason) => {
-      this.log(`connection closed [${code}]: ${reason}`)
-      this.ws = null
-    })
-    this.ws.on('error', error => {
-      this.log('connection error', error)
-      this.ws = null
-    })
-  }
-
-  send () {
+  _openConnection () {
     return new Promise((resolve, reject) => {
-      if (!this.checkInterval) { reject(Error('not started')) }
-      resolve()
+      this.log(`connecting to: ${this.wsconfig.url}`)
+      this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
+      this.ws.prependOnceListener('open', () => {
+        this.log('connection established')
+        resolve()
+      })
+      this.ws.prependOnceListener('close', (code, reason) => {
+        this.log(`connection closed [${code}] (${reason})`)
+        this.ws = null
+      })
+      this.ws.prependOnceListener('unexpected-response', (req, res) => {
+        this.log('connection unexpected-response')
+      })
+      this.ws.prependOnceListener('error', error => {
+        reject(error)
+        this.ws = null
+      })
+    }).catch(err => {
+      this.log(err.message)
+      this.ws = null
+      throw new Error('disconnected')
+    })
+  }
+
+  send (request) {
+    return this._isConnected()
+      .then(isOpen => isOpen || this._openConnection())
+      .then(() => this._requestResponse(request))
+  }
+
+  _requestResponse (request) {
+    return new Promise((resolve, reject) => {
+      if (this.ws === null) { return reject(Error('disconnected')) }
+
+      const responseTimeout = setTimeout(() => {
+        this.log('response timed out')
+        this.ws.removeAllListeners('message')
+        reject(Error('response timed out'))
+      }, this.wsconfig.sendTimeout)
+
+      this.ws.prependOnceListener('message', raw => {
+        clearTimeout(responseTimeout)
+        this.log(`received: [${raw}]`)
+        resolve(JSON.parse(raw))
+      })
+
+      this.log('sending:', request)
+      const message = JSON.stringify(request)
+      this.ws.send(message, err => {
+        if (err) {
+          this.log('sending error:', err)
+          reject(err)
+        } else {
+          this.log('sending done')
+        }
+      })
     })
   }
 
   stop () {
-    if (this.checkInterval) { clearInterval(this.checkInterval) }
-    if (this.isReady()) {
+    if (this.ws) {
       this.log('closing connection')
       this.ws.close()
     }
     this.ws = null
-    this.checkInterval = null
+    return Promise.resolve()
   }
-
-  isReady () { return this.ws !== null && this.ws.readyState === WebSocket.OPEN }
 }
 
 module.exports = WSClient
