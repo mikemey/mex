@@ -8,7 +8,7 @@ describe('SessionService register', () => {
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
   }
-  const registerSvc = new RegisterService(testClient.wssconfig)
+  const registerSvc = new RegisterService(testClient.getWssConfig())
 
   before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
     .then(() => model.Credentials.deleteMany())
