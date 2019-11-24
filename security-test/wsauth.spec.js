@@ -1,55 +1,101 @@
 const should = require('chai').should()
 const { TestClient, trand } = require('../testtools')
 
-const { WSAuth } = require('../security')
+const { WSAuth, WSClient } = require('../security')
 
-describe('Websocket authorization', () => {
-  const testClient = new TestClient()
-  const svcConfig = testClient.getWssConfig()
-  const wsauth = new WSAuth(svcConfig)
+describe('WebsocketServer authorization', () => {
+  const port = 12001
+  const path = '/wsauth-test'
+  const testToken = 'wsauth-testing-token'
+  const authorizedTokens = [testToken, 'another-testing-token', 'one-more-testing-token']
+  const wsauthConfig = { port, path, authorizedTokens }
 
-  before(() => wsauth.start())
-  after(() => wsauth.stop())
-  afterEach(() => testClient.close())
+  describe('running server', () => {
+    const serverReceived = []
+    const wsauth = new WSAuth(wsauthConfig)
+    wsauth.received = request => {
+      serverReceived.push(request)
+      return Promise.resolve(request)
+    }
+    const testClient = new TestClient(port, path, testToken)
 
-  describe('should allow WS connection', () => {
-    it('when correct access token', () => testClient.connect())
-  })
+    before(() => wsauth.start())
+    after(() => wsauth.stop())
+    afterEach(() => testClient.close())
 
-  describe('should close WS connection', () => {
-    const expectSocketClosed = (request, clientConfigOverride) => () => testClient
-      .connect({}, clientConfigOverride)
-      .then(() => testClient.send(request))
-      .then(() => testClient.isOpen().should.equal(false, 'socket closed'))
+    describe('should allow WS connection', () => {
+      it('when correct access token', () => testClient.connect()
+        .then(() => testClient.isOpen().should.equal(true, 'socket open'))
+      )
 
-    const expectSocketHangup = (wssConfigOverride, clientConfigOverride) => () =>
-      testClient.connect(wssConfigOverride, clientConfigOverride)
+      it('multiple WSClients can send/receive', () => {
+        const url = `ws://localhost:${port}${path}`
+        const timeout = 200
+        const client1 = new WSClient({ url, timeout, authToken: authorizedTokens[0] })
+        const client2 = new WSClient({ url, timeout, authToken: authorizedTokens[1] })
+        const client3 = new WSClient({ url, timeout, authToken: authorizedTokens[2] })
+
+        const send = (client, count) => () => client.send({ count }).then(result => result.should.deep.equal({ count }))
+        const stop = client => () => client.stop()
+        return Promise.all([
+          send(client1, 100)(), send(client2, 10)(), send(client3, 1)()
+        ]).then(() => Promise.all([
+          client1._isConnected().then(res => res.should.equal(true)),
+          client2._isConnected().then(res => res.should.equal(true)),
+          client3._isConnected().then(res => res.should.equal(true))
+        ])).then(() => Promise.all([
+          send(client1, 200)().then(send(client1, 300)).then(stop(client1)).then(send(client1, 100)),
+          stop(client2)().then(send(client2, 10)).then(stop(client2)).then(send(client2, 20)).then(send(client2, 30)),
+          send(client3, 3)().then(send(client3, 2)).then(send(client3, 1))
+        ])).then(() => {
+          const actualSum = serverReceived.map(req => req.count).reduce((a, b) => a + b, 0)
+          actualSum.should.equal(777)
+        }).finally(() => Promise.all([stop(client1)(), stop(client2)(), stop(client3)()]))
+      })
+    })
+
+    describe('should close WS connection', () => {
+      const expectSocketHangup = wssConfigOverride => testClient.connect(wssConfigOverride)
         .then(() => { throw new Error('expected websocket to close') })
-        .catch(err => {
-          err.message.should.equal('socket hang up')
-        })
+        .catch(err => err.message.should.equal('socket hang up'))
+        .finally(() => testClient.resetInterceptors())
 
-    it('when no access token', expectSocketHangup({}, { headers: {} }))
+      const expectSocketClosed = request => testClient.connect()
+        .then(() => testClient.send(request))
+        .then(() => testClient.isOpen().should.equal(false, 'socket closed'))
+        .finally(() => testClient.resetInterceptors())
 
-    it('when invalid token', expectSocketHangup({}, {
-      headers: { 'X-AUTH-TOKEN': svcConfig.authorizedTokens[0] + 'x' }
-    }))
+      it('when no access token', () => {
+        testClient.interceptors.headers = {}
+        return expectSocketHangup()
+      })
 
-    it('when incorrect path', expectSocketHangup({ path: svcConfig.path + 'x' }))
+      it('when invalid token', () => {
+        testClient.interceptors.headers = { 'X-AUTH-TOKEN': testToken + 'x' }
+        return expectSocketHangup()
+      })
 
-    it('when payload too large', expectSocketClosed({ action: trand.randStr(4 * 1024) }))
+      it('when incorrect path', () => expectSocketHangup({ path: wsauthConfig.path + 'x' }))
 
-    it('when sender closes socket immediately', expectSocketClosed({ msg: 1 },
-      { afterSendAction: ws => ws.close() }
-    ))
+      it('when payload too large', () => expectSocketClosed({ action: trand.randStr(4 * 1024) }))
+
+      it('when sender closes socket immediately', () => {
+        testClient.interceptors.afterSendAction = ws => ws.close()
+        return expectSocketClosed({ msg: 1 })
+      })
+    })
   })
 
-  describe('server start error', () => {
+  describe('server configuration/usage error', () => {
+    const wsauth = new WSAuth(wsauthConfig)
+
     it('when already running', () => wsauth.start()
+      .then(() => wsauth.start())
       .then(() => { throw new Error('expected error') })
       .catch(err => {
-        err.message.should.equal(`failed to listen on port ${svcConfig.port}`)
+        err.message.should.equal(`failed to listen on port ${wsauthConfig.port}`)
       })
+      .finally(() => wsauth.stop())
     )
 
     const allowedConfig = { path: '/test-123', port: 18000, authorizedTokens: ['a-token'] }
@@ -82,28 +128,28 @@ describe('Websocket authorization', () => {
     it('authorizedTokens contains non-string', () =>
       configWith({ authorizedTokens: ['lala', 3] }, '"authorizedTokens[1]" must be a string'))
   })
-})
 
-describe('Service implementation', () => {
-  const testClient = new TestClient()
-  class FailingService extends WSAuth {
-    received (_) {
-      return Promise.reject(Error('test-error'))
+  describe('service implementation error', () => {
+    const testClient = new TestClient(port, path, testToken)
+    class FailingService extends WSAuth {
+      received (_) {
+        return Promise.reject(Error('test-error'))
+      }
     }
-  }
 
-  const failService = new FailingService(testClient.getWssConfig())
-  before(() => failService.start())
-  after(() => failService.stop())
-  beforeEach(() => testClient.connect())
-  afterEach(() => testClient.close())
+    const failService = new FailingService(wsauthConfig)
+    before(() => failService.start())
+    after(() => failService.stop())
+    beforeEach(() => testClient.connect())
+    afterEach(() => testClient.close())
 
-  it('processing failure should result in error response', () => {
-    const request = { action: 'test' }
-    return testClient.send(request)
-      .then(result => {
-        result.status.should.equal('error')
-        result.message.should.deep.equal(request)
-      })
+    it('should respond with error', () => {
+      const request = { action: 'test' }
+      return testClient.send(request)
+        .then(result => {
+          result.status.should.equal('error')
+          result.message.should.deep.equal(request)
+        })
+    })
   })
 })

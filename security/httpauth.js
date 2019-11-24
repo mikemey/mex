@@ -129,9 +129,8 @@ class HttpAuth extends LogTrait {
   }
 
   stop () {
-    if (!this.server) { throw new Error('no server instance available') }
-
-    return new Promise((resolve, reject) => {
+    if (!this.server) { return Promise.resolve() }
+    return new Promise(resolve => {
       this.log('shutting down...')
       this.server.close(() => {
         this.log('server closed')

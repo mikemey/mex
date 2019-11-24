@@ -8,7 +8,7 @@ const { LogTrait } = require('../utils')
 const configSchema = Joi.object({
   url: Joi.string().uri().required(),
   authToken: Joi.string().min(20).message('"authToken" too short').required(),
-  sendTimeout: Joi.number().min(20).max(2000).required()
+  timeout: Joi.number().min(20).max(2000).required()
 })
 
 const validateConfig = config => {
@@ -77,12 +77,7 @@ class WSClient extends LogTrait {
     return new Promise((resolve, reject) => {
       if (this.ws === null) { return reject(Error('disconnected')) }
 
-      const responseTimeout = setTimeout(() => {
-        this.log('response timed out')
-        if (this.ws) { this.ws.removeAllListeners('message') }
-        reject(Error('response timed out'))
-      }, this.wsconfig.sendTimeout)
-
+      const responseTimeout = this._createTimeout(reject, 'response timed out')
       this.ws.prependOnceListener('message', raw => {
         clearTimeout(responseTimeout)
         this.log(`received: [${raw}]`)
@@ -103,16 +98,31 @@ class WSClient extends LogTrait {
   }
 
   stop () {
-    return new Promise((resolve, reject) => {
-      if (this.ws) {
-        this.log('closing connection')
-        this.ws.prependOnceListener('close', resolve)
-        this.ws.prependOnceListener('error', resolve)
+    return this._isConnected()
+      .then(isConnected => new Promise((resolve, reject) => {
+        if (!isConnected) { return resolve() }
+        this.log('closing connection...')
+
+        const closeTimeout = this._createTimeout(reject, 'closing timed out')
+        const success = () => {
+          clearTimeout(closeTimeout)
+          this.log('closed')
+          resolve()
+        }
+
+        this.ws.prependOnceListener('close', success)
+        this.ws.prependOnceListener('error', success)
         this.ws.close()
-      } else {
-        resolve()
-      }
-    }).finally(() => { this.ws = null })
+      }))
+      .finally(() => { this.ws = null })
+  }
+
+  _createTimeout (reject, message) {
+    return setTimeout(() => {
+      this.log(message)
+      if (this.ws) { this.ws.removeAllListeners('message') }
+      reject(Error(message))
+    }, this.wsconfig.timeout)
   }
 }
 

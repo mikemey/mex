@@ -1,37 +1,44 @@
 const WebSocket = require('ws')
 
 const { LogTrait } = require('../utils')
-const testToken = 'test-token'
+
+const isConnected = ws => {
+  if (ws === null) return Promise.resolve(false)
+  switch (ws.readyState) {
+    case WebSocket.CLOSED:
+    case WebSocket.CLOSING:
+    case WebSocket.CONNECTING:
+      return Promise.resolve(false)
+    case WebSocket.OPEN:
+      return Promise.resolve(true)
+    default: throw new Error(`unexpected WebSocket state [${ws.readyState}]`)
+  }
+}
 
 class TestClient extends LogTrait {
-  constructor () {
+  constructor (port, path, token) {
     super()
     this.ws = null
-    this.wssconfig = {
-      path: '/test',
-      port: 12001,
-      authorizedTokens: [testToken]
-    }
-    this.testconfig = {
-      headers: { 'X-AUTH-TOKEN': testToken },
+    this.wsconfig = { port, path }
+    this._defaultInterceptors = {
+      headers: { 'X-AUTH-TOKEN': token },
       afterSendAction: null
     }
+    this.interceptors = {}
+    this.resetInterceptors()
   }
 
-  getWssConfig () {
-    return { ...this.wssconfig }
+  resetInterceptors () {
+    this.interceptors = Object.assign({}, this._defaultInterceptors)
   }
 
-  connect (wssConfigOverride, clientConfigOverride) {
-    const connectConfig = Object.assign({}, this.wssconfig, wssConfigOverride)
-    const clientConfig = Object.assign({}, this.testconfig, clientConfigOverride)
+  connect (wsconfigOverride) {
+    const connectConfig = Object.assign({}, this.wsconfig, wsconfigOverride)
 
     return new Promise((resolve, reject) => {
       const url = `ws://localhost:${connectConfig.port}${connectConfig.path}`
       this.log(`connecting to ${url}`)
-      this.ws = new WebSocket(url, { headers: clientConfig.headers })
-      this.ws.afterSendAction = clientConfig.afterSendAction
-
+      this.ws = new WebSocket(url, { headers: this.interceptors.headers })
       this.ws.on('open', () => {
         this.log('connected')
         resolve()
@@ -68,14 +75,41 @@ class TestClient extends LogTrait {
           this.log('sending done')
         }
       })
-      this.log('executing after send action')
-      if (this.ws.afterSendAction) { this.ws.afterSendAction(this.ws) }
+      if (this.interceptors.afterSendAction) {
+        this.log('running afterSendAction')
+        this.interceptors.afterSendAction(this.ws)
+      }
     })
   }
 
   close () {
-    if (this.isOpen()) { this.ws.close() }
-    if (this.ws) { this.ws = null }
+    return isConnected(this.ws)
+      .then(isConnected => new Promise((resolve, reject) => {
+        if (!isConnected) { return resolve() }
+
+        this.log('closing connection...')
+        const closeTimeout = this._createTimeout(reject, 'closing timed out')
+        const success = name => () => {
+          clearTimeout(closeTimeout)
+          this.log(`FINISHED from ${name}`)
+          resolve()
+        }
+        this.ws.prependOnceListener('close', success('close'))
+        this.ws.prependOnceListener('message', success('message'))
+        this.ws.prependOnceListener('error', success('error'))
+        this.ws.prependOnceListener('unexpected-response', success('unexpected-response'))
+
+        this.ws.close()
+      }))
+      .finally(() => { this.ws = null })
+  }
+
+  _createTimeout (reject, message) {
+    return setTimeout(() => {
+      this.log(message)
+      if (this.ws) { this.ws.removeAllListeners() }
+      reject(Error(message))
+    }, 200)
   }
 
   isOpen () {

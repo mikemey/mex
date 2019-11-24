@@ -42,7 +42,7 @@ class WSAuth extends LogTrait {
           this.log(`socket backpressure: ${ws.getBufferedAmount()}`)
         },
         close: (ws, code, message) => {
-          this.log('socket closed')
+          this.log('socket closed log ws.id (new) and code')
         }
       }).listen(this.config.port, socket => {
         if (socket) {
@@ -59,14 +59,16 @@ class WSAuth extends LogTrait {
   }
 
   stop () {
-    if (this.listenSocket) {
-      this.log('shutting down')
-      uws.us_listen_socket_close(this.listenSocket)
-      this.listenSocket = null
-    } else {
-      this.log('already stopped')
-    }
-    return Promise.resolve()
+    return new Promise(resolve => {
+      if (this.listenSocket) {
+        this.log('shutting down')
+        uws.us_listen_socket_close(this.listenSocket)
+        this.listenSocket = null
+      } else {
+        this.log('already stopped')
+      }
+      resolve()
+    })
   }
 
   _processMessage (ws, buffer, isBinary) {

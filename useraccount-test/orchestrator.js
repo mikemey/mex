@@ -10,7 +10,7 @@ const httpauth = { path: '/test', port: 12011 }
 const sessionService = {
   url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
   authToken: 'not-used-in-tests-75678',
-  sendTimeout: 500
+  timeout: 500
 }
 
 const service = new UserAccountService({ httpauth, sessionService })

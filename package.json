@@ -17,7 +17,8 @@
     "alltest": "TESTING=true mocha 'security-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' -r chai/register-should",
     "e2e": "./useraccount-test/e2ehelper.sh",
     "pretest": "npm install",
-    "test": "npm run lint -s && npm run alltest -s && npm run e2e",
+    "test": "npm run lint -s && npm run alltest -s",
+    "stresstest": "ex=0; while [[ $ex -eq 0 ]]; do npm run alltest -s; ex=$?; echo EXITED: $ex; done",
     "~test": "nodemon -x 'npm run alltest -s'"
   },
   "dependencies": {

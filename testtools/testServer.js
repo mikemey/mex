@@ -86,7 +86,7 @@ class TestServer extends LogTrait {
   }
 
   stop () {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       this.log('stop')
       if (this.listenSocket) {
         this.log('closing all sockets...')

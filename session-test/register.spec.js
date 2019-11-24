@@ -4,11 +4,14 @@ const { RegisterService, model } = require('../session')
 const { dbconnection } = require('../utils')
 
 describe('SessionService register', () => {
-  const testClient = new TestClient()
+  const testToken = 'sessionservice-registration'
+  const testConfig = { port: 12021, path: '/registration', authorizedTokens: [testToken] }
+
+  const testClient = new TestClient(testConfig.port, testConfig.path, testToken)
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
   }
-  const registerSvc = new RegisterService(testClient.getWssConfig())
+  const registerSvc = new RegisterService(testConfig)
 
   before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
     .then(() => model.Credentials.deleteMany())

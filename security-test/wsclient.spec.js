@@ -9,8 +9,8 @@ describe('Websocket client', () => {
   const port = 12345
   const path = 'testwsclient'
   const authToken = '12345678901234567890'
-  const sendTimeout = 230
-  const defConfig = { url: `ws://localhost:${port}/${path}`, authToken, sendTimeout }
+  const timeout = 230
+  const defConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout }
   const defaultClient = (config = defConfig) => new WSClient(Object.assign({}, config))
 
   describe('configuration checks', () => {
@@ -38,10 +38,10 @@ describe('Websocket client', () => {
     it('url invalid', () => withKey({ url: 'something-else' }, '"url" must be a valid uri'))
     it('authToken required', () => deleteKey('authToken', '"authToken" is required'))
     it('authToken too short', () => withKey({ authToken: '1234567890123456789' }, '"authToken" too short'))
-    it('sendTimeout required', () => deleteKey('sendTimeout', '"sendTimeout" is required'))
-    it('sendTimeout minimum', () => withKey({ sendTimeout: 19 }, '"sendTimeout" must be larger than or equal to 20'))
-    it('sendTimeout maximum', () => withKey({ sendTimeout: 2001 }, '"sendTimeout" must be less than or equal to 2000'))
-    it('sendTimeout not a number', () => withKey({ sendTimeout: '123x' }, '"sendTimeout" must be a number'))
+    it('timeout required', () => deleteKey('timeout', '"timeout" is required'))
+    it('timeout minimum', () => withKey({ timeout: 19 }, '"timeout" must be larger than or equal to 20'))
+    it('timeout maximum', () => withKey({ timeout: 2001 }, '"timeout" must be less than or equal to 2000'))
+    it('timeout not a number', () => withKey({ timeout: '123x' }, '"timeout" must be a number'))
   })
 
   describe('connection to server', () => {
@@ -72,7 +72,7 @@ describe('Websocket client', () => {
     }
 
     it('wrong URL throws Error when sending', () => expectDisconnected(
-      defaultClient({ url: `ws://localhost:${port + 1}/${path}`, authToken, sendTimeout })
+      defaultClient({ url: `ws://localhost:${port + 1}/${path}`, authToken, timeout })
     ))
 
     it('uses configured authorization key', () => wsclient.send(message(0))
@@ -102,12 +102,12 @@ describe('Websocket client', () => {
     )
 
     it('response times out - throws Error and tries to reconnect', () => {
-      wsclient.wsconfig.sendTimeout = 5
+      wsclient.wsconfig.timeout = 5
       mockServer.interceptors.responsePromise = setTimeoutPromise(20).then(() => { return { not: 'this' } })
       return expectTimeout(wsclient)
         .then(() => {
           mockServer.resetInterceptors()
-          wsclient.wsconfig.sendTimeout = defConfig.sendTimeout
+          wsclient.wsconfig.timeout = defConfig.timeout
         })
         .then(canSendResponse)
     })
@@ -152,8 +152,6 @@ describe('Websocket client', () => {
     })
 
     it('clean resend after socket.end after response', () => {
-      mockServer.debug = true
-      wsclient.debug = true
       mockServer.interceptors.afterResponse = ws => ws.end()
       return wsclient.send(message('works out'))
         .then(() => mockServer.resetInterceptors())
