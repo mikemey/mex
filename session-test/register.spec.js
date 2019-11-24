@@ -1,13 +1,18 @@
-const { TestClient, trand } = require('../testtools')
+const { trand } = require('../testtools')
+const { WSClient } = require('../security')
 
 const { RegisterService, model } = require('../session')
 const { dbconnection } = require('../utils')
 
 describe('SessionService register', () => {
   const testToken = 'sessionservice-registration'
-  const testConfig = { port: 12021, path: '/registration', authorizedTokens: [testToken] }
+  const port = 12021
+  const path = '/session-registration'
+  const url = `ws://localhost:${port}${path}`
+  const testConfig = { port, path, authorizedTokens: [testToken] }
 
-  const testClient = new TestClient(testConfig.port, testConfig.path, testToken)
+  const wsClient = new WSClient({ url, authToken: testToken, timeout: 500 })
+
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
   }
@@ -18,8 +23,7 @@ describe('SessionService register', () => {
     .then(() => registerSvc.start())
   )
   after(() => registerSvc.stop().then(() => dbconnection.close()))
-  beforeEach(() => testClient.connect())
-  afterEach(() => testClient.close())
+  afterEach(() => wsClient.stop())
 
   const registerReq = (email = trand.randEmail(), password = trand.randPass(), action = 'register') => {
     return { action, email, password }
@@ -29,18 +33,20 @@ describe('SessionService register', () => {
     action: 'register', status: 'ok'
   })
 
-  const expectNokResponse = (req, message) => testClient.send(req)
+  const expectNokResponse = (req, message) => wsClient.send(req)
     .then(result => result.should.deep.equal({ action: 'register', status: 'nok', message }))
-    .then(() => testClient.isOpen().should.equal(true, 'open socket'))
+    .then(() => wsClient._isConnected())
+    .then(isConnected => isConnected.should.equal(true, 'open socket'))
 
-  const expectError = req => testClient.send(req)
+  const expectError = req => wsClient.send(req)
     .then(result => result.should.deep.equal({ status: 'error', message: 'invalid request' }))
-    .then(() => testClient.isOpen().should.equal(false, 'closed socket'))
+    .then(() => wsClient._isConnected())
+    .then(isConnected => isConnected.should.equal(false, 'closed socket'))
 
   describe('successful registration', () => {
     it('single user', () => {
       const request = registerReq()
-      return testClient.send(request)
+      return wsClient.send(request)
         .then(assertRegisterOk)
         .then(() => model.Credentials.findByUsername(request.email))
         .then(creds => {
@@ -51,15 +57,15 @@ describe('SessionService register', () => {
     it('multiple user', () => {
       const r1 = registerReq()
       const r2 = registerReq()
-      return testClient.send(r1).then(assertRegisterOk)
-        .then(() => testClient.send(r2)).then(assertRegisterOk)
+      return wsClient.send(r1).then(assertRegisterOk)
+        .then(() => wsClient.send(r2)).then(assertRegisterOk)
     })
   })
 
   describe('rejects registration:', () => {
     it('duplicate user name', () => {
       const request = registerReq()
-      return testClient.send(request).then(assertRegisterOk)
+      return wsClient.send(request).then(assertRegisterOk)
         .then(() => expectNokResponse(request, `duplicate name [${request.email}]`))
     })
 

@@ -1,7 +1,8 @@
 const should = require('chai').should()
-const { TestClient, trand } = require('../testtools')
+const { trand } = require('../testtools')
 
 const { WSAuth, WSClient } = require('../security')
+const WSClientMock = require('./wsclientMock')
 
 describe('WebsocketServer authorization', () => {
   const port = 12001
@@ -17,15 +18,15 @@ describe('WebsocketServer authorization', () => {
       serverReceived.push(request)
       return Promise.resolve(request)
     }
-    const testClient = new TestClient(port, path, testToken)
+    const clientMock = new WSClientMock(port, path, testToken)
 
     before(() => wsauth.start())
     after(() => wsauth.stop())
-    afterEach(() => testClient.close())
+    afterEach(() => clientMock.close())
 
     describe('should allow WS connection', () => {
-      it('when correct access token', () => testClient.connect()
-        .then(() => testClient.isOpen().should.equal(true, 'socket open'))
+      it('when correct access token', () => clientMock.connect()
+        .then(() => clientMock.isOpen().should.equal(true, 'socket open'))
       )
 
       it('multiple WSClients can send/receive', () => {
@@ -55,23 +56,23 @@ describe('WebsocketServer authorization', () => {
     })
 
     describe('should close WS connection', () => {
-      const expectSocketHangup = wssConfigOverride => testClient.connect(wssConfigOverride)
+      const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
         .then(() => { throw new Error('expected websocket to close') })
         .catch(err => err.message.should.equal('socket hang up'))
-        .finally(() => testClient.resetInterceptors())
+        .finally(() => clientMock.resetInterceptors())
 
-      const expectSocketClosed = request => testClient.connect()
-        .then(() => testClient.send(request))
-        .then(() => testClient.isOpen().should.equal(false, 'socket closed'))
-        .finally(() => testClient.resetInterceptors())
+      const expectSocketClosed = request => clientMock.connect()
+        .then(() => clientMock.send(request))
+        .then(() => clientMock.isOpen().should.equal(false, 'socket closed'))
+        .finally(() => clientMock.resetInterceptors())
 
       it('when no access token', () => {
-        testClient.interceptors.headers = {}
+        clientMock.interceptors.headers = {}
         return expectSocketHangup()
       })
 
       it('when invalid token', () => {
-        testClient.interceptors.headers = { 'X-AUTH-TOKEN': testToken + 'x' }
+        clientMock.interceptors.headers = { 'X-AUTH-TOKEN': testToken + 'x' }
         return expectSocketHangup()
       })
 
@@ -80,7 +81,7 @@ describe('WebsocketServer authorization', () => {
       it('when payload too large', () => expectSocketClosed({ action: trand.randStr(4 * 1024) }))
 
       it('when sender closes socket immediately', () => {
-        testClient.interceptors.afterSendAction = ws => ws.close()
+        clientMock.interceptors.afterSendAction = ws => ws.close()
         return expectSocketClosed({ msg: 1 })
       })
     })
@@ -130,7 +131,7 @@ describe('WebsocketServer authorization', () => {
   })
 
   describe('service implementation error', () => {
-    const testClient = new TestClient(port, path, testToken)
+    const clientMock = new WSClientMock(port, path, testToken)
     class FailingService extends WSAuth {
       received (_) {
         return Promise.reject(Error('test-error'))
@@ -140,12 +141,12 @@ describe('WebsocketServer authorization', () => {
     const failService = new FailingService(wsauthConfig)
     before(() => failService.start())
     after(() => failService.stop())
-    beforeEach(() => testClient.connect())
-    afterEach(() => testClient.close())
+    beforeEach(() => clientMock.connect())
+    afterEach(() => clientMock.close())
 
     it('should respond with error', () => {
       const request = { action: 'test' }
-      return testClient.send(request)
+      return clientMock.send(request)
         .then(result => {
           result.status.should.equal('error')
           result.message.should.deep.equal(request)

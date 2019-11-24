@@ -15,7 +15,7 @@ const isConnected = ws => {
   }
 }
 
-class TestClient extends LogTrait {
+class WSClientMock extends LogTrait {
   constructor (port, path, token) {
     super()
     this.ws = null
@@ -68,6 +68,7 @@ class TestClient extends LogTrait {
       this.log('sending:', request)
       const message = JSON.stringify(request)
       this.ws.send(message, err => {
+        console.log('ws.send CALLBACK')
         if (err) {
           this.log('sending error:', err)
           reject(err)
@@ -76,6 +77,7 @@ class TestClient extends LogTrait {
         }
       })
       if (this.interceptors.afterSendAction) {
+        console.log('running afterSendAction')
         this.log('running afterSendAction')
         this.interceptors.afterSendAction(this.ws)
       }
@@ -117,4 +119,4 @@ class TestClient extends LogTrait {
   }
 }
 
-module.exports = TestClient
+module.exports = WSClientMock
