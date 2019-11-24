@@ -40,6 +40,13 @@ describe('Websocket client', () => {
     it('sendTimeout minimum', () => withKey({ sendTimeout: 19 }, '"sendTimeout" must be larger than or equal to 20'))
     it('sendTimeout maximum', () => withKey({ sendTimeout: 2001 }, '"sendTimeout" must be less than or equal to 2000'))
     it('sendTimeout not a number', () => withKey({ sendTimeout: '123x' }, '"sendTimeout" must be a number'))
+
+    it('url misconfigured throws Error when sending', () => defaultClient(
+      { url: `ws://localhost:${port + 1}/${path}`, authToken, sendTimeout }
+    ).send({})
+      .then(() => { throw new Error('expected error') })
+      .catch(err => err.message.should.equal('disconnected'))
+    )
   })
 
   describe('connection to server', () => {
@@ -58,14 +65,14 @@ describe('Websocket client', () => {
       .then(() => mockServer.received.authTokens.should.include(authToken))
     )
 
-    it('can start/stop', () => wsclient.send({})
+    it('can send immediately', () => wsclient.send({})
       .then(() => wsclient.send({}))
       .then(() => wsclient.stop()).then(delay(10))
       .then(() => wsclient.send({}))
       .then(() => mockServer.received.messages.should.have.length(3))
     )
 
-    it('when sending failed - throws Error and reconnects', () => mockServer.stop()
+    it('when sending failed - throws Error and tries to reconnect', () => mockServer.stop()
       .then(() => wsclient.send({}))
       .then(() => { throw new Error('expected error') })
       .catch(err => err.message.should.equal('disconnected'))
@@ -73,7 +80,7 @@ describe('Websocket client', () => {
       .then(reconnectsWhenServerAvailable)
     )
 
-    it('when response timed out - throws Error and reconnects', () => {
+    it('when response timed out - throws Error and tries to reconnect', () => {
       wsclient.wsconfig.sendTimeout = 5
       mockServer.oneTimeResponsePromise = setTimeoutPromise(20).then(() => { return { how: 'isthis' } })
       return wsclient.send({})
