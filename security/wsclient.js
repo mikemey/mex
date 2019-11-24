@@ -34,7 +34,7 @@ class WSClient extends LogTrait {
         return Promise.resolve(false)
       case WebSocket.CLOSING:
       case WebSocket.CONNECTING:
-        return setTimeoutPromise(1).then(() => this._isOpen(this.ws))
+        return setTimeoutPromise(1).then(() => this._isConnected(this.ws))
       case WebSocket.OPEN:
         return Promise.resolve(true)
       default: throw new Error(`unexpected WebSocket state [${this.ws.readyState}]`)
@@ -79,7 +79,7 @@ class WSClient extends LogTrait {
 
       const responseTimeout = setTimeout(() => {
         this.log('response timed out')
-        this.ws.removeAllListeners('message')
+        if (this.ws) { this.ws.removeAllListeners('message') }
         reject(Error('response timed out'))
       }, this.wsconfig.sendTimeout)
 

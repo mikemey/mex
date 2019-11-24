@@ -11,7 +11,9 @@ class TestServer extends LogTrait {
     this.listenSocket = null
     this.defaultResponse = { status: 'ok' }
     this._defaultInterceptors = {
-      responsePromise: Promise.resolve(this.defaultResponse)
+      responsePromise: Promise.resolve(this.defaultResponse),
+      beforeResponse: null,
+      afterResponse: null
     }
     this.interceptors = {}
     this.resetInterceptors()
@@ -63,7 +65,9 @@ class TestServer extends LogTrait {
       } catch (err) { reject(err) }
     }).then(request => {
       this.received.messages.push(request)
-      return this.interceptors.responsePromise
+      return this.interceptors.beforeResponse
+        ? this.interceptors.beforeResponse(ws)
+        : this.interceptors.responsePromise
     }).then(response => {
       this.log('responding:', response)
       const message = JSON.stringify(response)
@@ -72,6 +76,9 @@ class TestServer extends LogTrait {
       const buffered = ws.getBufferedAmount()
       this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
       if (!sendResultOk || buffered > 0) { throw new Error('TestServer: sending failed') }
+      if (this.interceptors.afterResponse) {
+        return this.interceptors.afterResponse(ws)
+      }
     }).catch(err => {
       this.log('processing error', err)
       this._removeClient(ws)
