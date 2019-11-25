@@ -1,7 +1,7 @@
 const uws = require('uWebSockets.js')
 const Joi = require('@hapi/joi')
 
-const { LogTrait, Validator, wsmessages } = require('../utils')
+const { LogTrait, Validator, wsmessages, randomHash } = require('../utils')
 
 const configSchema = Joi.object({
   port: Joi.number().port().required(),
@@ -27,15 +27,12 @@ class WSAuth extends LogTrait {
             this.log('authorization failed, closing socket')
             return ws.close()
           }
-          this.log('client authorized successful')
+          ws.hashid = randomHash()
+          this._wslog(ws, 'client authorized successful')
         },
         message: (ws, buffer, isBinary) => this._processMessage(ws, buffer, isBinary),
-        drain: (ws) => {
-          this.log(`socket backpressure: ${ws.getBufferedAmount()}`)
-        },
-        close: (ws, code, message) => {
-          this.log('socket closed log ws.id (new) and code')
-        }
+        drain: (ws) => this._wslog(ws, `socket backpressure: ${ws.getBufferedAmount()}`),
+        close: (ws, code) => this._wslog(ws, `socket closed: ${code}`)
       }).listen(this.config.port, socket => {
         if (socket) {
           this.log(`listening on port ${this.config.port}`)
@@ -69,34 +66,40 @@ class WSAuth extends LogTrait {
       try {
         const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
         data.originalReq = JSON.parse(message)
-        this.log('received:', data.originalReq)
+        this._wslog(ws, 'received:', data.originalReq)
         resolve(data.originalReq)
       } catch (err) { reject(err) }
     }).then(req => this.received(req))
       .catch(err => {
-        this.log('processing error:', err)
+        this._wslog(ws, 'processing error:', err)
         if (err.fatal) { data.closeConnection = true }
         if (err.clientResponse) { return err.clientResponse }
         this.errorLog(err)
         return wsmessages.error(data.originalReq)
       })
       .then(response => {
-        this.log('responding:', response)
+        this._wslog(ws, 'responding:', response)
         const message = JSON.stringify(response)
         return ws.send(message, isBinary)
       })
       .then(sendResultOk => {
         const buffered = ws.getBufferedAmount()
-        this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
-        if (!sendResultOk) { this.sendingError('send result NOK', ws.close.bind(ws)) }
-        if (buffered > 0) { this.sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }
-        if (data.closeConnection) { this.sendingError('closing connection', ws.end.bind(ws)) }
+        this._wslog(ws, 'send result', { sendResultOk, buffered })
+        if (!sendResultOk) { this._sendingError('send result NOK', ws.close.bind(ws)) }
+        if (buffered > 0) { this._sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }
+        if (data.closeConnection) { this._sendingError('closing connection', ws.end.bind(ws)) }
       })
   }
 
-  sendingError (message, closeWs) {
+  _sendingError (message, closeWs) {
     this.errorLog(message)
     closeWs()
+  }
+
+  _wslog (ws, msg, obj) {
+    (ws && ws.hashid)
+      ? this.log(`<${ws.hashid}> ${msg}`, obj)
+      : this.log(msg, obj)
   }
 
   received (request) { return Promise.resolve(request) }

@@ -8,12 +8,13 @@ describe('WebsocketServer authorization', () => {
   const port = 12001
   const path = '/wsauth-test'
   const testToken = 'wsauth-testing-token'
+
   const authorizedTokens = [testToken, 'another-testing-token', 'one-more-testing-token']
   const wsauthConfig = { port, path, authorizedTokens }
+  const wsauth = new WSAuth(wsauthConfig)
 
   describe('running server', () => {
     const serverReceived = []
-    const wsauth = new WSAuth(wsauthConfig)
     wsauth.received = request => {
       serverReceived.push(request)
       return Promise.resolve(request)
@@ -88,8 +89,6 @@ describe('WebsocketServer authorization', () => {
   })
 
   describe('server configuration/usage error', () => {
-    const wsauth = new WSAuth(wsauthConfig)
-
     it('when already running', () => wsauth.start()
       .then(() => wsauth.start())
       .then(() => { throw new Error('expected error') })
