@@ -18,7 +18,6 @@
     "e2e": "./useraccount-test/e2ehelper.sh",
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s",
-    "stresstest": "ex=0; while [[ $ex -eq 0 ]]; do npm run alltest -s; ex=$?; echo EXITED: $ex; done",
     "~test": "nodemon -x 'npm run alltest -s'"
   },
   "dependencies": {
