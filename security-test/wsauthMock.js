@@ -1,5 +1,5 @@
 const uws = require('uWebSockets.js')
-const { LogTrait } = require('../utils')
+const { LogTrait, wsmessages } = require('../utils')
 
 const closeClientSockets = clients => clients.forEach(client => client.close())
 
@@ -11,8 +11,7 @@ class WSAuthMock extends LogTrait {
     this.listenSocket = null
     this.defaultResponse = { status: 'ok' }
     this._defaultInterceptors = {
-      responsePromise: Promise.resolve(this.defaultResponse),
-      beforeResponse: null,
+      responsePromise: () => Promise.resolve(this.defaultResponse),
       afterResponse: null
     }
     this.interceptors = {}
@@ -56,22 +55,21 @@ class WSAuthMock extends LogTrait {
   }
 
   _processMessage (ws, buffer) {
+    let receivedMessageId = ''
     return new Promise((resolve, reject) => {
       try {
-        const message = String.fromCharCode.apply(null, new Uint8Array(buffer))
-        const req = JSON.parse(message)
-        this.log('received:', req)
-        resolve(req)
+        const rawMessage = String.fromCharCode.apply(null, new Uint8Array(buffer))
+        const message = wsmessages.extractMessage(rawMessage)
+        receivedMessageId = message.id
+        this.log(`received: <# ${message.id}>`, message.body)
+        resolve(message.body)
       } catch (err) { reject(err) }
     }).then(request => {
       this.received.messages.push(request)
-      return this.interceptors.beforeResponse
-        ? this.interceptors.beforeResponse(ws)
-        : this.interceptors.responsePromise
+      return this.interceptors.responsePromise(ws)
     }).then(response => {
-      this.log('responding:', response)
-      const message = JSON.stringify(response)
-      return ws.send(message)
+      this.log(`responding: <# ${receivedMessageId}>`, response)
+      return ws.send(wsmessages.createRawMessage(receivedMessageId, response))
     }).then(sendResultOk => {
       const buffered = ws.getBufferedAmount()
       this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
