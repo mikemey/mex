@@ -2,7 +2,7 @@ const { randomString } = require('./rand')
 
 const MESSAGE_ID_LENGTH = 6
 
-const randomMessageId = () => randomString(MESSAGE_ID_LENGTH)
+const randomMessageId = () => randomString(MESSAGE_ID_LENGTH).toLowerCase()
 
 const createRawMessage = (messageId, messageBody) => {
   if (messageId && messageId.constructor === String && messageId.length === MESSAGE_ID_LENGTH &&

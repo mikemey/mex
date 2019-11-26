@@ -1,7 +1,5 @@
 const WebSocket = require('ws')
 const Joi = require('@hapi/joi')
-const util = require('util')
-const setTimeoutPromise = util.promisify(setTimeout)
 
 const { LogTrait, Validator, wsmessages } = require('../utils')
 
@@ -68,11 +66,11 @@ class WSClient extends LogTrait {
 
     this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
     this.ws.prependOnceListener('open', () => {
-      clearTimeout(connectTimeout)
+      connectTimeout.cancel()
       saveEnding(resolve, 'connection established')
     })
     const closedown = error => {
-      clearTimeout(connectTimeout)
+      connectTimeout.cancel()
       const rejectOriginError = () => reject(error)
       saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), `connection error: ${error}`)
     }
@@ -112,21 +110,24 @@ class WSClient extends LogTrait {
     const responseTimeout = this._createTimeout(err => saveEnding(reject, err, err.message), 'response timed out')
 
     const sendingId = wsmessages.randomMessageId()
-    this.ws.addListener('message', raw => {
-      clearTimeout(responseTimeout)
+    const messageHandler = raw => {
       const message = wsmessages.extractMessage(raw)
       if (message.id === sendingId) {
+        responseTimeout.cancel()
         saveEnding(resolve, message.body, `received: <# ${message.id}>`, message.body)
       } else {
         this.log(`dropping received: <# ${message.id}>`)
       }
-    })
-
-    const saveReject = (err, ...args) => {
-      clearTimeout(responseTimeout)
-      saveEnding(reject, err, ...args)
     }
 
+    const saveReject = (err, message) => {
+      responseTimeout.cancel()
+      saveEnding(reject, err, message)
+    }
+
+    this.ws.addListener('message', messageHandler)
+    this.ws.prependOnceListener('close', () => saveReject(new TimeoutError('remote socket closed'), 'requestResponse close'))
+    this.ws.prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
     this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
 
     this.log(`sending: <# ${sendingId}>`, request)
@@ -145,6 +146,7 @@ class WSClient extends LogTrait {
 
     const waitfor = Waiter(this.ws, reject)
     const finalise = () => {
+      this.log('stopped')
       this._reset(resolve)
     }
     const closeSocket = () => this._closeWebsocket(finalise)
@@ -169,19 +171,25 @@ class WSClient extends LogTrait {
     const closeTimeout = this._createTimeout(err => saveEnding(err.message), 'closing timed out')
 
     const cleanup = message => err => {
-      clearTimeout(closeTimeout)
+      closeTimeout.cancel()
       if (err) { message = `${message} ${err}` }
       saveEnding(message)
     }
     this.ws.prependOnceListener('close', cleanup('closed'))
     this.ws.prependOnceListener('error', cleanup('error closing:'))
+    this.ws.prependOnceListener('unexpected-response', cleanup('unexpected-response'))
     this.ws.close()
   }
 
   _createTimeout (reject, message) {
-    return setTimeout(() => {
+    const timeout = setTimeout(() => {
       reject(new TimeoutError(message))
     }, this.wsconfig.timeout)
+
+    const cancel = () => {
+      clearTimeout(timeout)
+    }
+    return { cancel }
   }
 }
 

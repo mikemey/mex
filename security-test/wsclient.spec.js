@@ -10,8 +10,8 @@ describe.only('Websocket client', () => {
   const path = 'testwsclient'
   const authToken = '12345678901234567890'
   const timeout = 250
-  const defConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout }
-  const defaultClient = (config = defConfig) => new WSClient(Object.assign({}, config))
+  const defTestConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout }
+  const defaultClient = (config = defTestConfig) => new WSClient(Object.assign({}, config))
 
   describe('configuration checks', () => {
     const checkConfigError = (errconfig, expectedMessage) => {
@@ -24,13 +24,13 @@ describe.only('Websocket client', () => {
     }
 
     const deleteKey = (deleteField, expectedMessage) => {
-      const errconfig = Object.assign({}, defConfig)
+      const errconfig = Object.assign({}, defTestConfig)
       delete errconfig[deleteField]
       return checkConfigError(errconfig, expectedMessage)
     }
 
     const withKey = (overwrite, expectedMessage) => {
-      const errconfig = Object.assign({}, defConfig, overwrite)
+      const errconfig = Object.assign({}, defTestConfig, overwrite)
       return checkConfigError(errconfig, expectedMessage)
     }
 
@@ -45,14 +45,12 @@ describe.only('Websocket client', () => {
   })
 
   describe('connection to server', () => {
-    const mockServer = new WSAuthMock(port, path)
+    let mockServer = new WSAuthMock(port, path)
+    let wsclient = defaultClient()
     mockServer.debug = true
-    let wsclient
+    wsclient.debug = true
 
-    beforeEach(() => {
-      wsclient = defaultClient()
-      return mockServer.start()
-    })
+    beforeEach(() => mockServer.start())
     afterEach(() => wsclient.stop().then(() => mockServer.stop()))
 
     const delay = ms => () => new Promise(resolve => setTimeout(resolve, ms))
@@ -69,12 +67,11 @@ describe.only('Websocket client', () => {
 
     const expectDisconnected = client => clientError(client, 'disconnected')
     const expectTimeout = client => clientError(client, 'response timed out')
+    const expectSocketClosed = client => clientError(client, 'remote socket closed')
     const clientError = (client, expectedMessage) => {
       return client.send(message(`message causing: ${expectedMessage}`))
         .then(() => { throw new Error('expected Error when invoking client.send()') })
-        .catch(err => {
-          console.log('TESTER: checking timeout error')
-          err.message.should.equal(expectedMessage)})
+        .catch(err => err.message.should.equal(expectedMessage))
     }
 
     it('wrong URL throws Error when sending', () => expectDisconnected(
@@ -87,10 +84,6 @@ describe.only('Websocket client', () => {
         mockServer.received.authTokens.should.include(authToken)
       })
     )
-
-    xit('opening connection times out', () => {
-      throw Error('implemente')
-    })
 
     it('can resend after stopping', () => wsclient.send(message('i_1'))
       .then(() => wsclient.send(message('i_2')))
@@ -116,23 +109,12 @@ describe.only('Websocket client', () => {
 
     it('response times out - Timeout Error - does not accept old message', () => {
       wsclient.wsconfig.timeout = 15
-      let clearResponsePromise = null
-      mockServer.interceptors.responsePromise = () => new Promise((resolve, reject) => {
-        const staller = setTimeout(() => {
-          clearResponsePromise = null
-          reject(Error('staller triggered, should not happen!'))
-        }, 40)
-        clearResponsePromise = () => {
-          clearTimeout(staller)
-          console.log('delayed server response comes back')
-          resolve({ delayed: 'response' })
-        }
-      })
+      mockServer.interceptors.responsePromise = () => setTimeoutPromise(20)
+        .then(() => { return { delayed: 'response' } })
       return expectTimeout(wsclient)
         .then(() => {
-          clearResponsePromise()
           mockServer.resetInterceptors()
-          wsclient.wsconfig.timeout = defConfig.timeout
+          wsclient.wsconfig.timeout = defTestConfig.timeout
         })
         .then(canSendMessages)
     })
@@ -158,14 +140,14 @@ describe.only('Websocket client', () => {
         })
     })
 
-    const checkForTimeout = client => expectTimeout(client).then(() => {
+    const checkForTimeout = client => expectSocketClosed(client).then(() => {
       mockServer.resetInterceptors()
     }).then(canSendMessages)
 
     it('recovers from remote socket.close before response', () => {
       mockServer.interceptors.responsePromise = ws => {
         ws.close()
-        throw new Error('before response error')
+        mockServer.interceptors.stopProcessing = true
       }
       return checkForTimeout(wsclient)
     })
@@ -173,7 +155,7 @@ describe.only('Websocket client', () => {
     it('recovers from remote socket.end before response', () => {
       mockServer.interceptors.responsePromise = ws => {
         ws.end()
-        throw new Error('before response error')
+        mockServer.interceptors.stopProcessing = true
       }
       return checkForTimeout(wsclient)
     })

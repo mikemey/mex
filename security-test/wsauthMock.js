@@ -12,6 +12,7 @@ class WSAuthMock extends LogTrait {
     this.defaultResponse = { status: 'ok' }
     this._defaultInterceptors = {
       responsePromise: () => Promise.resolve(this.defaultResponse),
+      stopProcessing: false,
       afterResponse: null
     }
     this.interceptors = {}
@@ -68,9 +69,14 @@ class WSAuthMock extends LogTrait {
       this.received.messages.push(request)
       return this.interceptors.responsePromise(ws)
     }).then(response => {
+      if (this.interceptors.stopProcessing) {
+        this.log('interceptors.stopProcessing flag is True')
+        return
+      }
       this.log(`responding: <# ${receivedMessageId}>`, response)
       return ws.send(wsmessages.createRawMessage(receivedMessageId, response))
     }).then(sendResultOk => {
+      if (this.interceptors.stopProcessing) { return }
       const buffered = ws.getBufferedAmount()
       this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
       if (!sendResultOk || buffered > 0) { throw new Error('WSAuthMock: sending failed') }
