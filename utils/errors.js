@@ -1,9 +1,9 @@
 class ClientError extends Error {
-  constructor (message, response, fatal = true) {
+  constructor (message, response, keepConnection = true) {
     super(message)
     this.name = this.constructor.name
     this.clientResponse = response
-    this.fatal = fatal
+    this.keepConnection = keepConnection
   }
 }
 

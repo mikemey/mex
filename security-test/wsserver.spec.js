@@ -1,33 +1,59 @@
 const should = require('chai').should()
-const { randomString, errors } = require('../utils')
+const { randomString, errors, wsmessages } = require('../utils')
 
 const { WSServer } = require('../security')
 const WSClientMock = require('./wsclientMock')
 
-describe('WebsocketServer authorization', () => {
+describe('Websocket Server', () => {
+  const defServerData = { expected: {}, resolve: false, response: {}, state: 'ok' }
+
+  let currentServerData = defServerData
+  class ExampleWSServer extends WSServer {
+    received (req) {
+      try {
+        req.should.deep.equal(currentServerData.expected)
+        return currentServerData.resolve
+          ? Promise.resolve(currentServerData.response)
+          : Promise.reject(currentServerData.response)
+      } catch (err) {
+        currentServerData.state = err
+        throw err
+      }
+    }
+  }
+
   const port = 12001
   const path = '/wsserver-test'
   const testToken = 'wsserver-testing-token'
 
   const authorizedTokens = [testToken, 'another-testing-token', 'one-more-testing-token']
   const wsserverConfig = { port, path, authorizedTokens }
-  const wsserver = new WSServer(wsserverConfig)
+  const wsserver = new ExampleWSServer(wsserverConfig)
+
+  beforeEach(() => { currentServerData = Object.assign({}, defServerData) })
+  afterEach(() => {
+    if (currentServerData.state !== defServerData.state) {
+      throw currentServerData.state
+    }
+  })
 
   describe('connection handling', () => {
-    const serverReceived = []
-    wsserver.received = request => {
-      serverReceived.push(request)
-      return Promise.resolve(request)
-    }
     const clientMock = new WSClientMock(port, path, testToken)
 
     before(() => wsserver.start())
     after(() => wsserver.stop())
     afterEach(() => clientMock.close())
 
+    // const serverContinuesOperation = () => {
+    //   const operationalMessage = {}
+    //   return clientMock.send(request)
+    // }
     const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
       .then(() => { throw new Error('expected websocket to close') })
-      .catch(err => err.message.should.equal('socket hang up'))
+      .catch(err => {
+        clientMock.isOpen().should.equal(false, 'socket closed')
+        err.message.should.equal('socket hang up')
+      })
       .finally(() => clientMock.resetInterceptors())
 
     const expectSocketClosed = request => clientMock.connect()
@@ -37,6 +63,7 @@ describe('WebsocketServer authorization', () => {
 
     it('allows correct access token', () => clientMock.connect()
       .then(() => clientMock.isOpen().should.equal(true, 'socket open'))
+      // .then(serverContinuesOperation)
     )
 
     it('when no access token', () => {
@@ -55,7 +82,10 @@ describe('WebsocketServer authorization', () => {
 
     it('when sender closes socket immediately', () => {
       clientMock.interceptors.afterSendAction = ws => ws.close()
-      return expectSocketClosed({ msg: 1 })
+      currentServerData.expected = { msg: 1 }
+      currentServerData.resolve = true
+      currentServerData.response = { res: 'socket closes immediately' }
+      return expectSocketClosed(currentServerData.expected)
     })
   })
 
@@ -100,51 +130,37 @@ describe('WebsocketServer authorization', () => {
 
   describe('service implementation error', () => {
     const clientMock = new WSClientMock(port, path, testToken)
-    class FailingWSServer extends WSServer {
-      constructor (config) {
-        super(config)
-        this.testError = null
-      }
 
-      received (req) {
-        return this.testError
-          ? Promise.reject(this.testError)
-          : super.received(req)
-      }
-    }
-
-    const request = { action: 'test' }
-    const failingWSServer = new FailingWSServer(wsserverConfig)
-
-    before(() => failingWSServer.start())
-    after(() => failingWSServer.stop())
+    before(() => wsserver.start())
+    after(() => wsserver.stop())
     beforeEach(() => clientMock.connect())
     afterEach(() => clientMock.close())
 
-    const expectErrorResultWhen = (
-      { message = 'expected test-error', responseObj = null, fatal = false, socketOpen } = {}
+    const expectErrorResponse = (
+      { id, expectSocketOpen = true, customResponse = null, ErrorClass = errors.ClientError }
     ) => {
-      failingWSServer.testError = new errors.ClientError(message, responseObj, fatal)
-      return clientMock.send(request)
+      const request = { implerror: id }
+      currentServerData.expected = request
+      currentServerData.response = new ErrorClass(`wss impl error test ${id}`, customResponse, expectSocketOpen)
+      return clientMock.send(currentServerData.expected)
         .then(result => {
-          result.status.should.equal('error')
-          responseObj
-            ? result.message.should.deep.equal(responseObj)
-            : result.message.should.deep.equal(request)
-          clientMock.isOpen().should.equal(socketOpen)
+          result.should.deep.equal(customResponse || wsmessages.error(request))
+          clientMock.isOpen().should.equal(expectSocketOpen, 'unexpected socket state')
         })
     }
 
-    it.only('standard error should cause error message', () => expectErrorResultWhen({ socketOpen: true }))
-    it('fatal error should cause error message + connection close', () => expectErrorResultWhen(
-      { fatal: true, socketOpen: false }
+    it('non-fatal client error', () => expectErrorResponse({ id: 1, expectSocketOpen: true }))
+
+    it('fatal client error', () => expectErrorResponse({ id: 2, expectSocketOpen: false }))
+
+    it('non-fatal client error with specific response', () => expectErrorResponse(
+      { id: 3, expectSocketOpen: true, customResponse: { clienterror: 'custom response 1' } }
     ))
 
-    it('standard error with specific response', () => expectErrorResultWhen({
-      responseObj: { you: 'diditwrong' }, socketOpen: true
-    }))
-    it('fatal error with specific response', () => expectErrorResultWhen({
-      responseObj: { you: 'diditwrong' }, fatal: true, socketOpen: true
-    }))
+    it('fatal client error with specific response', () => expectErrorResponse(
+      { id: 4, expectSocketOpen: false, customResponse: { clienterror: 'custom response 1' } }
+    ))
+
+    it('generic error', () => expectErrorResponse({ id: 5, expectSocketOpen: false, ErrorClass: Error }))
   })
 })

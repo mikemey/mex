@@ -21,8 +21,8 @@ class RegisterService extends WSServer {
     super(wssconfig)
     this.users = []
     this.requestCheck = Validator.createCheck(requestSchema, {
-      onError: () => { throw new ClientError('invalid request', wsmessages.error('invalid request')) },
-      onWarning: message => { throw new ClientError(message, responses.nok(message), false) }
+      onError: () => { throw new ClientError('invalid request', wsmessages.error('invalid request'), false) },
+      onWarning: message => { throw new ClientError(message, responses.nok(message)) }
     })
   }
 

@@ -61,7 +61,7 @@ class WSServer extends LogTrait {
   }
 
   _processMessage (ws, buffer) {
-    const incoming = { msg: null, closeConnection: false }
+    const incoming = { msg: null, dropConnection: false }
     return new Promise((resolve, reject) => {
       try {
         const raw = String.fromCharCode.apply(null, new Uint8Array(buffer))
@@ -71,10 +71,10 @@ class WSServer extends LogTrait {
       } catch (err) { reject(err) }
     }).then(req => this.received(req))
       .catch(err => {
-        this._wslog(ws, 'processing error:', err)
-        if (err.fatal) { incoming.closeConnection = true }
-        if (err.clientResponse) { return err.clientResponse }
+        this._wslog(ws, 'processing error:')
         this.errorLog(err)
+        incoming.dropConnection = err.keepConnection !== true
+        if (err.clientResponse) { return err.clientResponse }
         return wsmessages.error(incoming.msg.body)
       })
       .then(response => {
@@ -87,7 +87,7 @@ class WSServer extends LogTrait {
         this._wslog(ws, 'send result', { sendResultOk, buffered })
         if (!sendResultOk) { this._sendingError('send result NOK', ws.close.bind(ws)) }
         if (buffered > 0) { this._sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }
-        if (incoming.closeConnection) { this._sendingError('closing connection', ws.end.bind(ws)) }
+        if (incoming.dropConnection) { this._sendingError('closing connection', ws.end.bind(ws)) }
       })
   }
 
