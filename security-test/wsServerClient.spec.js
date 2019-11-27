@@ -1,7 +1,7 @@
 const { WSServer, WSClient } = require('../security')
 
 describe('Real WSServer + WSClient', () => {
-  const port = 12001
+  const port = 12201
   const path = '/wsserverclient'
 
   const authorizedTokens = ['first-test-token-pad', 'another-testing-token', 'one-more-testing-token']
@@ -25,7 +25,7 @@ describe('Real WSServer + WSClient', () => {
   })
   after(() => wsserver.stop())
 
-  it('multiple WSClients can send/receive', () => {
+  it('multiple clients can send/receive', () => {
     const client1 = createClient({ authToken: authorizedTokens[0] })
     const client2 = createClient({ authToken: authorizedTokens[1] })
     const client3 = createClient({ authToken: authorizedTokens[2] })

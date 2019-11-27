@@ -66,7 +66,8 @@ class WSServer extends LogTrait {
       try {
         const raw = String.fromCharCode.apply(null, new Uint8Array(buffer))
         incoming.msg = wsmessages.extractMessage(raw)
-        this._wslog(ws, 'received:', `<# ${incoming.msg.id}>`, incoming.msg.body)
+        incoming.msg.prettyId = `<${incoming.msg.id}>`
+        this._wslog(ws, 'received:', incoming.msg.prettyId, incoming.msg.body)
         resolve(incoming.msg.body)
       } catch (err) { reject(err) }
     }).then(req => this.received(req))
@@ -77,13 +78,13 @@ class WSServer extends LogTrait {
         return wsmessages.error(incoming.msg.body)
       })
       .then(response => {
-        this._wslog(ws, 'responding:', response)
+        this._wslog(ws, 'responding:', incoming.msg.prettyId, response)
         const message = wsmessages.createRawMessage(incoming.msg.id, response)
         return ws.send(message)
       })
       .then(sendResultOk => {
         const buffered = ws.getBufferedAmount()
-        this._wslog(ws, 'send result ok:', sendResultOk, ' buffered:', buffered)
+        this._wslog(ws, 'send result', incoming.msg.prettyId, 'OK:', sendResultOk, ' buffered:', buffered)
 
         if (!sendResultOk) { this._sendingError('send result NOK', ws.close.bind(ws)) }
         if (buffered > 0) { this._sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }

@@ -7,16 +7,16 @@ const { Credentials } = require('./model')
 
 const isUserExists = err => err.name === 'UserExistsError'
 
-const ACT_REGISTER = 'register'
-const responses = wsmessages.withAction(ACT_REGISTER)
+const REGISTER = 'register'
+const responses = wsmessages.withAction(REGISTER)
 
 const requestSchema = Joi.object({
-  action: Joi.string().valid(ACT_REGISTER).required(),
+  action: Joi.string().valid(REGISTER).required(),
   email: Validator.email({ warn: true }),
   password: Validator.password({ warn: true })
 })
 
-class RegisterService extends WSServer {
+class SessionRegisterService extends WSServer {
   constructor (wssconfig) {
     super(wssconfig)
     this.users = []
@@ -29,7 +29,9 @@ class RegisterService extends WSServer {
   received (message) {
     this.requestCheck(message)
     return Credentials.register({ email: message.email }, message.password)
-      .then(() => responses.ok())
+      .then(() => {
+        return responses.ok()
+      })
       .catch(err => {
         if (isUserExists(err)) { return responses.nok(`duplicate name [${message.email}]`) }
         throw err
@@ -37,4 +39,4 @@ class RegisterService extends WSServer {
   }
 }
 
-module.exports = RegisterService
+module.exports = SessionRegisterService

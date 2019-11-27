@@ -20,7 +20,7 @@ const Waiter = (ws, reject) => {
     }
     retries--
     if (retries > 0) {
-      setTimeout(() => checkStatus(desiredState, resolve), 1)
+      setTimeout(() => checkStatus(desiredState, resolve), 5)
     } else {
       reject(Error(`waiting for socket state ${desiredState} exceeded retries (max: ${WS_WAIT_RETRIES})`))
     }
@@ -48,6 +48,7 @@ class WSClient extends LogTrait {
     this.log('resetting state')
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
+    this.messageHandler = {}
     callback()
   }
 
@@ -55,7 +56,7 @@ class WSClient extends LogTrait {
     this.log('connecting to:', this.wsconfig.url)
 
     const saveEnding = (endCb, ...args) => {
-      if (this.ws != null) { this.ws.removeAllListeners() }
+      this._clearListeners()
       this.log(...args)
       endCb()
     }
@@ -67,11 +68,19 @@ class WSClient extends LogTrait {
       connectTimeout.cancel()
       saveEnding(resolve, 'connection established')
     })
+
+    this.ws.addListener('message', raw => {
+      const message = wsmessages.extractMessage(raw)
+      const handler = this.messageHandler[message.id]
+      return handler ? handler(message) : this.log('dropping received:', `<${message.id}>`)
+    })
+
     const closedown = error => {
       connectTimeout.cancel()
       const rejectOriginError = () => reject(error)
       saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), 'connection error:', error)
     }
+    this.ws.prependOnceListener('close', closedown)
     this.ws.prependOnceListener('error', closedown)
     this.ws.prependOnceListener('unexpected-response', () => closedown(Error('unexpected-response')))
   }
@@ -98,23 +107,20 @@ class WSClient extends LogTrait {
   }
 
   _requestResponse (request, resolve, reject) {
+    const sendingId = wsmessages.randomMessageId()
+
     const saveEnding = (func, obj, ...logArgs) => {
-      if (this.ws != null) { this.ws.removeAllListeners() }
+      this._clearListeners()
+      delete this.messageHandler[sendingId]
       this.log(...logArgs)
       func(obj)
     }
 
     const responseTimeout = this._createTimeout(err => saveEnding(reject, err, err.message), 'response timed out')
 
-    const sendingId = wsmessages.randomMessageId()
-    const messageHandler = raw => {
-      const message = wsmessages.extractMessage(raw)
-      if (message.id === sendingId) {
-        responseTimeout.cancel()
-        saveEnding(resolve, message.body, 'received:', `<# ${message.id}>`, message.body)
-      } else {
-        this.log('dropping received:', `<# ${message.id}>`)
-      }
+    const handler = message => {
+      responseTimeout.cancel()
+      saveEnding(resolve, message.body, 'received:', `<${message.id}>`, message.body)
     }
 
     const saveReject = (err, message) => {
@@ -122,12 +128,12 @@ class WSClient extends LogTrait {
       saveEnding(reject, err, message)
     }
 
-    this.ws.addListener('message', messageHandler)
+    this.messageHandler[sendingId] = handler
     this.ws.prependOnceListener('close', () => saveReject(new TimeoutError('remote socket closed'), 'requestResponse close'))
     this.ws.prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
     this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
 
-    this.log('sending:', `<# ${sendingId}>`, request)
+    this.log('sending:', `<${sendingId}>`, request)
     this.ws.send(wsmessages.createRawMessage(sendingId, request), err => err
       ? saveReject(err, 'sending error')
       : this.log('sending done')
@@ -161,7 +167,7 @@ class WSClient extends LogTrait {
   _closeWebsocket (resolve) {
     this.log('closing connection...')
     const saveEnding = message => {
-      if (this.ws != null) { this.ws.removeAllListeners() }
+      this._clearListeners()
       this.log(message)
       resolve()
     }
@@ -187,6 +193,16 @@ class WSClient extends LogTrait {
       clearTimeout(timeout)
     }
     return { cancel }
+  }
+
+  _clearListeners () {
+    if (this.ws != null) {
+      this.ws.removeAllListeners('open')
+      this.ws.removeAllListeners('close')
+      this.ws.removeAllListeners('error')
+      this.ws.removeAllListeners('unexpected-response')
+      this.ws.removeAllListeners('close')
+    }
   }
 }
 

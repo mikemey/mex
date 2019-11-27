@@ -62,7 +62,7 @@ class WSServerMock extends LogTrait {
         const rawMessage = String.fromCharCode.apply(null, new Uint8Array(buffer))
         const message = wsmessages.extractMessage(rawMessage)
         receivedMessageId = message.id
-        this.log(`received: <# ${message.id}>`, message.body)
+        this.log(`received: <${message.id}>`, message.body)
         resolve(message.body)
       } catch (err) { reject(err) }
     }).then(request => {
@@ -73,7 +73,7 @@ class WSServerMock extends LogTrait {
         this.log('interceptors.stopProcessing flag is True')
         return
       }
-      this.log(`responding: <# ${receivedMessageId}>`, response)
+      this.log(`responding: <${receivedMessageId}>`, response)
       return ws.send(wsmessages.createRawMessage(receivedMessageId, response))
     }).then(sendResultOk => {
       if (this.interceptors.stopProcessing) { return }

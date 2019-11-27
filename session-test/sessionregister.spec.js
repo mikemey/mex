@@ -1,22 +1,21 @@
 const { trand } = require('../testtools')
 const { WSClient } = require('../security')
 
-const { RegisterService, model } = require('../session')
-const { dbconnection } = require('../utils')
+const { SessionRegisterService, model } = require('../session')
+const { dbconnection, randomString } = require('../utils')
 
 describe('SessionService register', () => {
-  const testToken = 'sessionservice-registration'
+  const testToken = 'session-service-testtoken'
   const port = 12021
   const path = '/session-registration'
   const url = `ws://localhost:${port}${path}`
   const testConfig = { port, path, authorizedTokens: [testToken] }
 
-  const wsClient = new WSClient({ url, authToken: testToken, timeout: 500 })
-
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
   }
-  const registerSvc = new RegisterService(testConfig)
+  const registerSvc = new SessionRegisterService(testConfig)
+  const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500 })
 
   before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
     .then(() => model.Credentials.deleteMany())
@@ -35,13 +34,9 @@ describe('SessionService register', () => {
 
   const expectNokResponse = (req, message) => wsClient.send(req)
     .then(result => result.should.deep.equal({ action: 'register', status: 'nok', message }))
-    .then(() => wsClient._isConnected())
-    .then(isConnected => isConnected.should.equal(true, 'open socket'))
 
   const expectError = req => wsClient.send(req)
     .then(result => result.should.deep.equal({ status: 'error', message: 'invalid request' }))
-    .then(() => wsClient._isConnected())
-    .then(isConnected => isConnected.should.equal(false, 'closed socket'))
 
   describe('successful registration', () => {
     it('single user', () => {
@@ -55,8 +50,11 @@ describe('SessionService register', () => {
     it('multiple user', () => {
       const r1 = registerReq()
       const r2 = registerReq()
-      return wsClient.send(r1).then(assertRegisterOk)
-        .then(() => wsClient.send(r2)).then(assertRegisterOk)
+      return Promise.all([wsClient.send(r1), wsClient.send(r2)])
+        .then(results => {
+          assertRegisterOk(results[0])
+          assertRegisterOk(results[1])
+        })
     })
 
     it('password allows special characters', () => wsClient.send(registerReq({
@@ -64,7 +62,7 @@ describe('SessionService register', () => {
     })).then(assertRegisterOk))
   })
 
-  describe('rejects registration:', () => {
+  describe('ejects registration:', () => {
     it('duplicate user name', () => {
       const request = registerReq()
       return wsClient.send(request).then(assertRegisterOk)
@@ -72,17 +70,17 @@ describe('SessionService register', () => {
     })
 
     it('username not an email', () => {
-      const request = registerReq({ email: trand.randStr(7) })
+      const request = registerReq({ email: randomString(12) })
       return expectNokResponse(request, 'email invalid')
     })
 
     it('password too short', () => {
-      const request = registerReq({ password: trand.randStr(7) })
+      const request = registerReq({ password: randomString(7) })
       return expectNokResponse(request, 'password invalid')
     })
 
     it('password too long', () => {
-      const request = registerReq({ password: trand.randStr(51) })
+      const request = registerReq({ password: randomString(51) })
       return expectNokResponse(request, 'password invalid')
     })
   })
