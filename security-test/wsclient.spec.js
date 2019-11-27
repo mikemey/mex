@@ -5,7 +5,7 @@ const setTimeoutPromise = util.promisify(setTimeout)
 const { WSClient } = require('../security')
 const WSAuthMock = require('./wsauthMock')
 
-describe.only('Websocket client', () => {
+describe('Websocket client', () => {
   const port = 12345
   const path = 'testwsclient'
   const authToken = '12345678901234567890'
@@ -45,10 +45,8 @@ describe.only('Websocket client', () => {
   })
 
   describe('connection to server', () => {
-    let mockServer = new WSAuthMock(port, path)
-    let wsclient = defaultClient()
-    mockServer.debug = true
-    wsclient.debug = true
+    const mockServer = new WSAuthMock(port, path)
+    const wsclient = defaultClient()
 
     beforeEach(() => mockServer.start())
     afterEach(() => wsclient.stop().then(() => mockServer.stop()))
@@ -161,18 +159,12 @@ describe.only('Websocket client', () => {
     })
 
     it('recovers from remote socket.close after response', () => {
-      mockServer.interceptors.afterResponse = ws => {
-        console.log('test closes websocket')
-        ws.close()
-      }
+      mockServer.interceptors.afterResponse = ws => ws.close()
       return checkForTimeout(wsclient)
     })
 
     it('clean resend after socket.end after response', () => {
-      mockServer.interceptors.afterResponse = ws => {
-        console.log('test ends websocket')
-        ws.end()
-      }
+      mockServer.interceptors.afterResponse = ws => ws.end()
       return wsclient.send(message('works out'))
         .then(() => mockServer.resetInterceptors())
         .then(canSendMessages)

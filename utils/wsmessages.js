@@ -17,7 +17,8 @@ const createRawMessage = (messageId, messageBody) => {
 const extractMessage = rawMessage => {
   return {
     id: rawMessage.slice(0, MESSAGE_ID_LENGTH),
-    body: JSON.parse(rawMessage.slice(MESSAGE_ID_LENGTH))
+    body: JSON.parse(rawMessage.slice(MESSAGE_ID_LENGTH)),
+    raw: rawMessage
   }
 }
 

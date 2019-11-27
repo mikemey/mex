@@ -3,14 +3,15 @@ const starttime = process.hrtime()
 const categoryLog = category => (...args) => {
   const hrtime = process.hrtime(starttime)
   const hrms = Math.floor(hrtime[1] / 1000000)
-  args.map(msg => msg.constructor === String ? msg : JSON.stringify(msg))
+  args.filter(el => el)
+    .map(msg => msg.constructor === String ? msg : JSON.stringify(msg))
     .forEach(msg => console.log(` (${hrtime[0]}.${hrms}) [${category}] ${msg}`))
 }
 
 class LogTrait {
   constructor (category) {
     this.categoryLog = categoryLog(category || this.constructor.name)
-    this.debug = process.env.TESTING !== undefined
+    this.debug = true
   }
 
   log (...args) {

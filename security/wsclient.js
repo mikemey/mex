@@ -39,7 +39,6 @@ class TimeoutError extends Error {
 class WSClient extends LogTrait {
   constructor (config) {
     super()
-    this.debug = true
     this.wsconfig = config
     Validator.oneTimeValidation(configSchema, this.wsconfig)
     this._reset()
@@ -48,7 +47,6 @@ class WSClient extends LogTrait {
   _reset (callback = () => { }) {
     this.log('resetting state')
     this.ws = null
-    this.shutdownFlag = false // do we need this really?
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
     callback()
   }

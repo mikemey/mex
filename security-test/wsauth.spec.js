@@ -1,7 +1,7 @@
 const should = require('chai').should()
-const { trand } = require('../testtools')
+const { randomString, errors } = require('../utils')
 
-const { WSAuth, WSClient } = require('../security')
+const { WSAuth } = require('../security')
 const WSClientMock = require('./wsclientMock')
 
 describe('WebsocketServer authorization', () => {
@@ -13,7 +13,7 @@ describe('WebsocketServer authorization', () => {
   const wsauthConfig = { port, path, authorizedTokens }
   const wsauth = new WSAuth(wsauthConfig)
 
-  describe('running server', () => {
+  describe('connection handling', () => {
     const serverReceived = []
     wsauth.received = request => {
       serverReceived.push(request)
@@ -25,76 +25,45 @@ describe('WebsocketServer authorization', () => {
     after(() => wsauth.stop())
     afterEach(() => clientMock.close())
 
-    describe('should allow WS connection', () => {
-      it('when correct access token', () => clientMock.connect()
-        .then(() => clientMock.isOpen().should.equal(true, 'socket open'))
-      )
+    const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
+      .then(() => { throw new Error('expected websocket to close') })
+      .catch(err => err.message.should.equal('socket hang up'))
+      .finally(() => clientMock.resetInterceptors())
 
-      it('multiple WSClients can send/receive', () => {
-        const url = `ws://localhost:${port}${path}`
-        const timeout = 200
-        const client1 = new WSClient({ url, timeout, authToken: authorizedTokens[0] })
-        const client2 = new WSClient({ url, timeout, authToken: authorizedTokens[1] })
-        const client3 = new WSClient({ url, timeout, authToken: authorizedTokens[2] })
+    const expectSocketClosed = request => clientMock.connect()
+      .then(() => clientMock.send(request))
+      .then(() => clientMock.isOpen().should.equal(false, 'socket closed'))
+      .finally(() => clientMock.resetInterceptors())
 
-        const send = (client, count) => () => client.send({ count }).then(result => result.should.deep.equal({ count }))
-        const stop = client => () => client.stop()
-        return Promise.all([
-          send(client1, 100)(), send(client2, 10)(), send(client3, 1)()
-        ]).then(() => Promise.all([
-          client1._isConnected().then(res => res.should.equal(true)),
-          client2._isConnected().then(res => res.should.equal(true)),
-          client3._isConnected().then(res => res.should.equal(true))
-        ])).then(() => Promise.all([
-          send(client1, 200)().then(send(client1, 300)).then(stop(client1)).then(send(client1, 100)),
-          stop(client2)().then(send(client2, 10)).then(stop(client2)).then(send(client2, 20)).then(send(client2, 30)),
-          send(client3, 3)().then(send(client3, 2)).then(send(client3, 1))
-        ])).then(() => {
-          const actualSum = serverReceived.map(req => req.count).reduce((a, b) => a + b, 0)
-          actualSum.should.equal(777)
-        }).finally(() => Promise.all([stop(client1)(), stop(client2)(), stop(client3)()]))
-      })
+    it('allows correct access token', () => clientMock.connect()
+      .then(() => clientMock.isOpen().should.equal(true, 'socket open'))
+    )
+
+    it('when no access token', () => {
+      clientMock.interceptors.headers = {}
+      return expectSocketHangup()
     })
 
-    describe('should close WS connection', () => {
-      const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
-        .then(() => { throw new Error('expected websocket to close') })
-        .catch(err => err.message.should.equal('socket hang up'))
-        .finally(() => clientMock.resetInterceptors())
+    it('when invalid token', () => {
+      clientMock.interceptors.headers = { 'X-AUTH-TOKEN': testToken + 'x' }
+      return expectSocketHangup()
+    })
 
-      const expectSocketClosed = request => clientMock.connect()
-        .then(() => clientMock.send(request))
-        .then(() => clientMock.isOpen().should.equal(false, 'socket closed'))
-        .finally(() => clientMock.resetInterceptors())
+    it('when incorrect path', () => expectSocketHangup({ path: wsauthConfig.path + 'x' }))
 
-      it('when no access token', () => {
-        clientMock.interceptors.headers = {}
-        return expectSocketHangup()
-      })
+    it('when payload too large', () => expectSocketClosed({ action: randomString(4 * 1024) }))
 
-      it('when invalid token', () => {
-        clientMock.interceptors.headers = { 'X-AUTH-TOKEN': testToken + 'x' }
-        return expectSocketHangup()
-      })
-
-      it('when incorrect path', () => expectSocketHangup({ path: wsauthConfig.path + 'x' }))
-
-      it('when payload too large', () => expectSocketClosed({ action: trand.randStr(4 * 1024) }))
-
-      it('when sender closes socket immediately', () => {
-        clientMock.interceptors.afterSendAction = ws => ws.close()
-        return expectSocketClosed({ msg: 1 })
-      })
+    it('when sender closes socket immediately', () => {
+      clientMock.interceptors.afterSendAction = ws => ws.close()
+      return expectSocketClosed({ msg: 1 })
     })
   })
 
   describe('server configuration/usage error', () => {
     it('when already running', () => wsauth.start()
       .then(() => wsauth.start())
-      .then(() => { throw new Error('expected error') })
-      .catch(err => {
-        err.message.should.equal(`failed to listen on port ${wsauthConfig.port}`)
-      })
+      .then(() => { throw new Error('expected start error') })
+      .catch(err => err.message.should.equal(`failed to listen on port ${wsauthConfig.port}`))
       .finally(() => wsauth.stop())
     )
 
@@ -129,27 +98,53 @@ describe('WebsocketServer authorization', () => {
       configWith({ authorizedTokens: ['abcdefghijklmnopqrst', 3] }, '"authorizedTokens[1]" must be a string'))
   })
 
-  describe('service implementation error', () => {
+  xdescribe('service implementation error', () => {
     const clientMock = new WSClientMock(port, path, testToken)
-    class FailingService extends WSAuth {
-      received (_) {
-        return Promise.reject(Error('test-error'))
+    class FailingWSAuth extends WSAuth {
+      constructor (config) {
+        super(config)
+        this.testError = null
+      }
+
+      received (req) {
+        return this.testError
+          ? Promise.reject(this.testError)
+          : super.received(req)
       }
     }
 
-    const failService = new FailingService(wsauthConfig)
-    before(() => failService.start())
-    after(() => failService.stop())
+    const request = { action: 'test' }
+    const failingWSAuth = new FailingWSAuth(wsauthConfig)
+
+    before(() => failingWSAuth.start())
+    after(() => failingWSAuth.stop())
     beforeEach(() => clientMock.connect())
     afterEach(() => clientMock.close())
 
-    it('should respond with error', () => {
-      const request = { action: 'test' }
+    const expectErrorResultWhen = (
+      { message = 'expected test-error', responseObj = null, fatal = false, socketOpen } = {}
+    ) => {
+      failingWSAuth.testError = new errors.ClientError(message, responseObj, fatal)
       return clientMock.send(request)
         .then(result => {
           result.status.should.equal('error')
-          result.message.should.deep.equal(request)
+          responseObj
+            ? result.message.should.deep.equal(responseObj)
+            : result.message.should.deep.equal(request)
+          clientMock.isOpen().should.equal(socketOpen)
         })
-    })
+    }
+
+    it('standard error should cause error message', () => expectErrorResultWhen({ socketOpen: true }))
+    it('fatal error should cause error message + connection close', () => expectErrorResultWhen(
+      { fatal: true, socketOpen: false }
+    ))
+
+    it('standard error with specific response', () => expectErrorResultWhen({
+      responseObj: { you: 'diditwrong' }, socketOpen: true
+    }))
+    it('fatal error with specific response', () => expectErrorResultWhen({
+      responseObj: { you: 'diditwrong' }, fatal: true, socketOpen: true
+    }))
   })
 })
