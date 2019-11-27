@@ -9,7 +9,7 @@ const configSchema = Joi.object({
   authorizedTokens: Joi.array().items(Validator.secretToken('authorizedToken')).required()
 })
 
-class WSAuth extends LogTrait {
+class WSServer extends LogTrait {
   constructor (config) {
     super()
     this.listenSocken = null
@@ -105,4 +105,4 @@ class WSAuth extends LogTrait {
   received (request) { return Promise.resolve(request) }
 }
 
-module.exports = WSAuth
+module.exports = WSServer

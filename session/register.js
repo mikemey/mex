@@ -1,6 +1,6 @@
 const Joi = require('@hapi/joi')
 
-const { WSAuth } = require('../security')
+const { WSServer } = require('../security')
 const { errors, wsmessages, Validator } = require('../utils')
 const ClientError = errors.ClientError
 const { Credentials } = require('./model')
@@ -16,7 +16,7 @@ const requestSchema = Joi.object({
   password: Validator.password({ warn: true })
 })
 
-class RegisterService extends WSAuth {
+class RegisterService extends WSServer {
   constructor (wssconfig) {
     super(wssconfig)
     this.users = []

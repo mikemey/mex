@@ -31,7 +31,7 @@ const Waiter = (ws, reject) => {
 class TimeoutError extends Error {
   constructor (message) {
     super(message)
-    this.name = this.constructor.name;
+    this.name = this.constructor.name
     Error.captureStackTrace(this, this.constructor)
   }
 }
@@ -129,10 +129,10 @@ class WSClient extends LogTrait {
     this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
 
     this.log(`sending: <# ${sendingId}>`, request)
-    this.ws.send(wsmessages.createRawMessage(sendingId, request), err => {
-      if (err) { saveReject(err, 'sending error') }
-      else { this.log('sending done') }
-    })
+    this.ws.send(wsmessages.createRawMessage(sendingId, request), err => err
+      ? saveReject(err, 'sending error')
+      : this.log('sending done')
+    )
   }
 
   stop () {

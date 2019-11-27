@@ -3,7 +3,7 @@ const { LogTrait, wsmessages } = require('../utils')
 
 const closeClientSockets = clients => clients.forEach(client => client.close())
 
-class WSAuthMock extends LogTrait {
+class WSServerMock extends LogTrait {
   constructor (port, path) {
     super()
     this.port = port
@@ -28,7 +28,7 @@ class WSAuthMock extends LogTrait {
     this.received = { authTokens: [], messages: [] }
     return new Promise((resolve, reject) => {
       if (this.listenSocket) {
-        return reject(Error('WSAuthMock already started'))
+        return reject(Error('WSServerMock already started'))
       }
       uws.App({}).ws(this.path, {
         open: (ws, req) => {
@@ -79,7 +79,7 @@ class WSAuthMock extends LogTrait {
       if (this.interceptors.stopProcessing) { return }
       const buffered = ws.getBufferedAmount()
       this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
-      if (!sendResultOk || buffered > 0) { throw new Error('WSAuthMock: sending failed') }
+      if (!sendResultOk || buffered > 0) { throw new Error('WSServerMock: sending failed') }
       if (this.interceptors.afterResponse) {
         return this.interceptors.afterResponse(ws)
       }
@@ -103,4 +103,4 @@ class WSAuthMock extends LogTrait {
   }
 }
 
-module.exports = WSAuthMock
+module.exports = WSServerMock

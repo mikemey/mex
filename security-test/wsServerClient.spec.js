@@ -1,12 +1,12 @@
-const { WSAuth, WSClient } = require('../security')
+const { WSServer, WSClient } = require('../security')
 
 describe('Real WSServer + WSClient', () => {
   const port = 12001
   const path = '/wsserverclient'
 
   const authorizedTokens = ['first-test-token-pad', 'another-testing-token', 'one-more-testing-token']
-  const wsauthConfig = { port, path, authorizedTokens }
-  const wsauth = new WSAuth(wsauthConfig)
+  const wsserverConfig = { port, path, authorizedTokens }
+  const wsserver = new WSServer(wsserverConfig)
   const createClient = ({
     url = `ws://localhost:${port}${path}`,
     timeout = 200,
@@ -14,16 +14,16 @@ describe('Real WSServer + WSClient', () => {
   } = {}) => new WSClient({ url, timeout, authToken })
 
   let serverReceived = []
-  wsauth.received = request => {
+  wsserver.received = request => {
     serverReceived.push(request)
     return Promise.resolve(request)
   }
 
   before(() => {
     serverReceived = []
-    return wsauth.start()
+    return wsserver.start()
   })
-  after(() => wsauth.stop())
+  after(() => wsserver.stop())
 
   it('multiple WSClients can send/receive', () => {
     const client1 = createClient({ authToken: authorizedTokens[0] })

@@ -1,28 +1,28 @@
 const should = require('chai').should()
 const { randomString, errors } = require('../utils')
 
-const { WSAuth } = require('../security')
+const { WSServer } = require('../security')
 const WSClientMock = require('./wsclientMock')
 
 describe('WebsocketServer authorization', () => {
   const port = 12001
-  const path = '/wsauth-test'
-  const testToken = 'wsauth-testing-token'
+  const path = '/wsserver-test'
+  const testToken = 'wsserver-testing-token'
 
   const authorizedTokens = [testToken, 'another-testing-token', 'one-more-testing-token']
-  const wsauthConfig = { port, path, authorizedTokens }
-  const wsauth = new WSAuth(wsauthConfig)
+  const wsserverConfig = { port, path, authorizedTokens }
+  const wsserver = new WSServer(wsserverConfig)
 
   describe('connection handling', () => {
     const serverReceived = []
-    wsauth.received = request => {
+    wsserver.received = request => {
       serverReceived.push(request)
       return Promise.resolve(request)
     }
     const clientMock = new WSClientMock(port, path, testToken)
 
-    before(() => wsauth.start())
-    after(() => wsauth.stop())
+    before(() => wsserver.start())
+    after(() => wsserver.stop())
     afterEach(() => clientMock.close())
 
     const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
@@ -49,7 +49,7 @@ describe('WebsocketServer authorization', () => {
       return expectSocketHangup()
     })
 
-    it('when incorrect path', () => expectSocketHangup({ path: wsauthConfig.path + 'x' }))
+    it('when incorrect path', () => expectSocketHangup({ path: wsserverConfig.path + 'x' }))
 
     it('when payload too large', () => expectSocketClosed({ action: randomString(4 * 1024) }))
 
@@ -60,11 +60,11 @@ describe('WebsocketServer authorization', () => {
   })
 
   describe('server configuration/usage error', () => {
-    it('when already running', () => wsauth.start()
-      .then(() => wsauth.start())
+    it('when already running', () => wsserver.start()
+      .then(() => wsserver.start())
       .then(() => { throw new Error('expected start error') })
-      .catch(err => err.message.should.equal(`failed to listen on port ${wsauthConfig.port}`))
-      .finally(() => wsauth.stop())
+      .catch(err => err.message.should.equal(`failed to listen on port ${wsserverConfig.port}`))
+      .finally(() => wsserver.stop())
     )
 
     const allowedConfig = { path: '/test-123', port: 18000, authorizedTokens: ['a-token'] }
@@ -81,7 +81,7 @@ describe('WebsocketServer authorization', () => {
 
     const checkConfigError = (errconfig, expectedMessage) => {
       try {
-        new WSAuth(errconfig).start()
+        new WSServer(errconfig).start()
         should.fail('expected error')
       } catch (err) {
         err.message.should.equal(expectedMessage)
@@ -98,9 +98,9 @@ describe('WebsocketServer authorization', () => {
       configWith({ authorizedTokens: ['abcdefghijklmnopqrst', 3] }, '"authorizedTokens[1]" must be a string'))
   })
 
-  xdescribe('service implementation error', () => {
+  describe('service implementation error', () => {
     const clientMock = new WSClientMock(port, path, testToken)
-    class FailingWSAuth extends WSAuth {
+    class FailingWSServer extends WSServer {
       constructor (config) {
         super(config)
         this.testError = null
@@ -114,17 +114,17 @@ describe('WebsocketServer authorization', () => {
     }
 
     const request = { action: 'test' }
-    const failingWSAuth = new FailingWSAuth(wsauthConfig)
+    const failingWSServer = new FailingWSServer(wsserverConfig)
 
-    before(() => failingWSAuth.start())
-    after(() => failingWSAuth.stop())
+    before(() => failingWSServer.start())
+    after(() => failingWSServer.stop())
     beforeEach(() => clientMock.connect())
     afterEach(() => clientMock.close())
 
     const expectErrorResultWhen = (
       { message = 'expected test-error', responseObj = null, fatal = false, socketOpen } = {}
     ) => {
-      failingWSAuth.testError = new errors.ClientError(message, responseObj, fatal)
+      failingWSServer.testError = new errors.ClientError(message, responseObj, fatal)
       return clientMock.send(request)
         .then(result => {
           result.status.should.equal('error')
@@ -135,7 +135,7 @@ describe('WebsocketServer authorization', () => {
         })
     }
 
-    it('standard error should cause error message', () => expectErrorResultWhen({ socketOpen: true }))
+    it.only('standard error should cause error message', () => expectErrorResultWhen({ socketOpen: true }))
     it('fatal error should cause error message + connection close', () => expectErrorResultWhen(
       { fatal: true, socketOpen: false }
     ))
