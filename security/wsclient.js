@@ -52,7 +52,7 @@ class WSClient extends LogTrait {
   }
 
   _openWebsocket (resolve, reject) {
-    this.log(`connecting to: ${this.wsconfig.url}`)
+    this.log('connecting to:', this.wsconfig.url)
 
     const saveEnding = (endCb, ...args) => {
       if (this.ws != null) { this.ws.removeAllListeners() }
@@ -70,7 +70,7 @@ class WSClient extends LogTrait {
     const closedown = error => {
       connectTimeout.cancel()
       const rejectOriginError = () => reject(error)
-      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), `connection error: ${error}`)
+      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), 'connection error:', error)
     }
     this.ws.prependOnceListener('error', closedown)
     this.ws.prependOnceListener('unexpected-response', () => closedown(Error('unexpected-response')))
@@ -91,8 +91,7 @@ class WSClient extends LogTrait {
         default: return reject(Error(`unexpected WebSocket state [${this.ws.readyState}]`))
       }
     }).catch(err => {
-      this.log(`processing error: ${err.message}`)
-      this.errorLog(err)
+      this.log('processing error:', err.message, err)
       const sendError = err instanceof TimeoutError ? err : new Error('disconnected')
       throw sendError
     })
@@ -112,9 +111,9 @@ class WSClient extends LogTrait {
       const message = wsmessages.extractMessage(raw)
       if (message.id === sendingId) {
         responseTimeout.cancel()
-        saveEnding(resolve, message.body, `received: <# ${message.id}>`, message.body)
+        saveEnding(resolve, message.body, 'received:', `<# ${message.id}>`, message.body)
       } else {
-        this.log(`dropping received: <# ${message.id}>`)
+        this.log('dropping received:', `<# ${message.id}>`)
       }
     }
 
@@ -128,7 +127,7 @@ class WSClient extends LogTrait {
     this.ws.prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
     this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
 
-    this.log(`sending: <# ${sendingId}>`, request)
+    this.log('sending:', `<# ${sendingId}>`, request)
     this.ws.send(wsmessages.createRawMessage(sendingId, request), err => err
       ? saveReject(err, 'sending error')
       : this.log('sending done')

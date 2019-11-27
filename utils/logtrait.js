@@ -1,16 +1,34 @@
 
 const starttime = process.hrtime()
-const categoryLog = category => (...args) => {
+
+const currentTimestamp = () => {
   const hrtime = process.hrtime(starttime)
   const hrms = Math.floor(hrtime[1] / 1000000)
-  args.filter(el => el)
-    .map(msg => msg.constructor === String ? msg : JSON.stringify(msg))
-    .forEach(msg => console.log(` (${hrtime[0]}.${hrms}) [${category}] ${msg}`))
+  return `${hrtime[0]}.${hrms}`
+}
+
+const categoryLog = category => {
+  const categoryOut = `[${category}]`
+  return (...args) => {
+    const [text, errs] = args
+      .filter(el => el !== undefined && el !== null)
+      .reduce(([ts, es], message) => {
+        return message instanceof Error
+          ? [ts, [...es, message]]
+          : message.constructor === String
+            ? [`${ts} ${message}`, es]
+            : [`${ts} ${JSON.stringify(message)}`, es]
+      }, [` (${currentTimestamp()}) ${categoryOut}`, []])
+
+    console.log(text)
+    errs.forEach(err => console.log(err))
+  }
 }
 
 class LogTrait {
   constructor (category) {
-    this.categoryLog = categoryLog(category || this.constructor.name)
+    this.category = category || this.constructor.name
+    this.categoryLog = categoryLog(this.category)
     this.debug = true
   }
 
@@ -20,12 +38,8 @@ class LogTrait {
     }
   }
 
-  errorLog (err) {
-    if (typeof err === 'string' || err instanceof String) {
-      this.categoryLog(err)
-    } else {
-      console.log(err)
-    }
+  createIdLog (id) {
+    return categoryLog(`${this.category} #${id}`)
   }
 }
 

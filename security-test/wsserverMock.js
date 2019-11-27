@@ -84,7 +84,7 @@ class WSServerMock extends LogTrait {
         return this.interceptors.afterResponse(ws)
       }
     }).catch(err => {
-      this.log('processing error', err)
+      this.log('processing error:', err)
       this._removeClient(ws)
     })
   }

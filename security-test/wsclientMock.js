@@ -37,7 +37,7 @@ class WSClientMock extends LogTrait {
 
     return new Promise((resolve, reject) => {
       const url = `ws://localhost:${connectConfig.port}${connectConfig.path}`
-      this.log(`connecting to ${url}`)
+      this.log('connecting to', url)
       this.ws = new WebSocket(url, { headers: this.interceptors.headers })
       this.ws.on('open', () => {
         this.log('connected')

@@ -27,15 +27,15 @@ class WSServer extends LogTrait {
             this.log('authorization failed, closing socket')
             return ws.close()
           }
-          ws.hashid = randomHash()
+          ws.log = this.createIdLog(randomHash())
           this._wslog(ws, 'client authorized successful')
         },
         message: (ws, buffer) => this._processMessage(ws, buffer),
-        drain: (ws) => this._wslog(ws, `socket backpressure: ${ws.getBufferedAmount()}`),
-        close: (ws, code) => this._wslog(ws, `socket closed: ${code}`)
+        drain: (ws) => this._wslog(ws, 'socket backpressure:', ws.getBufferedAmount()),
+        close: (ws, code) => this._wslog(ws, 'socket closed:', code)
       }).listen(this.config.port, socket => {
         if (socket) {
-          this.log(`listening on port ${this.config.port}`)
+          this.log('listening on port', this.config.port)
           this.listenSocket = socket
           resolve()
         } else {
@@ -66,13 +66,12 @@ class WSServer extends LogTrait {
       try {
         const raw = String.fromCharCode.apply(null, new Uint8Array(buffer))
         incoming.msg = wsmessages.extractMessage(raw)
-        this._wslog(ws, `received: <# ${incoming.msg.id}>`, incoming.msg.body)
+        this._wslog(ws, 'received:', `<# ${incoming.msg.id}>`, incoming.msg.body)
         resolve(incoming.msg.body)
       } catch (err) { reject(err) }
     }).then(req => this.received(req))
       .catch(err => {
-        this._wslog(ws, 'processing error:')
-        this.errorLog(err)
+        this._wslog(ws, 'processing error:', err)
         incoming.dropConnection = err.keepConnection !== true
         if (err.clientResponse) { return err.clientResponse }
         return wsmessages.error(incoming.msg.body)
@@ -84,7 +83,8 @@ class WSServer extends LogTrait {
       })
       .then(sendResultOk => {
         const buffered = ws.getBufferedAmount()
-        this._wslog(ws, 'send result', { sendResultOk, buffered })
+        this._wslog(ws, 'send result ok:', sendResultOk, ' buffered:', buffered)
+
         if (!sendResultOk) { this._sendingError('send result NOK', ws.close.bind(ws)) }
         if (buffered > 0) { this._sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }
         if (incoming.dropConnection) { this._sendingError('closing connection', ws.end.bind(ws)) }
@@ -92,14 +92,12 @@ class WSServer extends LogTrait {
   }
 
   _sendingError (message, closeWs) {
-    this.errorLog(message)
+    this.log(message)
     closeWs()
   }
 
-  _wslog (ws, msg, obj) {
-    (ws && ws.hashid)
-      ? this.log(`<${ws.hashid}> ${msg}`, obj)
-      : this.log(msg, obj)
+  _wslog (ws, ...args) {
+    (ws && ws.log) ? ws.log(...args) : this.log(...args)
   }
 
   received (request) { return Promise.resolve(request) }

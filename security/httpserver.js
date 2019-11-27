@@ -59,8 +59,7 @@ const requestLogger = suppressList => {
 }
 
 const errorLogger = errorFunc => (err, req, res, next) => {
-  errorFunc(`ERROR: ${err.message}`)
-  errorFunc(err)
+  errorFunc('ERROR:', err.message, err)
   res.status(500).end()
 }
 
@@ -85,22 +84,21 @@ class HttpServer extends LogTrait {
 
     return new Promise((resolve, reject) => {
       const server = this.createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {
-        this.log(`started on port ${server.address().port}`)
-        this.log(`server version: ${this.httpconfig.version}`)
+        this.log('started on port', server.address().port)
+        this.log('server version:', this.httpconfig.version)
         this.server = server
         resolve(server)
       })
 
       server.once('error', err => {
-        this.errorLog(`server error: ${err.message}`)
-        this.errorLog(err)
+        this.log('server error:', err.message, err)
         reject(err)
       })
     })
   }
 
   createServer () {
-    const errorFunc = this.errorLog.bind(this)
+    const errorFunc = this.log.bind(this)
     const app = express()
     app.use(bodyParser.json())
 
