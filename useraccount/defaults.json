@@ -1,5 +1,5 @@
 {
-  "httpauth": {
+  "httpserver": {
     "secret": "secretsecretsecretse",
     "version": "0.1.0",
     "interface": "127.0.0.1",

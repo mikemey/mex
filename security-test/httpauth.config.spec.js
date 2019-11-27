@@ -2,13 +2,13 @@ const chai = require('chai')
 const should = chai.should()
 chai.use(require('chai-http'))
 
-const { HTTPAuth } = require('../security')
+const { HttpServer } = require('../security')
 
-describe('HTTP authorization configuration', () => {
+describe('HTTP Server configuration', () => {
   const config = {
     secret: '12345678901234567890',
     port: 12013,
-    path: '/Test-http-auth0',
+    path: '/Test-http-server-0',
     version: 'test-Ver-45254',
     interface: '127.0.0.1',
     suppressRequestLog: []
@@ -28,7 +28,7 @@ describe('HTTP authorization configuration', () => {
 
     const checkConfigError = (errconfig, expectedMessage) => {
       try {
-        new HTTPAuth(errconfig).start()
+        new HttpServer(errconfig).start()
         should.fail('expected error')
       } catch (err) {
         err.message.should.equal(expectedMessage)
@@ -51,7 +51,7 @@ describe('HTTP authorization configuration', () => {
   })
 
   describe('service implementation error', () => {
-    class NoRouteService extends HTTPAuth {
+    class NoRouteService extends HttpServer {
       constructor () {
         super(config)
       }

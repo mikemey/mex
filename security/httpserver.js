@@ -69,7 +69,7 @@ const createVersionEndpoint = version => {
   return (_, res) => res.send(response)
 }
 
-class HttpAuth extends LogTrait {
+class HttpServer extends LogTrait {
   constructor (httpconfig) {
     super()
     this.server = null
@@ -134,4 +134,4 @@ class HttpAuth extends LogTrait {
   }
 }
 
-module.exports = HttpAuth
+module.exports = HttpServer

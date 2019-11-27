@@ -1,6 +1,6 @@
 
 const WSServer = require('./wsserver')
 const WSClient = require('./wsclient')
-const HTTPAuth = require('./httpauth')
+const HttpServer = require('./httpserver')
 
-module.exports = { WSServer, WSClient, HTTPAuth }
+module.exports = { WSServer, WSClient, HttpServer }
