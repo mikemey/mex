@@ -1,11 +1,20 @@
 const express = require('express')
 
-const registerRouter = () => {
-  const router = express.Router()
+const { LogTrait } = require('../utils')
 
-  router.get('/', (_, res) => res.render('login'))
+class LoginRouter extends LogTrait {
+  constructor (sessionClient) {
+    super()
+    this.sessionClient = sessionClient
+  }
 
-  return router
+  create () {
+    const router = express.Router()
+
+    router.get('/', (_, res) => res.render('login'))
+
+    return router
+  }
 }
 
-module.exports = registerRouter
+module.exports = LoginRouter
