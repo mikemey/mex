@@ -29,7 +29,7 @@ class LogTrait {
   constructor (category) {
     this.category = category || this.constructor.name
     this.categoryLog = categoryLog(this.category)
-    this.debug = true
+    this.debug = false
   }
 
   log (...args) {
@@ -39,7 +39,9 @@ class LogTrait {
   }
 
   createIdLog (id) {
-    return categoryLog(`${this.category} #${id}`)
+    return this.debug
+      ? categoryLog(`${this.category} #${id}`)
+      : () => { }
   }
 }
 

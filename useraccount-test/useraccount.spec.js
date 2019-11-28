@@ -6,13 +6,15 @@ const defaultSettings = require('../useraccount/defaults.json')
 
 describe('UserAccountService', () => {
   describe('uses configuration', () => {
-    const agent = orchestrator.agent()
-
     before(() => orchestrator.start({ startMock: false }))
     after(() => orchestrator.stop())
 
-    it('version', () => agent.get('/version')
+    it('version', () => orchestrator.agent().get('/version')
       .then(res => res.text.should.startWith(defaultSettings.httpserver.version))
+    )
+
+    it('csrf is working', () => orchestrator.agent().post('/')
+      .then(res => res.status.should.equal(403))
     )
   })
 })

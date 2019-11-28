@@ -23,9 +23,18 @@ const start = ({ startMock = true, startService = true } = {}) => Promise.all([
   startService ? service.start() : Promise.resolve()
 ])
 
-const stop = () => Promise.all([sessionMock.stop(), service.stop()])
+const stop = () => sessionMock.stop().then(() => service.stop())
 
 const agent = () => chai.request.agent(`http://localhost:${httpserverConfig.port}${httpserverConfig.path}`)
-const asHtml = res => cheerio.load(res.text)
 
-module.exports = { start, stop, agent, asHtml }
+const HtmlWrapper = $ => {
+  const pageTitle = () => $('title').text()
+  return { $, pageTitle }
+}
+
+const withHtml = res => {
+  res.html = HtmlWrapper(cheerio.load(res.text))
+  return res
+}
+
+module.exports = { start, stop, agent, withHtml, sessionMock }

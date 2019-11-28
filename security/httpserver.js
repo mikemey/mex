@@ -1,4 +1,3 @@
-const bodyParser = require('body-parser')
 const cookieSession = require('cookie-session')
 const Tokens = require('csrf')
 const express = require('express')
@@ -75,8 +74,8 @@ class HttpServer extends LogTrait {
     this.httpconfig = httpconfig
   }
 
-  setupApp (app) { }
-  addRoutes (router) { throw new Error('missing addRoutes() implementation') }
+  setupApp (_) { }
+  addRoutes (_) { throw new Error('missing addRoutes() implementation') }
 
   start () {
     if (this.server) { throw new Error('server already started') }
@@ -100,7 +99,6 @@ class HttpServer extends LogTrait {
   createServer () {
     const errorFunc = this.log.bind(this)
     const app = express()
-    app.use(bodyParser.json())
 
     const suppressList = this.httpconfig.suppressRequestLog.map(entry => `${this.httpconfig.path}${entry}`)
     app.use(requestLogger(suppressList))

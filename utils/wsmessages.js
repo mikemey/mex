@@ -29,8 +29,9 @@ const error = message => {
 const withAction = action => {
   const ok = () => { return { status: 'ok', action } }
   const nok = message => { return { status: 'nok', action, message } }
+  const build = obj => Object.assign(obj, { action })
 
-  return { ok, nok }
+  return { ok, nok, build }
 }
 
 module.exports = { randomMessageId, createRawMessage, extractMessage, withAction, error }

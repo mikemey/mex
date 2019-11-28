@@ -1,3 +1,4 @@
+const bodyParser = require('body-parser')
 const fs = require('fs')
 const path = require('path')
 const Joi = require('@hapi/joi')
@@ -33,6 +34,7 @@ class UserAccountService extends HttpServer {
   }
 
   setupApp (app) {
+    app.use(bodyParser.urlencoded({ extended: true }))
     app.set('views', path.join(__dirname, '/views'))
     app.set('view engine', 'pug')
   }
