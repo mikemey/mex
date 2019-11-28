@@ -2,7 +2,9 @@ const { trand } = require('../testtools')
 const { WSClient } = require('../security')
 
 const { SessionRegisterService, model } = require('../session')
-const { dbconnection, randomString } = require('../utils')
+const {
+  dbconnection, randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
+} = require('../utils')
 
 describe('SessionService register', () => {
   const testToken = 'session-service-testtoken'
@@ -29,14 +31,14 @@ describe('SessionService register', () => {
   }
 
   const assertRegisterOk = result => result.should.deep.equal({
-    action: 'register', status: 'ok'
+    action: 'register', status: OK_STATUS
   })
 
   const expectNokResponse = (req, message) => wsClient.send(req)
-    .then(result => result.should.deep.equal({ action: 'register', status: 'nok', message }))
+    .then(result => result.should.deep.equal({ action: 'register', status: NOK_STATUS, message }))
 
   const expectError = req => wsClient.send(req)
-    .then(result => result.should.deep.equal({ status: 'error', message: 'invalid request' }))
+    .then(result => result.should.deep.equal({ status: ERROR_STATUS, message: 'invalid request' }))
 
   describe('successful registration', () => {
     it('single user', () => {

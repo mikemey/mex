@@ -1,5 +1,5 @@
 const uws = require('uWebSockets.js')
-const { LogTrait, wsmessages } = require('../utils')
+const { LogTrait, wsmessages: { createRawMessage, extractMessage, OK_STATUS } } = require('../utils')
 
 const closeClientSockets = clients => clients.forEach(client => client.close())
 
@@ -9,7 +9,7 @@ class WSServerMock extends LogTrait {
     this.port = port
     this.path = path
     this.listenSocket = null
-    this.defaultResponse = { status: 'ok' }
+    this.defaultResponse = { status: OK_STATUS }
     this._defaultInterceptors = {
       responsePromise: () => Promise.resolve(this.defaultResponse),
       stopProcessing: false,
@@ -60,7 +60,7 @@ class WSServerMock extends LogTrait {
     return new Promise((resolve, reject) => {
       try {
         const rawMessage = String.fromCharCode.apply(null, new Uint8Array(buffer))
-        const message = wsmessages.extractMessage(rawMessage)
+        const message = extractMessage(rawMessage)
         receivedMessageId = message.id
         this.log(`received: <${message.id}>`, message.body)
         resolve(message.body)
@@ -74,7 +74,7 @@ class WSServerMock extends LogTrait {
         return
       }
       this.log(`responding: <${receivedMessageId}>`, response)
-      return ws.send(wsmessages.createRawMessage(receivedMessageId, response))
+      return ws.send(createRawMessage(receivedMessageId, response))
     }).then(sendResultOk => {
       if (this.interceptors.stopProcessing) { return }
       const buffered = ws.getBufferedAmount()

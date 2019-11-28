@@ -1,6 +1,9 @@
 const { randomString } = require('./rand')
 
 const MESSAGE_ID_LENGTH = 6
+const OK_STATUS = 'ok'
+const NOK_STATUS = 'nok'
+const ERROR_STATUS = 'error'
 
 const randomMessageId = () => randomString(MESSAGE_ID_LENGTH).toUpperCase()
 
@@ -23,15 +26,15 @@ const extractMessage = rawMessage => {
 }
 
 const error = message => {
-  return { status: 'error', message }
+  return { status: ERROR_STATUS, message }
 }
 
 const withAction = action => {
-  const ok = () => { return { status: 'ok', action } }
-  const nok = message => { return { status: 'nok', action, message } }
+  const ok = () => { return { status: OK_STATUS, action } }
+  const nok = message => { return { status: NOK_STATUS, action, message } }
   const build = obj => Object.assign(obj, { action })
 
   return { ok, nok, build }
 }
 
-module.exports = { randomMessageId, createRawMessage, extractMessage, withAction, error }
+module.exports = { randomMessageId, createRawMessage, extractMessage, withAction, error, OK_STATUS, NOK_STATUS, ERROR_STATUS }

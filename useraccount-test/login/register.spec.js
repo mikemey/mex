@@ -58,32 +58,41 @@ describe('UserAccount register', () => {
   })
 
   describe('registration calls to session service', () => {
-    const backendRequest = (email = testEmail, password = testPassword) => {
-      return { email, password, action: 'register' }
-    }
+    const backendRequest = registerAction.build({ email: testEmail, password: testPassword })
 
-    const backendOk = registerAction.ok()
-    // const backendNok = message => registerAction.nok(message)
-    // const backendError = wsmessages.error()
+    const backendResponseOk = registerAction.ok()
+    const backendResponseNok = message => registerAction.nok(message)
+    const backendResponseError = message => wsmessages.error(message)
 
-    beforeEach(() => sessionMock.addMockFor(backendRequest(), backendOk))
+    it('post forwards to login page', () => {
+      sessionMock.addMockFor(backendRequest, backendResponseOk)
+      return postRegistration({}).redirects(false)
+        .then(res => {
+          res.should.have.status(303)
+          res.should.have.header('location', /.*login$/)
+        })
+    })
 
-    it('post forwards to login page', () => postRegistration({}).redirects(false)
-      .then(res => {
-        res.should.have.status(303)
-        res.should.have.header('location', /.*login$/)
-      })
-    )
+    it('successful registration', () => {
+      sessionMock.addMockFor(backendRequest, backendResponseOk)
+      return postRegistration({})
+        .then(orchestrator.withHtml).then(res => {
+          res.status.should.equal(200)
+          res.html.pageTitle().should.equal('mex login')
+          sessionMock.assertReceived(backendRequest)
+        })
+    })
 
-    it('successful registration', () => postRegistration({})
-      .then(orchestrator.withHtml).then(res => {
-        res.status.should.equal(200)
-        res.html.pageTitle().should.equal('mex login')
-        sessionMock.assertReceived(backendRequest())
-      })
-    )
+    it('unsuccessful registration from backend', () => {
+      const errorMessage = 'test-unsuccessful'
+      sessionMock.addMockFor(backendRequest, backendResponseNok(errorMessage))
+      return postRegistration({}).then(expectRegistrationError(errorMessage, 1))
+    })
 
-    it('unsuccessful registration from backend', () => { })
-    it('error from backend', () => { })
+    it('error from backend', () => {
+      const errorMessage = 'test-error'
+      sessionMock.addMockFor(backendRequest, backendResponseError(errorMessage))
+      return postRegistration({}).then(expectRegistrationError('service unavailable', 1))
+    })
   })
 })
