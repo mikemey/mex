@@ -2,6 +2,7 @@ const cookie = require('cookie')
 const chai = require('chai')
 const should = chai.should()
 chai.use(require('chai-http'))
+chai.use(require('chai-string'))
 
 const { HttpServer } = require('../security')
 
