@@ -25,18 +25,11 @@ class UserAccountService extends HttpServer {
     this.config = config
     this.server = null
     this.sessionClient = new SessionServiceClient(config.sessionService)
-
-    process.on('SIGTERM', this.stop.bind(this))
-    process.on('SIGINT', () => this.stop.bind(this))
   }
 
   start () {
     Validator.oneTimeValidation(configSchema, this.config)
     return super.start()
-  }
-
-  stop () {
-    return super.stop()
   }
 
   setupApp (app) {

@@ -1,24 +1,18 @@
 const chai = require('chai')
 chai.use(require('chai-string'))
 
-const orchestrator = require('./orchestrator')
-// const UserAccountService = require('../useraccount')
-const { httpauth } = require('../useraccount/defaults.json')
+const orchestrator = require('./uaorchestrator')
+const defaultSettings = require('../useraccount/defaults.json')
 
 describe('UserAccountService', () => {
-  describe('common', () => {
+  describe('uses configuration', () => {
     const agent = orchestrator.agent()
-    before(() => orchestrator.start())
+
+    before(() => orchestrator.start({ startMock: false }))
     after(() => orchestrator.stop())
 
-    it('responds with configured version', () => agent.get('/version')
-      .then(res => res.text.should.startWith(httpauth.version))
+    it('version', () => agent.get('/version')
+      .then(res => res.text.should.startWith(defaultSettings.httpserver.version))
     )
-  })
-
-  describe('connection to SessionService', () => {
-    it('uses configured authorization key', () => {
-      // is configuration really passed on
-    })
   })
 })
