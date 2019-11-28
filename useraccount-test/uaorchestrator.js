@@ -12,7 +12,7 @@ const httpserverConfig = { path: '/uacc-test', port: 12023 }
 const sessionServiceConfig = {
   url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
   authToken,
-  timeout: 500
+  timeout: 40
 }
 
 const service = new UserAccountService({ httpserver: httpserverConfig, sessionService: sessionServiceConfig })
@@ -22,9 +22,7 @@ const start = ({ startMock = true, startService = true } = {}) => Promise.all([
   startMock ? sessionMock.start() : Promise.resolve(),
   startService ? service.start() : Promise.resolve()
 ])
-
 const stop = () => sessionMock.stop().then(() => service.stop())
-
 const agent = () => chai.request.agent(`http://localhost:${httpserverConfig.port}${httpserverConfig.path}`)
 
 const HtmlWrapper = $ => {

@@ -9,6 +9,24 @@ const configSchema = Joi.object({
   authorizedTokens: Joi.array().items(Validator.secretToken('authorizedToken')).required()
 })
 
+const ClientSocket = ws => {
+  const send = message => {
+    try { return ws.send(message) } catch (err) { return false }
+  }
+  const end = () => {
+    try { return ws.end() } catch (err) { /* ignore closed socket error */ }
+  }
+  const close = () => {
+    try { return ws.close() } catch (err) { /* ignore closed socket error */ }
+  }
+  const getBufferedAmount = () => {
+    try { ws.getBufferedAmount() } catch (err) { return 0 }
+  }
+  const log = (...args) => ws.log(...args)
+
+  return { ws, log, send, end, close, getBufferedAmount }
+}
+
 class WSServer extends LogTrait {
   constructor (config) {
     super()
@@ -30,12 +48,12 @@ class WSServer extends LogTrait {
           }
           ws.log = this.createIdLog(randomHash())
           this._wslog(ws, 'client authorized successful')
-          this.clients.push(ws)
+          this.clients.push(ClientSocket(ws))
         },
-        message: (ws, buffer) => this._processMessage(ws, buffer),
+        message: (ws, buffer) => this._processMessage(ClientSocket(ws), buffer),
         drain: (ws) => this._wslog(ws, 'socket backpressure:', ws.getBufferedAmount()),
         close: (ws, code) => {
-          this._removeClient(ws)
+          this._removeClient(ClientSocket(ws))
           this._wslog(ws, 'socket closed:', code)
         }
       }).listen(this.config.port, socket => {
@@ -89,6 +107,11 @@ class WSServer extends LogTrait {
         const message = wsmessages.createRawMessage(incoming.msg.id, response)
         return ws.send(message)
       })
+      .catch(err => {
+        this._wslog(ws, 'sending error:', err)
+        incoming.dropConnection = true
+        return false
+      })
       .then(sendResultOk => {
         const buffered = ws.getBufferedAmount()
         this._wslog(ws, 'send result', incoming.msg.prettyId, 'OK:', sendResultOk, ' buffered:', buffered)
@@ -105,8 +128,8 @@ class WSServer extends LogTrait {
     ws.end()
   }
 
-  _removeClient (ws) {
-    this.clients = this.clients.filter(c => c !== ws)
+  _removeClient (clientSocket) {
+    this.clients = this.clients.filter(c => c.ws !== clientSocket.ws)
   }
 
   _wslog (ws, ...args) {

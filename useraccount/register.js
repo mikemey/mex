@@ -28,6 +28,10 @@ class RegisterRouter extends LogTrait {
     const registerCheck = Validator.createCheck(requestSchema)
 
     const registrationError = (res, message) => res.render('register', { error: message })
+    const serviceUnavailable = (res, detailMsg) => {
+      this.log('registration error:', detailMsg)
+      registrationError(res, 'service unavailable')
+    }
 
     router.get('/', (_, res) => res.render('register'))
 
@@ -50,12 +54,10 @@ class RegisterRouter extends LogTrait {
               this.log('registration failed:', result.message)
               return registrationError(res, result.message)
             }
-            default: {
-              this.log('registration error:', result.message)
-              return registrationError(res, 'service unavailable')
-            }
+            default: return serviceUnavailable(res, result.message)
           }
         })
+        .catch(err => serviceUnavailable(res, err.message))
     })
     return router
   }

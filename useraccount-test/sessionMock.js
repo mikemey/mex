@@ -21,11 +21,12 @@ class SessionMock extends WSServer {
   }
 
   addMockFor (expectedRequest, mockResponse) {
-    if (expectedRequest.constructor === Object && mockResponse.constructor === Object) {
-      this.mockResponses.push({ req: expectedRequest, res: mockResponse })
-    } else {
-      throw new Error('mock request/response expected to be objects')
-    }
+    if (expectedRequest.constructor !== Object ||
+      (mockResponse.constructor !== Promise && mockResponse.constructor !== Object)
+    ) { throw new Error('mock request not an object') }
+
+    const responsePromise = mockResponse.constructor === Object ? Promise.resolve(mockResponse) : mockResponse
+    this.mockResponses.push({ req: expectedRequest, res: responsePromise })
   }
 
   assertReceived (...requests) {
@@ -36,10 +37,9 @@ class SessionMock extends WSServer {
     this.counter += 1
     this.receivedRequests.push(request)
     const mock = this.mockResponses.find(m => _.isEqual(m.req, request))
-    if (mock) {
-      return Promise.resolve(mock.res)
-    }
-    this.error = 'SessionMock: unexpected request: ' + JSON.stringify(request) +
+    if (mock) { return mock.res }
+
+    this.error = 'WSServerMock: unexpected request: ' + JSON.stringify(request) +
       '\nMocks available:\n' + JSON.stringify(this.mockResponses)
     return Promise.resolve({})
   }
