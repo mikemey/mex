@@ -7,10 +7,20 @@ const email = ({ message = 'email invalid', warn = false } = {}) => Joi.string()
   .email({ minDomainSegments: 2 })
   .rule({ message, warn })
   .required()
+  .error(errors => {
+    errors.forEach(err => { err.message = message })
+    return errors
+  })
+
 const password = ({ message = 'password invalid', warn = false } = {}) => Joi.string()
   .pattern(/^[a-zA-Z0-9!"#$%&'()*+,-./:;[\]<=>?@\\^_`{|}~]{8,50}$/)
   .rule({ message, warn })
   .required()
+  .error(errors => {
+    errors.forEach(err => { err.message = message })
+    return errors
+  })
+
 const defaultFail = message => { throw new Error(message) }
 
 const oneTimeValidation = (schema, data) => {

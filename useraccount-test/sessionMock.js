@@ -13,6 +13,7 @@ class SessionMock extends WSServer {
     this.receivedRequests = []
     this.mockResponses = []
     this.error = false
+    this.counter = 0
   }
 
   errorCheck () {
@@ -32,6 +33,7 @@ class SessionMock extends WSServer {
   }
 
   received (request) {
+    this.counter += 1
     this.receivedRequests.push(request)
     const mock = this.mockResponses.find(m => _.isEqual(m.req, request))
     if (mock) {

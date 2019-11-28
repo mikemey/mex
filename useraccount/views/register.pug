@@ -12,3 +12,5 @@ block content
     label(for="password-confirm") Password confirmation
     input#confirmation(type="password" name="confirmation" placeholder="Confirmation")
     button#register(type="submit") Register
+    if error
+      #error= error

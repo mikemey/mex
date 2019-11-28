@@ -11,7 +11,10 @@ describe('UserAccount register', () => {
   beforeEach(() => sessionMock.reset())
   afterEach(() => sessionMock.errorCheck())
 
-  const postRegistration = (email, password, confirmation) => agent.post('/register')
+  const testEmail = 'hello@bla.com'
+  const testPassword = 'mysecret'
+
+  const postRegistration = ({ email = testEmail, password = testPassword, confirmation = testPassword }) => agent.post('/register')
     .send(`email=${email}`).send(`password=${password}`).send(`confirmation=${confirmation}`)
 
   describe('registration page', () => {
@@ -31,9 +34,30 @@ describe('UserAccount register', () => {
     )
   })
 
-  describe('registration post', () => {
-    const testEmail = 'hello@bla.com'
-    const testPassword = 'mysecret'
+  const expectRegistrationError = (errMessage, sessionMockCalled = 0) => res => {
+    res = orchestrator.withHtml(res)
+    res.status.should.equal(200)
+    res.html.pageTitle().should.equal('mex registration')
+    res.html.$('#error').text().should.equal(errMessage)
+    sessionMock.counter.should.equal(sessionMockCalled)
+  }
+
+  describe('registration form parameter checks', () => {
+    const testData = [
+      { title: 'email not valid', post: { email: 'wrong' }, expectedError: 'email invalid' },
+      { title: 'empty email', post: { email: '' }, expectedError: 'email invalid' },
+      { title: 'password + confirmation not matching', post: { confirmation: 'wrong' }, expectedError: 'password and confirmation not matching' },
+      { title: 'password too short', post: { password: '1234567', confirmation: '1234567' }, expectedError: 'password invalid' },
+      { title: 'password empty', post: { password: '', confirmation: '' }, expectedError: 'password invalid' }
+    ]
+
+    testData.forEach(test => {
+      it(test.title, () => postRegistration(test.post).then(expectRegistrationError(test.expectedError))
+      )
+    })
+  })
+
+  describe('registration calls to session service', () => {
     const backendRequest = (email = testEmail, password = testPassword) => {
       return { email, password, action: 'register' }
     }
@@ -44,15 +68,14 @@ describe('UserAccount register', () => {
 
     beforeEach(() => sessionMock.addMockFor(backendRequest(), backendOk))
 
-    it('post forwards to login page', () => postRegistration(testEmail, testPassword, testPassword)
-      .redirects(false)
+    it('post forwards to login page', () => postRegistration({}).redirects(false)
       .then(res => {
         res.should.have.status(303)
         res.should.have.header('location', /.*login$/)
       })
     )
 
-    it('successful registration', () => postRegistration(testEmail, testPassword, testPassword)
+    it('successful registration', () => postRegistration({})
       .then(orchestrator.withHtml).then(res => {
         res.status.should.equal(200)
         res.html.pageTitle().should.equal('mex login')
@@ -60,7 +83,6 @@ describe('UserAccount register', () => {
       })
     )
 
-    it('password + confirmation not matching', () => { })
     it('unsuccessful registration from backend', () => { })
     it('error from backend', () => { })
   })
