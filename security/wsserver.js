@@ -14,6 +14,7 @@ class WSServer extends LogTrait {
     super()
     this.listenSocken = null
     this.config = config
+    this.clients = []
   }
 
   start () {
@@ -29,10 +30,14 @@ class WSServer extends LogTrait {
           }
           ws.log = this.createIdLog(randomHash())
           this._wslog(ws, 'client authorized successful')
+          this.clients.push(ws)
         },
         message: (ws, buffer) => this._processMessage(ws, buffer),
         drain: (ws) => this._wslog(ws, 'socket backpressure:', ws.getBufferedAmount()),
-        close: (ws, code) => this._wslog(ws, 'socket closed:', code)
+        close: (ws, code) => {
+          this._removeClient(ws)
+          this._wslog(ws, 'socket closed:', code)
+        }
       }).listen(this.config.port, socket => {
         if (socket) {
           this.log('listening on port', this.config.port)
@@ -51,6 +56,8 @@ class WSServer extends LogTrait {
     return new Promise(resolve => {
       if (this.listenSocket) {
         this.log('shutting down')
+        this.clients.forEach(ws => ws.end())
+        this.clients = []
         uws.us_listen_socket_close(this.listenSocket)
         this.listenSocket = null
       } else {
@@ -86,15 +93,20 @@ class WSServer extends LogTrait {
         const buffered = ws.getBufferedAmount()
         this._wslog(ws, 'send result', incoming.msg.prettyId, 'OK:', sendResultOk, ' buffered:', buffered)
 
-        if (!sendResultOk) { this._sendingError('send result NOK', ws.close.bind(ws)) }
-        if (buffered > 0) { this._sendingError(`buffer not empty: ${buffered}`, ws.close.bind(ws)) }
-        if (incoming.dropConnection) { this._sendingError('closing connection', ws.end.bind(ws)) }
+        if (!sendResultOk) { this._sendingError(ws, 'send result NOK') }
+        if (buffered > 0) { this._sendingError(ws, `buffer not empty: ${buffered}`) }
+        if (incoming.dropConnection) { this._sendingError(ws, 'closing connection') }
       })
   }
 
-  _sendingError (message, closeWs) {
+  _sendingError (ws, message) {
+    this._removeClient(ws)
     this.log(message)
-    closeWs()
+    ws.end()
+  }
+
+  _removeClient (ws) {
+    this.clients = this.clients.filter(c => c !== ws)
   }
 
   _wslog (ws, ...args) {
