@@ -1,5 +1,4 @@
 const chai = require('chai')
-const should = chai.should()
 chai.use(require('chai-http'))
 
 const { HttpServer } = require('../security')
@@ -26,14 +25,8 @@ describe('HTTP Server configuration', () => {
       return checkConfigError(errconfig, expectedMessage)
     }
 
-    const checkConfigError = (errconfig, expectedMessage) => {
-      try {
-        new HttpServer(errconfig).start()
-        should.fail('expected error')
-      } catch (err) {
-        err.message.should.equal(expectedMessage)
-      }
-    }
+    const checkConfigError = (errconfig, expectedMessage) =>
+      (() => new HttpServer(errconfig)).should.throw(expectedMessage)
 
     it('secret required', () => configWithout('secret', '"secret" is required'))
     it('secret too short', () => configWith({ secret: '1234567890123456789' }, '"secret" too short'))

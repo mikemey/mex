@@ -73,6 +73,7 @@ class HttpServer extends LogTrait {
     this.server = null
     this.httpconfig = httpconfig
     this.connections = {}
+    Validator.oneTimeValidation(configSchema, this.httpconfig)
   }
 
   setupApp (_) { }
@@ -80,7 +81,6 @@ class HttpServer extends LogTrait {
 
   start () {
     if (this.server !== null) { throw new Error('server already started') }
-    Validator.oneTimeValidation(configSchema, this.httpconfig)
     this.connections = {}
 
     return new Promise((resolve, reject) => {

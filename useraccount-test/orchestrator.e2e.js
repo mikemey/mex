@@ -15,9 +15,7 @@ const sessionConfig = {
 }
 
 const sessionService = new SessionRegisterService(sessionServiceConfig)
-sessionService.debug = true
 const uacService = new UserAccountService({ httpserver: useraccountConfig, sessionService: sessionConfig })
-uacService.debug = true
 
 const uacurl = `http://localhost:${useraccountConfig.port}${useraccountConfig.path}`
 

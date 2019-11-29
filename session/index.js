@@ -8,7 +8,7 @@ const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require
 const sessionAccess = require('./session-access')
 
 const configSchema = Joi.object({
-  wsserver: Joi.any().required(),
+  wsserver: Joi.object().required(),
   db: Joi.object({
     url: Joi.string().required(),
     name: Joi.string().required()

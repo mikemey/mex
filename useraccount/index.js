@@ -25,10 +25,10 @@ class UserAccountService extends HttpServer {
     this.config = config
     this.server = null
     this.sessionClient = new SessionServiceClient(config.sessionService)
+    Validator.oneTimeValidation(configSchema, this.config)
   }
 
   start () {
-    Validator.oneTimeValidation(configSchema, this.config)
     return super.start()
   }
 
