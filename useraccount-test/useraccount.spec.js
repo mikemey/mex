@@ -1,7 +1,7 @@
 const chai = require('chai')
 chai.use(require('chai-string'))
 
-const orchestrator = require('./uaorchestrator')
+const orchestrator = require('./useraccount.orch')
 const defaultSettings = require('../useraccount/defaults.json')
 
 describe('UserAccountService', () => {
