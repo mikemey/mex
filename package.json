@@ -15,7 +15,7 @@
   "scripts": {
     "lint": "standard",
     "alltest": "TESTING=true mocha 'security-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' -r chai/register-should",
-    "e2e": "./useraccount-test/e2ehelper.sh",
+    "e2e": "./browser-test/e2ehelper.sh",
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s",
     "~test": "nodemon -x 'npm run alltest -s'"
