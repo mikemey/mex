@@ -32,6 +32,11 @@ class UserAccountService extends HttpServer {
     return super.start()
   }
 
+  stop () {
+    return this.sessionClient.stop()
+      .then(() => super.stop())
+  }
+
   setupApp (app) {
     app.use(bodyParser.urlencoded({ extended: true }))
     app.set('views', path.join(__dirname, '/views'))
@@ -40,6 +45,7 @@ class UserAccountService extends HttpServer {
 
   addRoutes (router) {
     router.use('/', new AccessRouter(this.sessionClient).create())
+    router.get('/home', (_, res) => res.render('home', { email: 'hello you' }))
   }
 }
 

@@ -22,7 +22,8 @@ const start = ({ startMock = true, startService = true } = {}) => Promise.all([
   startMock ? sessionMock.start() : Promise.resolve(),
   startService ? service.start() : Promise.resolve()
 ])
-const stop = () => sessionMock.stop().then(() => service.stop())
+const stop = () => Promise.all([service.stop(), sessionMock.stop()])
+
 const agent = () => chai.request.agent(`http://localhost:${httpserverConfig.port}${httpserverConfig.path}`)
 
 const HtmlWrapper = $ => {

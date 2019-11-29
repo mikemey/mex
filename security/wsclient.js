@@ -145,6 +145,7 @@ class WSClient extends LogTrait {
   }
 
   _stopSync (resolve = () => { }, reject = () => { }) {
+    this.log('stopping...')
     if (this.ws === null) return resolve()
 
     const waitfor = Waiter(this.ws, reject)

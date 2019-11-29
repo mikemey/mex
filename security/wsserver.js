@@ -32,11 +32,13 @@ class WSServer extends LogTrait {
     super()
     this.listenSocken = null
     this.config = config
-    this.clients = []
+    this.clientSockets = []
   }
 
   start () {
     Validator.oneTimeValidation(configSchema, this.config)
+    this.clientSockets = []
+
     return new Promise((resolve, reject) => {
       uws.App({}).ws(this.config.path, {
         maxPayloadLength: 4 * 1024,
@@ -48,7 +50,8 @@ class WSServer extends LogTrait {
           }
           ws.log = this.createIdLog(randomHash())
           this._wslog(ws, 'client authorized successful')
-          this.clients.push(ClientSocket(ws))
+          console.log('USE MAP instead of array')
+          this.clientSockets.push(ClientSocket(ws))
         },
         message: (ws, buffer) => this._processMessage(ClientSocket(ws), buffer),
         drain: (ws) => this._wslog(ws, 'socket backpressure:', ws.getBufferedAmount()),
@@ -74,10 +77,10 @@ class WSServer extends LogTrait {
     return new Promise(resolve => {
       if (this.listenSocket) {
         this.log('shutting down')
-        this.clients.forEach(ws => ws.end())
-        this.clients = []
+        this.clientSockets.forEach(ws => ws.end())
         uws.us_listen_socket_close(this.listenSocket)
         this.listenSocket = null
+        this.log('stopped.')
       } else {
         this.log('already stopped')
       }
@@ -129,7 +132,7 @@ class WSServer extends LogTrait {
   }
 
   _removeClient (clientSocket) {
-    this.clients = this.clients.filter(c => c.ws !== clientSocket.ws)
+    this.clientSockets = this.clientSockets.filter(c => c.ws !== clientSocket.ws)
   }
 
   _wslog (ws, ...args) {
