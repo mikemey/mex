@@ -1,5 +1,5 @@
 const UserAccountService = require('../useraccount')
-const { SessionRegisterService } = require('../session')
+const { SessionService } = require('../session')
 
 const authToken = 'e2e-token-7567812341'
 const sessionServiceConfig = {
@@ -8,14 +8,17 @@ const sessionServiceConfig = {
 }
 
 const useraccountConfig = { path: '/uac', port: 13500 }
-const sessionConfig = {
-  url: `ws://localhost:${sessionServiceConfig.port}${sessionServiceConfig.path}`,
+const useraccountSessionClientConfig = {
+  url: `ws://localhost:${sessionServiceConfig.wsserver.port}${sessionServiceConfig.wsserver.path}`,
   authToken,
   timeout: 2000
 }
 
-const sessionService = new SessionRegisterService(sessionServiceConfig)
-const uacService = new UserAccountService({ httpserver: useraccountConfig, sessionService: sessionConfig })
+const sessionService = new SessionService(sessionServiceConfig)
+const uacService = new UserAccountService({
+  httpserver: useraccountConfig,
+  sessionService: useraccountSessionClientConfig
+})
 
 const uacurl = `http://localhost:${useraccountConfig.port}${useraccountConfig.path}`
 
