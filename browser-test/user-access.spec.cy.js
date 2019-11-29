@@ -11,4 +11,16 @@ describe('Registration', () => {
       cy.get('input#confirmation').should('have.attr', 'type', 'password')
     })
   })
+
+  describe('post', () => {
+    it('successful', () => {
+      throw new Error('implement')
+    })
+    it('duplicate email', () => {
+      throw new Error('implement')
+    })
+    it('keeps email after input error', () => {
+      throw new Error('implement')
+    })
+  })
 })
