@@ -50,7 +50,6 @@ class WSServer extends LogTrait {
           }
           ws.log = this.createIdLog(randomHash())
           this._wslog(ws, 'client authorized successful')
-          console.log('USE MAP instead of array')
           this.clientSockets.push(ClientSocket(ws))
         },
         message: (ws, buffer) => this._processMessage(ClientSocket(ws), buffer),

@@ -1,7 +1,7 @@
 const { trand } = require('../testtools')
 const { WSClient } = require('../security')
 
-const { SessionRegisterService, model } = require('../session')
+const { SessionService, model } = require('../session')
 const {
   dbconnection, randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
 } = require('../utils')
@@ -16,7 +16,7 @@ describe('SessionService register', () => {
   const dbconfig = {
     url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
   }
-  const registerSvc = new SessionRegisterService(testConfig)
+  const registerSvc = new SessionService(testConfig)
   const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500 })
 
   before(() => dbconnection.connect(dbconfig.url, dbconfig.name)

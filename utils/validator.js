@@ -21,12 +21,12 @@ const password = ({ message = 'password invalid', warn = false } = {}) => Joi.st
     return errors
   })
 
-const defaultFail = message => { throw new Error(message) }
+const defaultFail = (message, origin) => { throw new Error(message) }
 
 const oneTimeValidation = (schema, data) => {
   const result = schema.validate(data)
-  if (result.error) { defaultFail(result.error.message) }
-  if (result.warning) { defaultFail(result.warning.message) }
+  if (result.error) { defaultFail(result.error.message, data) }
+  if (result.warning) { defaultFail(result.warning.message, data) }
 }
 
 const createCheck = (
@@ -35,8 +35,8 @@ const createCheck = (
   if (!schema) { throw new Error('schema not defined') }
   return data => {
     const result = schema.validate(data)
-    if (result.error) { onError(result.error.message) }
-    if (result.warning) { onWarning(result.warning.message) }
+    if (result.error) { onError(result.error.message, data) }
+    if (result.warning) { onWarning(result.warning.message, data) }
   }
 }
 
