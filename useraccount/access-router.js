@@ -16,7 +16,7 @@ const requestSchema = Joi.object({
     })
 })
 
-class RegisterRouter extends LogTrait {
+class AccessRouter extends LogTrait {
   constructor (sessionClient) {
     super()
     this.sessionClient = sessionClient
@@ -33,9 +33,12 @@ class RegisterRouter extends LogTrait {
       registrationError(res, 'service unavailable')
     }
 
-    router.get('/', (_, res) => res.render('register'))
+    router.get('/login', (_, res) => res.render('login'))
+    router.get('/register', (_, res) => res.render('register'))
 
-    router.post('/', (req, res) => {
+//    router.get('/', (_, res) => res.render('login'))
+
+    router.post('/register', (req, res) => {
       const email = req.body.email
       const password = req.body.password
       const confirmation = req.body.confirmation
@@ -63,4 +66,4 @@ class RegisterRouter extends LogTrait {
   }
 }
 
-module.exports = RegisterRouter
+module.exports = AccessRouter

@@ -7,8 +7,7 @@ const { HttpServer } = require('../security')
 const { Validator } = require('../utils')
 const { SessionServiceClient } = require('../session')
 
-const RegisterRouter = require('./register')
-const LoginRouter = require('./login')
+const AccessRouter = require('./access-router')
 
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
 
@@ -40,8 +39,7 @@ class UserAccountService extends HttpServer {
   }
 
   addRoutes (router) {
-    router.use('/register', new RegisterRouter(this.sessionClient).create())
-    router.use('/login', new LoginRouter(this.sessionClient).create())
+    router.use('/', new AccessRouter(this.sessionClient).create())
   }
 }
 

@@ -1,5 +1,5 @@
-const orchestrator = require('../uaorchestrator')
-const { wsmessages } = require('../../utils')
+const orchestrator = require('./uaorchestrator')
+const { wsmessages } = require('../utils')
 
 describe('UserAccount register', () => {
   const agent = orchestrator.agent()
