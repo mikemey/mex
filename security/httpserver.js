@@ -72,19 +72,22 @@ class HttpServer extends LogTrait {
     super()
     this.server = null
     this.httpconfig = httpconfig
+    this.connections = {}
   }
 
   setupApp (_) { }
   addRoutes (_) { throw new Error('missing addRoutes() implementation') }
 
   start () {
-    if (this.server) { throw new Error('server already started') }
+    if (this.server !== null) { throw new Error('server already started') }
     Validator.oneTimeValidation(configSchema, this.httpconfig)
+    this.connections = {}
 
     return new Promise((resolve, reject) => {
-      const server = this.createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {
+      const server = this._createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {
         this.log('started on port', server.address().port)
         this.log('server version:', this.httpconfig.version)
+        this._addConnectionListeners(server)
         this.server = server
         resolve(server)
       })
@@ -96,7 +99,7 @@ class HttpServer extends LogTrait {
     })
   }
 
-  createServer () {
+  _createServer () {
     const errorFunc = this.log.bind(this)
     const app = express()
 
@@ -117,15 +120,28 @@ class HttpServer extends LogTrait {
     return app
   }
 
+  _addConnectionListeners (server) {
+    server.on('connection', conn => {
+      var key = `${conn.remoteAddress}:${conn.remotePort}`
+      this.connections[key] = conn
+      conn.on('close', () => delete this.connections[key])
+    })
+  }
+
   stop () {
-    if (!this.server) { return Promise.resolve() }
+    if (this.server === null) { return Promise.resolve() }
     return new Promise(resolve => {
       this.log('shutting down...')
+
       this.server.close(() => {
+        this.server = null
         this.log('server closed')
         resolve()
       })
-      this.server = null
+
+      for (const address in this.connections) {
+        this.connections[address].destroy()
+      }
     })
   }
 }
