@@ -2,7 +2,7 @@ const should = require('chai').should()
 const { randomString, errors, wsmessages } = require('../utils')
 
 const { WSServer } = require('../security')
-const WSClientMock = require('./wsclientMock')
+const WSClientInterceptor = require('./interceptor/wsclient-interceptor')
 
 describe('Websocket Server', () => {
   const defServerData = { expected: {}, resolve: true, response: {}, err: null }
@@ -39,7 +39,7 @@ describe('Websocket Server', () => {
   })
 
   describe('connection handling', () => {
-    const clientMock = new WSClientMock(port, path, testToken)
+    const clientMock = new WSClientInterceptor(port, path, testToken)
 
     before(() => wsserver.start())
     after(() => wsserver.stop())

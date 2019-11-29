@@ -3,7 +3,7 @@ const _ = require('underscore')
 
 const { WSServer } = require('../security')
 
-class SessionMock extends WSServer {
+class WSServerMock extends WSServer {
   constructor (config) {
     super(config)
     this.reset()
@@ -45,4 +45,4 @@ class SessionMock extends WSServer {
   }
 }
 
-module.exports = SessionMock
+module.exports = WSServerMock

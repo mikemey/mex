@@ -3,7 +3,7 @@ const util = require('util')
 const setTimeoutPromise = util.promisify(setTimeout)
 
 const { WSClient } = require('../security')
-const WSServerMock = require('./wsserverMock')
+const WSServerInterceptor = require('./interceptor/wsserver-interceptor')
 
 describe('Websocket client', () => {
   const port = 12345
@@ -45,7 +45,7 @@ describe('Websocket client', () => {
   })
 
   describe('connection to server', () => {
-    const mockServer = new WSServerMock(port, path)
+    const mockServer = new WSServerInterceptor(port, path)
     const wsclient = defaultClient()
 
     beforeEach(() => mockServer.start())

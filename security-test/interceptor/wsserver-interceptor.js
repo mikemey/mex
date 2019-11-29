@@ -1,9 +1,12 @@
 const uws = require('uWebSockets.js')
-const { LogTrait, wsmessages: { createRawMessage, extractMessage, OK_STATUS } } = require('../utils')
+const {
+  LogTrait,
+  wsmessages: { createRawMessage, extractMessage, OK_STATUS }
+} = require('../../utils')
 
 const closeClientSockets = clients => clients.forEach(client => client.close())
 
-class WSServerMock extends LogTrait {
+class WSServerInterceptor extends LogTrait {
   constructor (port, path) {
     super()
     this.port = port
@@ -28,7 +31,7 @@ class WSServerMock extends LogTrait {
     this.received = { authTokens: [], messages: [] }
     return new Promise((resolve, reject) => {
       if (this.listenSocket) {
-        return reject(Error('WSServerMock already started'))
+        return reject(Error('WSServerInterceptor already started'))
       }
       uws.App({}).ws(this.path, {
         open: (ws, req) => {
@@ -79,7 +82,7 @@ class WSServerMock extends LogTrait {
       if (this.interceptors.stopProcessing) { return }
       const buffered = ws.getBufferedAmount()
       this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
-      if (!sendResultOk || buffered > 0) { throw new Error('WSServerMock: sending failed') }
+      if (!sendResultOk || buffered > 0) { throw new Error('WSServerInterceptor: sending failed') }
       if (this.interceptors.afterResponse) {
         return this.interceptors.afterResponse(ws)
       }
@@ -103,4 +106,4 @@ class WSServerMock extends LogTrait {
   }
 }
 
-module.exports = WSServerMock
+module.exports = WSServerInterceptor

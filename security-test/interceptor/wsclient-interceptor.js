@@ -1,6 +1,6 @@
 const WebSocket = require('ws')
 
-const { LogTrait, wsmessages } = require('../utils')
+const { LogTrait, wsmessages } = require('../../utils')
 
 const isConnected = ws => {
   if (ws === null) return Promise.resolve(false)
@@ -15,7 +15,7 @@ const isConnected = ws => {
   }
 }
 
-class WSClientMock extends LogTrait {
+class WSClientInterceptor extends LogTrait {
   constructor (port, path, token) {
     super()
     this.ws = null
@@ -118,4 +118,4 @@ class WSClientMock extends LogTrait {
   }
 }
 
-module.exports = WSClientMock
+module.exports = WSClientInterceptor

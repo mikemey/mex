@@ -36,7 +36,7 @@ class AccessRouter extends LogTrait {
     router.get('/login', (_, res) => res.render('login'))
     router.get('/register', (_, res) => res.render('register'))
 
-//    router.get('/', (_, res) => res.render('login'))
+    //    router.get('/', (_, res) => res.render('login'))
 
     router.post('/register', (req, res) => {
       const email = req.body.email

@@ -3,7 +3,7 @@ chai.use(require('chai-http'))
 const cheerio = require('cheerio')
 
 const UserAccountService = require('../useraccount')
-const SessionMock = require('./sessionMock')
+const WSServerMock = require('../testtools/wsserver-mock')
 
 const authToken = 'test-token-756781234'
 const sessionMockConfig = { path: '/sessionmock', port: 12500, authorizedTokens: [authToken] }
@@ -16,7 +16,7 @@ const sessionServiceConfig = {
 }
 
 const service = new UserAccountService({ httpserver: httpserverConfig, sessionService: sessionServiceConfig })
-const sessionMock = new SessionMock(sessionMockConfig)
+const sessionMock = new WSServerMock(sessionMockConfig)
 
 const start = ({ startMock = true, startService = true } = {}) => Promise.all([
   startMock ? sessionMock.start() : Promise.resolve(),
