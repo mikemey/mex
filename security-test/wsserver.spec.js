@@ -1,4 +1,3 @@
-const should = require('chai').should()
 const { randomString, errors, wsmessages } = require('../utils')
 
 const { WSServer } = require('../security')
@@ -143,23 +142,17 @@ describe('Websocket Server', () => {
     const allowedConfig = { path: '/test-123', port: 18000, authorizedTokens: ['a-token'] }
     const configWith = (overwrite, expectedMessage) => {
       const errconfig = Object.assign({}, allowedConfig, overwrite)
-      return checkConfigError(errconfig, expectedMessage)
+      checkConfigError(errconfig, expectedMessage)
     }
 
     const configWithout = (deleteField, expectedMessage) => {
       const errconfig = Object.assign({}, allowedConfig)
       delete errconfig[deleteField]
-      return checkConfigError(errconfig, expectedMessage)
+      checkConfigError(errconfig, expectedMessage)
     }
 
-    const checkConfigError = (errconfig, expectedMessage) => {
-      try {
-        new WSServer(errconfig).start()
-        should.fail('expected error')
-      } catch (err) {
-        err.message.should.equal(expectedMessage)
-      }
-    }
+    const checkConfigError = (errconfig, expectedMessage) =>
+      (() => new WSServer(errconfig)).should.throw(Error, expectedMessage)
 
     it('path required', () => configWithout('path', '"path" is required'))
     it('path invalid', () => configWith({ path: '12345678901' }, '"path" not valid'))

@@ -33,10 +33,10 @@ class WSServer extends LogTrait {
     this.listenSocken = null
     this.config = config
     this.clientSockets = []
+    Validator.oneTimeValidation(configSchema, this.config)
   }
 
   start () {
-    Validator.oneTimeValidation(configSchema, this.config)
     this.clientSockets = []
 
     return new Promise((resolve, reject) => {
