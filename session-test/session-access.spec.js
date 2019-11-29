@@ -3,7 +3,7 @@ const { WSClient } = require('../security')
 
 const { SessionService, model } = require('../session')
 const {
-  dbconnection, randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
+  randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
 } = require('../utils')
 
 describe('SessionService register', () => {
@@ -11,19 +11,16 @@ describe('SessionService register', () => {
   const port = 12021
   const path = '/session-registration'
   const url = `ws://localhost:${port}${path}`
-  const testConfig = { port, path, authorizedTokens: [testToken] }
 
-  const dbconfig = {
-    url: 'mongodb://127.0.0.1:27017', name: 'mex-test'
+  const testConfig = {
+    wsserver: { port, path, authorizedTokens: [testToken] },
+    db: { url: 'mongodb://127.0.0.1:27017', name: 'mex-test' }
   }
-  const registerSvc = new SessionService(testConfig)
+  const sessionService = new SessionService(testConfig)
   const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500 })
 
-  before(() => dbconnection.connect(dbconfig.url, dbconfig.name)
-    .then(() => model.Credentials.deleteMany())
-    .then(() => registerSvc.start())
-  )
-  after(() => registerSvc.stop().then(() => dbconnection.close()))
+  before(() => sessionService.start().then(() => model.Credentials.deleteMany()))
+  after(() => sessionService.stop())
   afterEach(() => wsClient.stop())
 
   const registerReq = ({ email = trand.randEmail(), password = trand.randPass(), action = 'register' } = {}) => {
@@ -64,7 +61,7 @@ describe('SessionService register', () => {
     })).then(assertRegisterOk))
   })
 
-  describe('ejects registration:', () => {
+  describe('error responses', () => {
     it('duplicate user name', () => {
       const request = registerReq()
       return wsClient.send(request).then(assertRegisterOk)

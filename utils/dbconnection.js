@@ -1,7 +1,9 @@
 const mongoose = require('mongoose')
-mongoose.Promise = Promise
 
-const connect = (url, name) => {
+let connectionEstablished = false
+
+const connect = ({ url, name }) => {
+  if (connectionEstablished) { return Promise.resolve() }
   const mongooseUrl = `${url}/${name}`
   console.log(`connecting to: [${mongooseUrl}]`)
   return mongoose.connect(mongooseUrl, {
@@ -9,10 +11,12 @@ const connect = (url, name) => {
     useNewUrlParser: true,
     useUnifiedTopology: true
     // autoIndex: false
-  })
+  }).then(() => { connectionEstablished = true })
 }
 
-const close = () => mongoose.connection.close()
+const close = () => connectionEstablished
+  ? mongoose.connection.close().then(() => { connectionEstablished = false })
+  : Promise.resolve()
 
 module.exports = {
   connect,
