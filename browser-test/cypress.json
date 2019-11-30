@@ -3,7 +3,7 @@
   "defaultCommandTimeout": 500,
   "fixturesFolder": false,
   "integrationFolder": "",
-  "supportFile": false,
+  "supportFile": "support",
   "pluginsFile": false,
   "video": false
 }

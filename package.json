@@ -58,7 +58,8 @@
     ],
     "globals": [
       "BigInt",
-      "cy"
+      "cy",
+      "Cypress"
     ]
   }
 }
