@@ -1,6 +1,6 @@
 const UserAccountService = require('../useraccount')
 const { SessionService } = require('../session')
-const { TestDataSetup } = require('../testtools')
+const { TestDataSetup } = require('../test-tools')
 
 const authToken = 'e2e-token-7567812341'
 const sessionServiceConfig = {

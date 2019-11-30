@@ -1,4 +1,4 @@
-const { TestDataSetup } = require('../testtools')
+const { TestDataSetup } = require('../test-tools')
 
 const { WSClient } = require('../security')
 const { SessionService } = require('../session')

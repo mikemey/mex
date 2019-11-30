@@ -1,6 +1,6 @@
 const { model } = require('../session')
 
-const { trand } = require('../testtools')
+const { trand } = require('../test-tools')
 const SessionTestSetup = require('./session-test-setup')
 
 const {

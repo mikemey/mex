@@ -1,4 +1,4 @@
-const TestData = require('../testtools/test-data-setup')
+const TestData = require('../test-tools/test-data-setup')
 
 module.exports = (on, config) => {
   on('task', {

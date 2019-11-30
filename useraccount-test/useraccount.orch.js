@@ -3,7 +3,7 @@ chai.use(require('chai-http'))
 const cheerio = require('cheerio')
 
 const UserAccountService = require('../useraccount')
-const { WSServerMock } = require('../testtools')
+const { WSServerMock } = require('../test-tools')
 
 const authToken = 'test-token-756781234'
 const sessionMockConfig = { path: '/sessionmock', port: 12500, authorizedTokens: [authToken] }
