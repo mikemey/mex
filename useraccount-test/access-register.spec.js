@@ -68,7 +68,7 @@ describe('UserAccount register', () => {
       return postRegistration({}).redirects(false)
         .then(res => {
           res.should.have.status(303)
-          res.should.have.header('location', /.*login$/)
+          res.should.have.header('location', /.*login\?success=true$/)
         })
     })
 

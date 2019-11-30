@@ -2,8 +2,6 @@
 const { RegistrationPage, LoginPage } = require('./pages')
 
 describe('Registration', () => {
-  const testEmail = 'hello@you.com'
-  const testPassword = 'helloyou'
   const regpage = RegistrationPage()
   const loginpage = LoginPage()
 
@@ -11,7 +9,7 @@ describe('Registration', () => {
   beforeEach(regpage.visit)
 
   it('has correct form fields', () => {
-    cy.title().should('equal', 'mex registration')
+    regpage.isCurrentPage()
     regpage.email().should('have.focus')
     regpage.email().should('have.attr', 'type', 'email')
       .should('have.attr', 'placeholder', 'Email')
@@ -22,30 +20,26 @@ describe('Registration', () => {
   })
 
   it('successful', () => {
-    regpage.register(testEmail, testPassword)
+    regpage.register('hello@you.com', 'helloyou')
     regpage.registerButton().click()
-    cy.title().should('equal', 'mex login')
-    loginpage.message().contains('congratulation')
+    loginpage.isCurrentPage()
+    loginpage.message().contains('congratulations')
   })
 
   it('duplicate email', () => {
-    const duplicate = 'x' + testEmail
-    regpage.register(duplicate, testPassword).registerButton().click()
-    cy.title().should('equal', 'mex login')
+    const duplicate = 'duplicate@you.com'
+    regpage.register(duplicate, 'abcdefgh').registerButton().click()
+    loginpage.isCurrentPage()
     regpage.visit()
-    regpage.register(duplicate, testPassword).registerButton().click()
+    regpage.register(duplicate, 'abcdefgh').registerButton().click()
     regpage.errorMsg().contains(/^duplicate name.*/)
   })
 
-  it('password too short', () => {
-    // regpage.register(duplicate, testPassword).registerButton().click()
-    // regpage.visit()
-    // regpage.register(duplicate, testPassword).registerButton().click()
-    // regpage.errorMsg().should('match', /^duplicate name.*/)
+  it('password too short, keeps email in field', () => {
+    const email = 'password.too@short.com'
+    regpage.register(email, '1234567').registerButton().click()
+    regpage.isCurrentPage()
+    regpage.errorMsg().contains(/^password invalid.*/)
+    regpage.email().should('have.attr', 'value', email)
   })
-
-  // it('keeps email after input error', () => {
-  //   .should('have.value', 'fake@email.com')
-  //   throw new Error('implement')
-  // })
 })

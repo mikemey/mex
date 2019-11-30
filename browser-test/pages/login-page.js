@@ -1,6 +1,8 @@
 
 const LoginPage = () => {
   const visit = () => cy.visit('/login')
+  const isCurrentPage = () => cy.title().should('equal', 'mex login')
+
   const email = () => cy.get('input#email')
   const password = () => cy.get('input#password')
   const loginButton = () => cy.get('button#login')
@@ -11,7 +13,7 @@ const LoginPage = () => {
     return self
   }
 
-  const self = { visit, email, password, loginButton, message, login }
+  const self = { visit, email, password, loginButton, message, login, isCurrentPage }
   return self
 }
 

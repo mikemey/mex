@@ -1,6 +1,8 @@
 
 const RegistrationPage = () => {
   const visit = () => cy.visit('/register')
+  const isCurrentPage = () => cy.title().should('equal', 'mex registration')
+
   const email = () => cy.get('input#email')
   const password = () => cy.get('input#password')
   const confirmation = () => cy.get('input#confirmation')
@@ -13,7 +15,7 @@ const RegistrationPage = () => {
     return self
   }
 
-  const self = { visit, email, password, confirmation, registerButton, errorMsg, register }
+  const self = { isCurrentPage, visit, email, password, confirmation, registerButton, errorMsg, register }
   return self
 }
 

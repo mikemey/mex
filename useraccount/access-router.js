@@ -1,4 +1,5 @@
 const express = require('express')
+const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
 const {
@@ -27,16 +28,21 @@ class AccessRouter extends LogTrait {
     const registerMessages = withAction('register')
     const registerCheck = Validator.createCheck(requestSchema)
 
-    const registrationError = (res, message) => res.render('register', { error: message })
-    const serviceUnavailable = (res, detailMsg) => {
+    const registrationError = (res, message, email) =>
+      res.render('register', { error: message, email })
+
+    const serviceUnavailable = (res, detailMsg, email) => {
       this.log('registration error:', detailMsg)
-      registrationError(res, 'service unavailable')
+      registrationError(res, 'service unavailable', email)
     }
 
-    router.get('/login', (_, res) => res.render('login'))
+    router.get('/login', (req, res) => {
+      const success = req.query.success !== undefined
+      res.render('login', { success })
+    })
     router.get('/register', (_, res) => res.render('register'))
 
-    //    router.get('/', (_, res) => res.render('login'))
+    router.post('/login', (_, res) => res.redirect(303, 'home'))
 
     router.post('/register', (req, res) => {
       const email = req.body.email
@@ -46,22 +52,23 @@ class AccessRouter extends LogTrait {
       try {
         registerCheck({ email, password, confirmation })
       } catch (err) {
-        return registrationError(res, err.message)
+        return registrationError(res, err.message, email)
       }
 
       return this.sessionClient.send(registerMessages.build({ email, password }))
         .then(result => {
           switch (result.status) {
-            case OK_STATUS: return res.redirect(303, 'login')
+            case OK_STATUS: return res.redirect(303, 'login?' + querystring.stringify({ success: true }))
             case NOK_STATUS: {
               this.log('registration failed:', result.message)
-              return registrationError(res, result.message)
+              return registrationError(res, result.message, email)
             }
-            default: return serviceUnavailable(res, result.message)
+            default: return serviceUnavailable(res, result.message, email)
           }
         })
-        .catch(err => serviceUnavailable(res, err.message))
+        .catch(err => serviceUnavailable(res, err.message, email))
     })
+
     return router
   }
 }

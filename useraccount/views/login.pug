@@ -4,11 +4,11 @@ block variables
 
 block content
   h2 Login
-  if message
-    #message= message
+  if success
+    #message congratulations!
   form(method="POST")
     label(for="email") Email
-    input#email(type="email" name="email" placeholder="Email")
+    input#email(type="email" name="email" placeholder="Email" required)
     label(for="password") Password
-    input#password(type="password" name="password" placeholder="Password")
+    input#password(type="password" name="password" placeholder="Password" required)
     button#login(type="submit") Login
