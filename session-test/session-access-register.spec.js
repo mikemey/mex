@@ -1,26 +1,17 @@
-const { trand } = require('../testtools')
-const { WSClient } = require('../security')
+const { model } = require('../session')
 
-const { SessionService, model } = require('../session')
+const { trand } = require('../testtools')
+const SessionTestSetup = require('./session-test-setup')
+
 const {
   randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
 } = require('../utils')
 
 describe('SessionService register', () => {
-  const testToken = 'session-service-testtoken'
-  const port = 12021
-  const path = '/session-registration'
-  const url = `ws://localhost:${port}${path}`
+  const wsClient = SessionTestSetup.wsClient
 
-  const testConfig = {
-    wsserver: { port, path, authorizedTokens: [testToken] },
-    db: { url: 'mongodb://127.0.0.1:27017', name: 'mex-test' }
-  }
-  const sessionService = new SessionService(testConfig)
-  const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500 })
-
-  before(() => sessionService.start().then(() => model.Credentials.deleteMany()))
-  after(() => sessionService.stop())
+  before(SessionTestSetup.start)
+  after(SessionTestSetup.stop)
   afterEach(() => wsClient.stop())
 
   const registerReq = ({ email = trand.randEmail(), password = trand.randPass(), action = 'register' } = {}) => {

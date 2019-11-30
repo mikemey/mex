@@ -5,7 +5,7 @@ describe('Registration', () => {
   const regpage = new RegistrationPage()
   const loginpage = new LoginPage()
 
-  before(() => cy.dropDatabase())
+  before(() => cy.task('seedTestData'))
   beforeEach(() => regpage.visit())
 
   it('has correct form fields', () => {

@@ -4,6 +4,6 @@
   "fixturesFolder": false,
   "integrationFolder": "",
   "supportFile": "support",
-  "pluginsFile": false,
+  "pluginsFile": "plugins",
   "video": false
 }

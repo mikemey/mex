@@ -1,6 +1,19 @@
 const UserAccountService = require('../useraccount')
 const { SessionService } = require('../session')
-const { sessionServiceConfig, useraccountConfig, useraccountSessionClientConfig } = require('./orchestrator.config')
+const { TestDataSetup } = require('../testtools')
+
+const authToken = 'e2e-token-7567812341'
+const sessionServiceConfig = {
+  wsserver: { path: '/session', port: 13043, authorizedTokens: [authToken] },
+  db: TestDataSetup.dbConfig
+}
+
+const useraccountConfig = { path: '/uac', port: 13500 }
+const useraccountSessionClientConfig = {
+  url: `ws://localhost:${sessionServiceConfig.wsserver.port}${sessionServiceConfig.wsserver.path}`,
+  authToken,
+  timeout: 2000
+}
 
 const sessionService = new SessionService(sessionServiceConfig)
 const uacService = new UserAccountService({
