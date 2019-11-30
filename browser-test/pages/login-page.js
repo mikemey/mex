@@ -1,20 +1,19 @@
+const ATestPage = require('./apage')
 
-const LoginPage = () => {
-  const visit = () => cy.visit('/login')
-  const isCurrentPage = () => cy.title().should('equal', 'mex login')
-
-  const email = () => cy.get('input#email')
-  const password = () => cy.get('input#password')
-  const loginButton = () => cy.get('button#login')
-  const message = () => cy.get('#message')
-  const login = (emailText, passwordText) => {
-    email().type(emailText)
-    password().type(passwordText)
-    return self
+class LoginPage extends ATestPage {
+  constructor () {
+    super('/login', 'login')
   }
 
-  const self = { visit, email, password, loginButton, message, login, isCurrentPage }
-  return self
+  email () { return cy.get('input#email') }
+  password () { return cy.get('input#password') }
+  loginButton () { return cy.get('button#login') }
+  message () { return cy.get('#message') }
+  login (emailText, passwordText) {
+    this.email().type(emailText)
+    this.password().type(passwordText)
+    return this
+  }
 }
 
 module.exports = LoginPage

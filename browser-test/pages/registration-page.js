@@ -1,22 +1,21 @@
+const ATestPage = require('./apage')
 
-const RegistrationPage = () => {
-  const visit = () => cy.visit('/register')
-  const isCurrentPage = () => cy.title().should('equal', 'mex registration')
-
-  const email = () => cy.get('input#email')
-  const password = () => cy.get('input#password')
-  const confirmation = () => cy.get('input#confirmation')
-  const registerButton = () => cy.get('button#register')
-  const errorMsg = () => cy.get('#error')
-  const register = (emailText, passwordText, confirmationText = passwordText) => {
-    email().type(emailText)
-    password().type(passwordText)
-    confirmation().type(confirmationText)
-    return self
+class RegistrationPage extends ATestPage {
+  constructor () {
+    super('/register', 'registration')
   }
 
-  const self = { isCurrentPage, visit, email, password, confirmation, registerButton, errorMsg, register }
-  return self
+  email () { return cy.get('input#email') }
+  password () { return cy.get('input#password') }
+  confirmation () { return cy.get('input#confirmation') }
+  registerButton () { return cy.get('button#register') }
+  errorMsg () { return cy.get('#error') }
+  register (emailText, passwordText, confirmationText = passwordText) {
+    this.email().type(emailText)
+    this.password().type(passwordText)
+    this.confirmation().type(confirmationText)
+    return this
+  }
 }
 
 module.exports = RegistrationPage
