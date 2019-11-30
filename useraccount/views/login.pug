@@ -4,9 +4,11 @@ block variables
 
 block content
   h2 Login
+  if message
+    #message= message
   form(method="POST")
     label(for="email") Email
     input#email(type="email" name="email" placeholder="Email")
     label(for="password") Password
     input#password(type="password" name="password" placeholder="Password")
-    button#register(type="submit") Login
+    button#login(type="submit") Login
