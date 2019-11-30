@@ -79,8 +79,15 @@ function stop_e2e_infrastructure () {
     return
   fi
   kill "$(extract_from_output "$server_pid_re")" && echo "server stopped."
-  rm "$e2e_output"
   echo "e2e infrastructure stopped."
+
+  errors=`grep -i "error" ${e2e_output}`
+  if [[ -z ${errors} ]]; then
+    rm "$e2e_output"
+  else
+    echo "found errors in log-file, keeping ${e2e_output}"
+    echo "$errors"
+  fi
 }
 
 function start_cypress () {

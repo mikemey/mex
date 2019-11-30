@@ -1,18 +1,6 @@
 const UserAccountService = require('../useraccount')
 const { SessionService } = require('../session')
-
-const authToken = 'e2e-token-7567812341'
-const sessionServiceConfig = {
-  wsserver: { path: '/session', port: 13043, authorizedTokens: [authToken] },
-  db: { url: 'mongodb://127.0.0.1:27017', name: 'mex-test' }
-}
-
-const useraccountConfig = { path: '/uac', port: 13500 }
-const useraccountSessionClientConfig = {
-  url: `ws://localhost:${sessionServiceConfig.wsserver.port}${sessionServiceConfig.wsserver.path}`,
-  authToken,
-  timeout: 2000
-}
+const { sessionServiceConfig, useraccountConfig, useraccountSessionClientConfig } = require('./orchestrator.config')
 
 const sessionService = new SessionService(sessionServiceConfig)
 const uacService = new UserAccountService({
@@ -20,12 +8,12 @@ const uacService = new UserAccountService({
   sessionService: useraccountSessionClientConfig
 })
 
-const uacurl = `http://localhost:${useraccountConfig.port}${useraccountConfig.path}`
+const testBaseUrl = `http://localhost:${useraccountConfig.port}${useraccountConfig.path}`
 
 const start = () => Promise.all([
   uacService.start(), sessionService.start()
 ]).then(() => {
-  console.log(`baseurl=${uacurl}`)
+  console.log(`baseurl=${testBaseUrl}`)
   console.log(`pid=${process.pid}`)
 }).catch(err => {
   console.log('ORCHESTRATOR ERROR:', err.message)
@@ -36,7 +24,7 @@ const start = () => Promise.all([
 const stop = () => Promise.all([
   uacService.stop(), sessionService.stop()
 ]).catch(err => {
-  console.log('shutdown error:', err.message)
+  console.log('shutdown ERROR:', err.message)
 })
 
 process.env.TESTING = true
