@@ -22,4 +22,4 @@ const start = () => {
 
 const stop = () => { return sessionService.stop() }
 
-module.exports = { sessionService, wsClient, start, stop }
+module.exports = { sessionService, wsClient, start, stop, registeredUser: TestDataSetup.registeredUser }

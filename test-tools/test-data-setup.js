@@ -5,6 +5,11 @@ const path = require('path')
 const dbConfig = { url: 'mongodb://127.0.0.1:27017', name: 'mex-test' }
 const seedDir = 'seed-data'
 
+const registeredUser = {
+  email: 'test_user@test.com',
+  password: 'test_pwd'
+}
+
 const seedTestData = () => {
   return new Promise((resolve, reject) => {
     const url = `${dbConfig.url}/${dbConfig.name}`
@@ -20,4 +25,4 @@ const seedTestData = () => {
   })
 }
 
-module.exports = { seedTestData, dbConfig }
+module.exports = { seedTestData, dbConfig, registeredUser }

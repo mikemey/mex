@@ -3,15 +3,24 @@ const { Credentials } = require('./model')
 
 const isUserExists = err => err.name === 'UserExistsError'
 
+const KW_LOGIN = 'login'
 const KW_REGISTER = 'register'
-const responses = wsmessages.withAction(KW_REGISTER)
+const registerResponse = wsmessages.withAction(KW_REGISTER)
+const loginResponse = wsmessages.withAction(KW_LOGIN)
 
-const register = message => Credentials
-  .register({ email: message.email }, message.password)
-  .then(responses.ok)
+const authenticate = Credentials.authenticate()
+
+const registerUser = message => Credentials.register({ email: message.email }, message.password)
+  .then(() => registerResponse.ok())
   .catch(err => {
-    if (isUserExists(err)) { return responses.nok(`duplicate name [${message.email}]`) }
+    if (isUserExists(err)) { return registerResponse.nok(`duplicate name [${message.email}]`) }
     throw err
   })
 
-module.exports = { register, KW_REGISTER }
+const loginUser = message => authenticate(message.email, message.password)
+  .then(({ user, error }) => {
+    if (error) { return loginResponse.nok(`login failed [${message.email}]: ${error.message}`) }
+    return loginResponse.ok({ id: user.id, email: user.email })
+  })
+
+module.exports = { KW_REGISTER, KW_LOGIN, registerUser, loginUser }

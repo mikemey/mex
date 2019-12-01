@@ -8,7 +8,6 @@ const CredentialsSchema = new mg.Schema({
 })
 CredentialsSchema.plugin(passportLocalMongoose, {
   usernameField: 'email',
-  usernameLowerCase: true,
   usernameUnique: true
 })
 

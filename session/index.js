@@ -5,7 +5,7 @@ const model = require('./model')
 const SessionServiceClient = require('./session-client')
 
 const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require('../utils')
-const sessionAccess = require('./session-access')
+const { registerUser, loginUser, KW_REGISTER, KW_LOGIN } = require('./session-access')
 
 const configSchema = Joi.object({
   wsserver: Joi.object().required(),
@@ -16,7 +16,7 @@ const configSchema = Joi.object({
 })
 
 const requestSchema = Joi.object({
-  action: Joi.string().valid(sessionAccess.KW_REGISTER).required(),
+  action: Joi.string().valid(KW_REGISTER, KW_LOGIN).required(),
   email: Validator.email({ warn: true }),
   password: Validator.password({ warn: true })
 })
@@ -44,7 +44,11 @@ class SessionService extends WSServer {
 
   received (message) {
     requestCheck(message)
-    return sessionAccess.register(message)
+    switch (message.action) {
+      case KW_LOGIN: return loginUser(message)
+      case KW_REGISTER: return registerUser(message)
+      default: throw new Error(`unexpected action ${message.action}`)
+    }
   }
 }
 

@@ -30,7 +30,7 @@ const error = message => {
 }
 
 const withAction = action => {
-  const ok = () => { return { status: OK_STATUS, action } }
+  const ok = (obj = {}) => Object.assign(obj, { status: OK_STATUS, action })
   const nok = message => { return { status: NOK_STATUS, action, message } }
   const build = obj => Object.assign(obj, { action })
 
