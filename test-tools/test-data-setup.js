@@ -10,6 +10,10 @@ const registeredUser = {
   password: 'test_pwd'
 }
 
+const dropTestDatabase = () => Promise.resolve(childProcess.execSync(
+  `mongo ${dbConfig.name} --eval "db.dropDatabase()"`
+))
+
 const seedTestData = () => {
   return new Promise((resolve, reject) => {
     const url = `${dbConfig.url}/${dbConfig.name}`
@@ -25,4 +29,4 @@ const seedTestData = () => {
   })
 }
 
-module.exports = { seedTestData, dbConfig, registeredUser }
+module.exports = { dropTestDatabase, seedTestData, dbConfig, registeredUser }

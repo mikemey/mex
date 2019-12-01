@@ -11,7 +11,7 @@ class RegistrationPage extends ATestPage {
   registerButton () { return cy.get('button#register') }
   errorMsg () { return cy.get('#error') }
   register (emailText, passwordText, confirmationText = passwordText) {
-    this.email().type(emailText)
+    this.email().clear().type(emailText)
     this.password().type(passwordText)
     this.confirmation().type(confirmationText)
     return this

@@ -9,8 +9,9 @@ class LoginPage extends ATestPage {
   password () { return cy.get('input#password') }
   loginButton () { return cy.get('button#login') }
   message () { return cy.get('#message') }
+  errorMsg () { return cy.get('#error') }
   login (emailText, passwordText) {
-    this.email().type(emailText)
+    this.email().clear().type(emailText)
     this.password().type(passwordText)
     return this
   }
