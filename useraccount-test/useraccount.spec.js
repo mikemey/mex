@@ -27,7 +27,14 @@ describe('UserAccountService', () => {
     it('not authenticated redirects to login page', () => agent.get('/index').redirects(false)
       .then(res => {
         res.should.have.status(303)
-        res.should.have.header('location', /.*login\?authrequired=true$/)
+        const redirectLocation = res.header.location
+        redirectLocation.should.match(/.*login\?flag=auth$/)
+        return agent.get(redirectLocation)
+      })
+      .then(orchestrator.withHtml)
+      .then(res => {
+        res.html.pageTitle().should.equal('mex login')
+        res.html.$('#message').text().should.equal('Please log-in')
       })
     )
 

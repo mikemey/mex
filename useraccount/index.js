@@ -24,7 +24,7 @@ const authenticationCheck = (pathPrefix, errorLog) => {
     if (req.session && req.session.user) { return next() }
 
     errorLog('authentication required')
-    return res.redirect(303, `${pathPrefix}/login?` + querystring.stringify({ authrequired: true }))
+    return res.redirect(303, `${pathPrefix}/login?` + querystring.stringify({ flag: 'auth' }))
   }
 }
 

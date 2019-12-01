@@ -25,7 +25,7 @@ describe('UserAccount login', () => {
     sessionMock.counter.should.equal(sessionMockCalled)
   }
 
-  xdescribe('login form parameter checks', () => {
+  describe('login form parameter checks', () => {
     const testData = [
       { title: 'email not valid', post: { email: 'wrong' }, expectedError: 'email invalid' },
       { title: 'empty email', post: { email: '' }, expectedError: 'email invalid' },
@@ -64,13 +64,13 @@ describe('UserAccount login', () => {
         })
     })
 
-    xit('unsuccessful login from backend', () => {
+    it('unsuccessful login from backend', () => {
       const errorMessage = 'test-unsuccessful'
       sessionMock.addMockFor(backendRequest, backendResponseNok(errorMessage))
       return postLogin().then(expectLoginError(errorMessage, 1))
     })
 
-    xit('error from backend', () => {
+    it('error from backend', () => {
       const errorMessage = 'test-error'
       sessionMock.addMockFor(backendRequest, backendResponseError(errorMessage))
       return postLogin().then(expectLoginError('service unavailable', 1))
