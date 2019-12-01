@@ -20,15 +20,25 @@ describe('UserAccountService', () => {
     )
   })
 
-  xdescribe('user access', () => {
+  describe('user access', () => {
     before(() => orchestrator.start())
     after(() => orchestrator.stop())
 
-    it('not authenticated redirects to login page', () => agent.get('/home').redirects(false)
+    it('not authenticated redirects to login page', () => agent.get('/index').redirects(false)
       .then(res => {
         res.should.have.status(303)
-        res.should.have.header('location', /.*login$/)
+        res.should.have.header('location', /.*login\?authrequired=true$/)
       })
     )
+
+    const publicEndpoints = ['/version', '/login', '/register']
+    publicEndpoints.forEach(freePath => {
+      it(`${freePath} is available without authorization`, () => agent.get(freePath).redirects(false)
+        .then(res => {
+          res.should.have.status(200)
+          res.should.have.cookie('x-session')
+        })
+      )
+    })
   })
 })

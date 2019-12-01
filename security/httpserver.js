@@ -105,10 +105,9 @@ class HttpServer extends LogTrait {
 
     const suppressList = this.httpconfig.suppressRequestLog.map(entry => `${this.httpconfig.path}${entry}`)
     app.use(requestLogger(suppressList))
-    this.setupApp(app)
-
     app.use(sessionStore(this.httpconfig))
     app.use(csrfProtection(errorFunc))
+    this.setupApp(app)
 
     const pathRouter = express.Router()
     app.use(this.httpconfig.path, pathRouter)

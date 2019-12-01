@@ -1,6 +1,7 @@
 const bodyParser = require('body-parser')
 const fs = require('fs')
 const path = require('path')
+const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
 const { HttpServer } = require('../security')
@@ -15,6 +16,17 @@ const configSchema = Joi.object({
   httpserver: Joi.object().min(1).required(),
   sessionService: Joi.object().min(1).required()
 })
+
+const authenticationCheck = (pathPrefix, errorLog) => {
+  const unprotectedPaths = [`${pathPrefix}/login`, `${pathPrefix}/register`, `${pathPrefix}/version`, '/favicon.ico']
+  return (req, res, next) => {
+    if (unprotectedPaths.includes(req.path)) { return next() }
+    if (req.session && req.session.user) { return next() }
+
+    errorLog('authentication required')
+    return res.redirect(303, `${pathPrefix}/login?` + querystring.stringify({ authrequired: true }))
+  }
+}
 
 class UserAccountService extends HttpServer {
   constructor (config) {
@@ -38,14 +50,15 @@ class UserAccountService extends HttpServer {
   }
 
   setupApp (app) {
+    app.use(authenticationCheck(this.config.httpserver.path, this.log.bind(this)))
     app.use(bodyParser.urlencoded({ extended: true }))
     app.set('views', path.join(__dirname, '/views'))
     app.set('view engine', 'pug')
   }
 
   addRoutes (router) {
+    router.get('/index', (_, res) => res.render('home', { email: 'hello you' }))
     router.use('/', new AccessRouter(this.sessionClient).create())
-    router.get('/home', (_, res) => res.render('home', { email: 'hello you' }))
   }
 }
 

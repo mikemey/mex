@@ -7,7 +7,7 @@ const {
   Validator, LogTrait
 } = require('../utils')
 
-const requestSchema = Joi.object({
+const registerSchema = Joi.object({
   email: Validator.email(),
   password: Validator.password(),
   confirmation: Joi.any().valid(Joi.ref('password')).required()
@@ -26,35 +26,26 @@ class AccessRouter extends LogTrait {
   create () {
     const router = express.Router()
     const registerMessages = withAction('register')
-    const registerCheck = Validator.createCheck(requestSchema)
+    const registerCheck = Validator.createCheck(registerSchema)
+    const loginMessages = withAction('login')
 
-    const registrationError = (res, message, email) =>
-      res.render('register', { error: message, email })
+    const registrationError = (res, message, email) => res.render('register', { error: message, email })
 
     const serviceUnavailable = (res, detailMsg, email) => {
       this.log('registration error:', detailMsg)
       registrationError(res, 'service unavailable', email)
     }
 
-    router.get('/login', (req, res) => {
-      const success = req.query.success !== undefined
-      res.render('login', { success })
-    })
     router.get('/register', (_, res) => res.render('register'))
-
-    router.post('/login', (_, res) => res.redirect(303, 'home'))
-
     router.post('/register', (req, res) => {
       const email = req.body.email
       const password = req.body.password
       const confirmation = req.body.confirmation
-
       try {
         registerCheck({ email, password, confirmation })
       } catch (err) {
         return registrationError(res, err.message, email)
       }
-
       return this.sessionClient.send(registerMessages.build({ email, password }))
         .then(result => {
           switch (result.status) {
@@ -67,6 +58,25 @@ class AccessRouter extends LogTrait {
           }
         })
         .catch(err => serviceUnavailable(res, err.message, email))
+    })
+
+    router.get('/login', (req, res) => {
+      const success = req.query.success !== undefined
+      res.render('login', { success })
+    })
+    router.post('/login', (req, res) => {
+      const email = req.body.email
+      const password = req.body.password
+
+      return this.sessionClient.send(loginMessages.build({ email, password }))
+        .then(result => {
+          switch (result.status) {
+            case OK_STATUS: {
+              req.session.user = { id: result.id, email: result.email }
+              return res.redirect(303, 'index')
+            }
+          }
+        })
     })
 
     return router
