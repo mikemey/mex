@@ -6,7 +6,7 @@
   "license": "ISC",
   "main": "src/index.js",
   "engines": {
-    "node": "90"
+    "node": ">=13"
   },
   "repository": {
     "type": "git",
