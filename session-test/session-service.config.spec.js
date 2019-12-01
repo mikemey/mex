@@ -7,6 +7,7 @@ describe('SessionService configuration', () => {
 
   const expectConfigError = (update, message) => {
     const config = {
+      jwtkey: 'SmFzb24gTWVuZG96YQo=',
       wsserver: { port, path, authorizedTokens: [testToken] },
       db: { url: 'mongodb://this.shouldn.t/matter', name: 'mex-test' }
     }
@@ -18,6 +19,9 @@ describe('SessionService configuration', () => {
     (() => new SessionService(errconfig)).should.throw(Error, expectedMessage)
 
   const testParameters = [
+    { title: 'missing jwtkey configuration', changeConfig: cfg => delete cfg.jwtkey, error: '"jwtkey" is required' },
+    { title: 'jwtkey not base64 encoded', changeConfig: cfg => { cfg.jwtkey = '^^1234567890123456^^' }, error: '"jwtkey" must be a valid base64 string' },
+    { title: 'jwtkey too short', changeConfig: cfg => { cfg.jwtkey = '1234567890123456789' }, error: '"jwtkey" too short' },
     { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' },
     { title: 'missing db.url configuration', changeConfig: cfg => delete cfg.db.url, error: '"db.url" is required' },
     { title: 'missing db.name configuration', changeConfig: cfg => delete cfg.db.name, error: '"db.name" is required' },

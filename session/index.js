@@ -5,9 +5,10 @@ const model = require('./model')
 const SessionServiceClient = require('./session-client')
 
 const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require('../utils')
-const { registerUser, loginUser, KW_REGISTER, KW_LOGIN } = require('./session-access')
+const { createAccessService, KW_LOGIN, KW_REGISTER } = require('./session-access')
 
 const configSchema = Joi.object({
+  jwtkey: Validator.secretToken('jwtkey'),
   wsserver: Joi.object().required(),
   db: Joi.object({
     url: Joi.string().required(),
@@ -31,6 +32,7 @@ class SessionService extends WSServer {
     super(config.wsserver)
     Validator.oneTimeValidation(configSchema, config)
     this.dbConfig = config.db
+    this.accessService = createAccessService(Buffer.from(config.jwtkey, 'base64'), { expiresIn: '2h' })
   }
 
   start () {
@@ -45,8 +47,8 @@ class SessionService extends WSServer {
   received (message) {
     requestCheck(message)
     switch (message.action) {
-      case KW_LOGIN: return loginUser(message)
-      case KW_REGISTER: return registerUser(message)
+      case KW_LOGIN: return this.accessService.loginUser(message, this.secretBuffer)
+      case KW_REGISTER: return this.accessService.registerUser(message)
       default: throw new Error(`unexpected action ${message.action}`)
     }
   }

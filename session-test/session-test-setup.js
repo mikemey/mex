@@ -9,6 +9,7 @@ const path = '/sessions'
 const url = `ws://localhost:${port}${path}`
 
 const testConfig = {
+  jwtkey: 'ZCdvaCwganVzdCBhIHRlc3RrZXkK',
   wsserver: { port, path, authorizedTokens: [testToken] },
   db: TestDataSetup.dbConfig
 }

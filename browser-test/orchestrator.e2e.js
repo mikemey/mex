@@ -4,6 +4,7 @@ const { TestDataSetup } = require('../test-tools')
 
 const authToken = 'ZTJlLXRlc3QtdG9rZW4K'
 const sessionServiceConfig = {
+  jwtkey: 'c3VyZSB0aGlzIGlzIGEgcHJvZCBrZXkK',
   wsserver: { path: '/session', port: 13043, authorizedTokens: [authToken] },
   db: TestDataSetup.dbConfig
 }

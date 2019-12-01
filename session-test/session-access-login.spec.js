@@ -1,5 +1,6 @@
 const chai = require('chai')
 chai.use(require('chai-string'))
+const jsonwebtoken = require('jsonwebtoken')
 
 const SessionTestSetup = require('./session-test-setup')
 
@@ -30,8 +31,11 @@ describe('SessionService login', () => {
       .then(result => {
         result.action.should.equal('login')
         result.status.should.equal(OK_STATUS)
-        result.id.should.equal('5de363fbd0f61042035dc603')
-        result.email.should.equal(testUser.email)
+
+        const secretBuffer = Buffer.from(SessionTestSetup.sessionConfig.jwtkey, 'base64')
+        const payload = jsonwebtoken.verify(result.jwt, secretBuffer)
+        payload.id.should.equal('5de363fbd0f61042035dc603')
+        payload.email.should.equal(testUser.email)
       })
     )
 
