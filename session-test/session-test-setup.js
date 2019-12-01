@@ -1,6 +1,6 @@
 const { TestDataSetup } = require('../test-tools')
 
-const { WSClient } = require('../security')
+const { WSClient } = require('../connectors')
 const { SessionService } = require('../session')
 
 const testToken = 'session-service-testtoken'

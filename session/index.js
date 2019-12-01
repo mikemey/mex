@@ -1,6 +1,6 @@
 const Joi = require('@hapi/joi')
 
-const { WSServer } = require('../security')
+const { WSServer } = require('../connectors')
 const model = require('./model')
 const SessionServiceClient = require('./session-client')
 

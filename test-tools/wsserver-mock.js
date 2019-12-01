@@ -1,7 +1,7 @@
 const should = require('chai').should()
 const _ = require('underscore')
 
-const { WSServer } = require('../security')
+const { WSServer } = require('../connectors')
 
 class WSServerMock extends WSServer {
   constructor (config) {

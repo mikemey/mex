@@ -1,4 +1,4 @@
-const { WSClient } = require('../security')
+const { WSClient } = require('../connectors')
 
 class SessionServiceClient extends WSClient {
 }

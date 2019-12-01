@@ -1,4 +1,4 @@
-const { WSServer, WSClient } = require('../security')
+const { WSServer, WSClient } = require('../connectors')
 
 describe('Real WSServer + WSClient', () => {
   const port = 12201

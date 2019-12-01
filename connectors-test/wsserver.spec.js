@@ -1,6 +1,6 @@
 const { randomString, errors, wsmessages } = require('../utils')
 
-const { WSServer } = require('../security')
+const { WSServer } = require('../connectors')
 const WSClientInterceptor = require('./interceptor/wsclient-interceptor')
 
 describe('Websocket Server', () => {

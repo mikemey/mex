@@ -1,7 +1,7 @@
 const chai = require('chai')
 chai.use(require('chai-http'))
 
-const { HttpServer } = require('../security')
+const { HttpServer } = require('../connectors')
 
 describe('HTTP Server configuration', () => {
   const config = {

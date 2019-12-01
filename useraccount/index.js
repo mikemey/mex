@@ -4,7 +4,7 @@ const path = require('path')
 const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
-const { HttpServer } = require('../security')
+const { HttpServer } = require('../connectors')
 const { Validator } = require('../utils')
 const { SessionServiceClient } = require('../session')
 

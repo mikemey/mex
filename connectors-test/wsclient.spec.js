@@ -2,7 +2,7 @@ const should = require('chai').should()
 const util = require('util')
 const setTimeoutPromise = util.promisify(setTimeout)
 
-const { WSClient } = require('../security')
+const { WSClient } = require('../connectors')
 const WSServerInterceptor = require('./interceptor/wsserver-interceptor')
 
 describe('Websocket client', () => {
