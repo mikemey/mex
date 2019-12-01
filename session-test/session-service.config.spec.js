@@ -1,7 +1,7 @@
 const { SessionService } = require('../session')
 
 describe('SessionService configuration', () => {
-  const testToken = 'session-config-testtoken'
+  const testToken = 'c2Vzc2lvbi1jb25maWcK'
   const port = 12022
   const path = '/session-registration'
 

@@ -4,7 +4,7 @@ describe('Real WSServer + WSClient', () => {
   const port = 12201
   const path = '/wsserverclient'
 
-  const authorizedTokens = ['first-test-token-pad', 'another-testing-token', 'one-more-testing-token']
+  const authorizedTokens = ['dGhpc2lzYXRlc3RrZXkK', 'YW5vdGhlci10ZXN0aW5nLXRva2VuCg==', 'b25lLW1vcmUtdGVzdGluZy10b2tlbgo=']
   const wsserverConfig = { port, path, authorizedTokens }
   const wsserver = new WSServer(wsserverConfig)
   const createClient = ({

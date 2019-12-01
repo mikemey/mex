@@ -1,7 +1,7 @@
 const Joi = require('@hapi/joi')
 
 const path = Joi.string().pattern(/^\/[a-zA-Z0-9-]{2,30}$/).message('"path" not valid').required()
-const secretToken = name => Joi.string().min(20).message(`"${name}" too short`).required()
+const secretToken = name => Joi.string().min(20).message(`"${name}" too short`).base64().required()
 
 const email = ({ message = 'email invalid', warn = false } = {}) => Joi.string()
   .email({ minDomainSegments: 2 })

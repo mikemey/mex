@@ -5,7 +5,7 @@ const { HttpServer } = require('../connectors')
 
 describe('HTTP Server configuration', () => {
   const config = {
-    secret: '12345678901234567890',
+    secret: 'dGhpc2lzYXRlc3RrZXkK',
     port: 12013,
     path: '/Test-http-server-0',
     version: 'test-Ver-45254',
@@ -30,6 +30,7 @@ describe('HTTP Server configuration', () => {
 
     it('secret required', () => configWithout('secret', '"secret" is required'))
     it('secret too short', () => configWith({ secret: '1234567890123456789' }, '"secret" too short'))
+    it('secret not base64 encoded', () => configWith({ secret: '1234567890123456789^' }, '"secret" must be a valid base64 string'))
     it('version required', () => configWithout('version', '"version" is required'))
     it('interface required', () => configWithout('interface', '"interface" is required'))
     it('interface not an ip', () => configWith({ interface: '127.a.0.1' }, '"interface" not valid'))

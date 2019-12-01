@@ -5,7 +5,7 @@ const cheerio = require('cheerio')
 const UserAccountService = require('../useraccount')
 const { WSServerMock } = require('../test-tools')
 
-const authToken = 'test-token-756781234'
+const authToken = 'dXNlcmFjY291bm50LXRlc3QtdG9rZW4K'
 const sessionMockConfig = { path: '/sessionmock', port: 12500, authorizedTokens: [authToken] }
 
 const httpserverConfig = { path: '/uacc-test', port: 12023 }

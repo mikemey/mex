@@ -24,9 +24,9 @@ describe('Websocket Server', () => {
 
   const port = 12001
   const path = '/wsserver-test'
-  const testToken = 'wsserver-testing-token'
+  const testToken = 'dGhpc2lzYXRlc3RrZXkK'
 
-  const authorizedTokens = [testToken, 'another-testing-token', 'one-more-testing-token']
+  const authorizedTokens = [testToken, 'YW5vdGhlci10ZXN0aW5nLXRva2VuCg==', 'b25lLW1vcmUtdGVzdGluZy10b2tlbgo=']
   const wsserverConfig = { port, path, authorizedTokens }
   const wsserver = new ExampleWSServer(wsserverConfig)
 

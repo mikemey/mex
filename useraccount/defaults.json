@@ -1,6 +1,6 @@
 {
   "httpserver": {
-    "secret": "secretsecretsecretse",
+    "secret": "p9E06T6fhKa3/apJzpEJqFZjWMYRcN4s0ZsLR6zOGRsuBHd6p9RNOQ==",
     "version": "0.1.0",
     "interface": "127.0.0.1",
     "port": 11012,
