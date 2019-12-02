@@ -8,6 +8,8 @@ block content
     #message congratulations!
   if flag === 'auth'
     #message Please log-in
+  if flag === 'unavailable'
+    #message service unavailable
   form(method="POST")
     label(for="email") Email
     input#email(type="email" name="email" placeholder="Email" value=email required)

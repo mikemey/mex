@@ -6,6 +6,7 @@ describe('UserAccount login', () => {
   const agent = orchestrator.agent()
   const sessionMock = orchestrator.sessionMock
   const loginAction = wsmessages.withAction('login')
+  const verifyAction = wsmessages.withAction('verify')
 
   before(() => orchestrator.start().then(() => agent.get('/version')))
   after(() => orchestrator.stop())
@@ -39,42 +40,72 @@ describe('UserAccount login', () => {
   })
 
   describe('calls to session service', () => {
-    const backendRequest = loginAction.build({ email: testEmail, password: pwhasher(testPassword) })
+    const dummyJwt = 'abc.def.ghi'
+    const beLoginRequest = loginAction.build({ email: testEmail, password: pwhasher(testPassword) })
+    const beVerifyRequest = verifyAction.build({ jwt: dummyJwt })
 
-    const backendResponseOk = loginAction.ok({ id: 12345, email: 'hello@bla.com' })
-    const backendResponseNok = message => loginAction.nok(message)
-    const backendResponseError = message => wsmessages.error(message)
+    const beLoginResponseOk = loginAction.ok({ jwt: dummyJwt })
+    const beLoginResponseNok = message => loginAction.nok(message)
+    const beResponseError = message => wsmessages.error(message)
+    const beVerifyResponseOk = verifyAction.ok()
+    const beVerifyResponseNok = verifyAction.nok()
+    const beVerifyResponseError = message => wsmessages.error(message)
 
-    it('post forwards to main user page', () => {
-      sessionMock.addMockFor(backendRequest, backendResponseOk)
-      return postLogin().redirects(false)
+    describe('successful login', () => {
+      beforeEach(() => sessionMock.addMockFor(beLoginRequest, beLoginResponseOk))
+
+      it('post forwards to main user page', () => postLogin().redirects(false)
         .then(res => {
           res.should.have.status(303)
           res.should.have.header('location', 'index')
         })
+      )
+
+      it('successful jwt verification', () => {
+        sessionMock.addMockFor(beVerifyRequest, beVerifyResponseOk)
+        return postLogin()
+          .then(orchestrator.withHtml).then(res => {
+            res.status.should.equal(200)
+
+            res.html.pageTitle().should.equal('mex home')
+            sessionMock.assertReceived(beLoginRequest, beVerifyRequest)
+            sessionMock.counter.should.equal(2)
+          })
+      })
+
+      const expectVerificationError = expectedMessage => res => {
+        const htmlres = orchestrator.withHtml(res)
+        htmlres.status.should.equal(200)
+        htmlres.html.pageTitle().should.equal('mex login')
+        htmlres.html.$('#message').text().should.equal(expectedMessage)
+        sessionMock.assertReceived(beLoginRequest, beVerifyRequest)
+        sessionMock.counter.should.equal(2)
+      }
+
+      it('failed jwt verification', () => {
+        sessionMock.addMockFor(beVerifyRequest, beVerifyResponseNok)
+        return postLogin()
+          .then(expectVerificationError('Please log-in'))
+      })
+
+      it('error jwt verification', () => {
+        sessionMock.addMockFor(beVerifyRequest, beVerifyResponseError('jwt-verify-error'))
+        return postLogin()
+          .then(expectVerificationError('service unavailable'))
+      })
     })
 
-    it('successful login', () => {
-      sessionMock.addMockFor(backendRequest, backendResponseOk)
-      return postLogin()
-        .then(orchestrator.withHtml).then(res => {
-          res.status.should.equal(200)
+    describe('unsuccessful login', () => {
+      it('nok response from backend', () => {
+        const errorMessage = 'test-unsuccessful'
+        sessionMock.addMockFor(beLoginRequest, beLoginResponseNok(errorMessage))
+        return postLogin().then(expectLoginError(errorMessage, 1))
+      })
 
-          res.html.pageTitle().should.equal('mex home')
-          sessionMock.assertReceived(backendRequest)
-        })
-    })
-
-    it('unsuccessful login from backend', () => {
-      const errorMessage = 'test-unsuccessful'
-      sessionMock.addMockFor(backendRequest, backendResponseNok(errorMessage))
-      return postLogin().then(expectLoginError(errorMessage, 1))
-    })
-
-    it('error from backend', () => {
-      const errorMessage = 'test-error'
-      sessionMock.addMockFor(backendRequest, backendResponseError(errorMessage))
-      return postLogin().then(expectLoginError('service unavailable', 1))
+      it('error response from backend', () => {
+        sessionMock.addMockFor(beLoginRequest, beResponseError('test-error'))
+        return postLogin().then(expectLoginError('service unavailable', 1))
+      })
     })
   })
 })

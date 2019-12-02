@@ -29,12 +29,41 @@ const REGISTER_VIEW = 'register'
 const hash = data => crypto.createHash('sha256').update(data).digest('hex')
 
 class AccessRouter extends LogTrait {
-  constructor (sessionClient) {
+  constructor (sessionClient, httpConfig) {
     super()
     this.sessionClient = sessionClient
+    this.httpConfig = httpConfig
   }
 
-  create () {
+  createAuthenticationCheck () {
+    const pathPrefix = this.httpConfig.path
+    const unprotectedPaths = [`${pathPrefix}/login`, `${pathPrefix}/register`, `${pathPrefix}/version`, '/favicon.ico']
+    const verifyMessages = withAction('verify')
+
+    const redirectToLogin = (res, flag = 'auth') => {
+      this.log('authentication required')
+      return res.redirect(303, `${pathPrefix}/${LOGIN_VIEW}?` + querystring.stringify({ flag }))
+    }
+
+    return (req, res, next) => {
+      if (unprotectedPaths.includes(req.path)) { return next() }
+      if (req.session && req.session.jwt) {
+        return this.sessionClient.send(verifyMessages.build({ jwt: req.session.jwt }))
+          .then(result => {
+            switch (result.status) {
+              case OK_STATUS: return next()
+              case NOK_STATUS: return redirectToLogin(res)
+              default:
+                this.log('session service verification error:', result.message)
+                return redirectToLogin(res, 'unavailable')
+            }
+          })
+      }
+      return redirectToLogin(res)
+    }
+  }
+
+  createRoutes () {
     const router = express.Router()
 
     const registerMessages = withAction('register')
@@ -49,6 +78,7 @@ class AccessRouter extends LogTrait {
     }
 
     router.get('/register', (_, res) => res.render(REGISTER_VIEW))
+
     router.post('/register', (req, res) => {
       const email = req.body.email
       const password = req.body.password
@@ -76,6 +106,7 @@ class AccessRouter extends LogTrait {
       const flag = req.query.flag
       res.render(LOGIN_VIEW, { flag })
     })
+
     router.post('/login', (req, res) => {
       const email = req.body.email
       const password = req.body.password
@@ -89,7 +120,7 @@ class AccessRouter extends LogTrait {
         .then(result => {
           switch (result.status) {
             case OK_STATUS: {
-              req.session.user = { id: result.id, email: result.email }
+              req.session.jwt = result.jwt
               return res.redirect(303, 'index')
             }
             case NOK_STATUS: {
