@@ -39,6 +39,7 @@ class SessionService extends WSServer {
     super(config.wsserver)
     Validator.oneTimeValidation(configSchema, config)
     this.dbConfig = config.db
+
     this.accessService = createAccessService(
       Buffer.from(config.jwtkey, 'base64'),
       { expiresIn: '2h' },
@@ -60,7 +61,7 @@ class SessionService extends WSServer {
     switch (message.action) {
       case KW_LOGIN: return this.accessService.loginUser(message)
       case KW_REGISTER: return this.accessService.registerUser(message)
-      case KW_VERIFY: return this.accessService.verify(message)
+      case KW_VERIFY: return this.accessService.verifyToken(message)
       default: throw new Error(`unexpected action ${message.action}`)
     }
   }

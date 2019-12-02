@@ -1,14 +1,8 @@
 const chai = require('chai')
 chai.use(require('chai-string'))
-const jsonwebtoken = require('jsonwebtoken')
 
-const {
-  sessionConfig, wsClient, registeredUser, startService, stopService, loginTestUser, loginRequest
-} = require('./session-test-setup')
-
-const {
-  randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
-} = require('../utils')
+const { wsClient, startService, stopService, loginTestUser } = require('./session-test-setup')
+const { wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS } } = require('../utils')
 
 describe('SessionService verify', () => {
   let testJwt = null
@@ -23,8 +17,12 @@ describe('SessionService verify', () => {
     return { action, jwt }
   }
 
-  const expectNokResponse = req => wsClient.send(req)
-    .then(result => result.should.deep.equal({ action: 'verify', status: NOK_STATUS }))
+  const expectNokResponse = (req, message) => wsClient.send(req)
+    .then(result => {
+      const expected = { action: 'verify', status: NOK_STATUS }
+      if (message) { expected.message = message }
+      result.should.deep.equal(expected)
+    })
 
   const expectError = req => wsClient.send(req)
     .then(result => result.should.deep.equal({ status: ERROR_STATUS, message: 'invalid request' }))
@@ -42,7 +40,12 @@ describe('SessionService verify', () => {
       return expectNokResponse(verifyReq({ jwt: tamperedJwt }))
     })
 
-    xit('failed verification - jwt expired', () => {
+    it('failed verification - jwt expired', () => {
+      const outdatedJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkZTM2M2ZiZDBmNjEwNDIwMzVkYzYwMyIsImVtYWlsIjoidGVzdF91c2VyQHRlc3QuY29tIiwiaWF0IjoxNTc1Mjg3MTM4LCJleHAiOjE1NzUyOTQzMzh9.JUCz3CvyyMS-Jhh0s0ucDnaQ2zUs8diTl8KC59FcL14'
+      return expectNokResponse(verifyReq({ jwt: outdatedJwt }), 'jwt expired')
+    })
+
+    xit('revoke jwt', () => {
     })
   })
 

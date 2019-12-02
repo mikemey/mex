@@ -1,4 +1,4 @@
-const jsonwebtoken = require('jsonwebtoken')
+const { sign, verify, TokenExpiredError } = require('jsonwebtoken')
 
 const { wsmessages } = require('../utils')
 const { Credentials } = require('./model')
@@ -31,21 +31,24 @@ const createAccessService = (secretBuffer, jwtOpts, logFunc) => {
     .then(({ user, error }) => {
       if (error) { return loginResponse.nok(`login failed [${message.email}]: ${error.message}`) }
 
-      const jwt = jsonwebtoken.sign({ id: user.id, email: user.email }, secretBuffer, jwtOpts)
+      const jwt = sign({ id: user.id, email: user.email }, secretBuffer, jwtOpts)
       return loginResponse.ok({ id: user.id, email: user.email, jwt })
     })
 
-  const verify = message => new Promise((resolve, reject) => {
-    jsonwebtoken.verify(message.jwt, secretBuffer, (err, decoded) => {
+  const verifyToken = message => new Promise((resolve, reject) => {
+    verify(message.jwt, secretBuffer, err => {
       if (err) {
         logFunc('jwt verification failed:', err.message)
-        return resolve(verifyNOK)
+        const response = err instanceof TokenExpiredError
+          ? verifyResponse.nok(err.message)
+          : verifyNOK
+        return resolve(response)
       }
       resolve(verifyOK)
     })
   })
 
-  return { registerUser, loginUser, verify }
+  return { registerUser, loginUser, verifyToken }
 }
 
 module.exports = { createAccessService, KW_REGISTER, KW_LOGIN, KW_VERIFY }
