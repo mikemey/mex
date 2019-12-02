@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const express = require('express')
 const querystring = require('querystring')
 const Joi = require('@hapi/joi')
@@ -9,7 +10,7 @@ const {
 
 const registerSchema = Joi.object({
   email: Validator.email(),
-  password: Validator.password(),
+  password: Validator.plainPassword(),
   confirmation: Joi.any().valid(Joi.ref('password')).required()
     .error(errors => {
       errors.forEach(err => { err.message = 'password and confirmation not matching' })
@@ -19,11 +20,13 @@ const registerSchema = Joi.object({
 
 const loginSchema = Joi.object({
   email: Validator.email(),
-  password: Validator.password()
+  password: Validator.plainPassword()
 })
 
 const LOGIN_VIEW = 'login'
 const REGISTER_VIEW = 'register'
+
+const hash = data => crypto.createHash('sha256').update(data).digest('hex')
 
 class AccessRouter extends LogTrait {
   constructor (sessionClient) {
@@ -55,7 +58,7 @@ class AccessRouter extends LogTrait {
       } catch (err) {
         return errorResponse(res, REGISTER_VIEW, err.message, email)
       }
-      return this.sessionClient.send(registerMessages.build({ email, password }))
+      return this.sessionClient.send(registerMessages.build({ email, password: hash(password) }))
         .then(result => {
           switch (result.status) {
             case OK_STATUS: return res.redirect(303, `${LOGIN_VIEW}?${querystring.stringify({ flag: 'reg' })}`)
@@ -82,7 +85,7 @@ class AccessRouter extends LogTrait {
         return errorResponse(res, LOGIN_VIEW, err.message, email)
       }
 
-      return this.sessionClient.send(loginMessages.build({ email, password }))
+      return this.sessionClient.send(loginMessages.build({ email, password: hash(password) }))
         .then(result => {
           switch (result.status) {
             case OK_STATUS: {

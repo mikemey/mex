@@ -1,6 +1,6 @@
 const { model } = require('../session')
 
-const { trand } = require('../test-tools')
+const { trand, pwhasher } = require('../test-tools')
 const SessionTestSetup = require('./session-test-setup')
 
 const {
@@ -14,7 +14,7 @@ describe('SessionService register', () => {
   after(SessionTestSetup.stopService)
   afterEach(() => wsClient.stop())
 
-  const registerReq = ({ email = trand.randEmail(), password = trand.randPass(), action = 'register' } = {}) => {
+  const registerReq = ({ email = trand.randEmail(), password = pwhasher(trand.randPass()), action = 'register' } = {}) => {
     return { action, email, password }
   }
 
@@ -46,10 +46,6 @@ describe('SessionService register', () => {
           assertRegisterOk(results[1])
         })
     })
-
-    it('password allows special characters', () => wsClient.send(registerReq({
-      password: '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
-    })).then(assertRegisterOk))
   })
 
   describe('error responses', () => {
@@ -60,11 +56,13 @@ describe('SessionService register', () => {
     })
 
     it('username not an email', () => expectNokResponse(registerReq({ email: randomString(12) }), 'email invalid'))
-    it('password too short', () => expectNokResponse(registerReq({ password: randomString(7) }), 'password invalid'))
-    it('password too long', () => expectNokResponse(registerReq({ password: randomString(51) }), 'password invalid'))
   })
 
   describe('fatal client errors', () => {
+    const stdHash = pwhasher('something')
+    it('password too short', () => expectError(registerReq({ password: stdHash.substring(1) })))
+    it('password too long', () => expectError(registerReq({ password: stdHash + '1' })))
+
     it('invalid action', () => expectError(registerReq({ action: 'registerX' })))
 
     it('additional request parameters', () => {

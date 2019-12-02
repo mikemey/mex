@@ -1,5 +1,6 @@
 const orchestrator = require('./useraccount.orch')
 const { wsmessages } = require('../utils')
+const { pwhasher } = require('../test-tools')
 
 describe('UserAccount login', () => {
   const agent = orchestrator.agent()
@@ -38,7 +39,7 @@ describe('UserAccount login', () => {
   })
 
   describe('calls to session service', () => {
-    const backendRequest = loginAction.build({ email: testEmail, password: testPassword })
+    const backendRequest = loginAction.build({ email: testEmail, password: pwhasher(testPassword) })
 
     const backendResponseOk = loginAction.ok({ id: 12345, email: 'hello@bla.com' })
     const backendResponseNok = message => loginAction.nok(message)

@@ -10,6 +10,8 @@ const {
   randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
 } = require('../utils')
 
+const { pwhasher } = require('../test-tools')
+
 describe('SessionService login', () => {
   before(startService)
   after(stopService)
@@ -34,18 +36,20 @@ describe('SessionService login', () => {
       })
     )
 
-    it('failed login', () => expectNokResponse(loginRequest({ password: 'wrongpass' }),
+    it('failed login', () => expectNokResponse(loginRequest({ password: pwhasher('wrongpass') }),
       `login failed [${registeredUser.email}]: Password or username is incorrect`
     ))
   })
 
   describe('error responses', () => {
     it('username not an email', () => expectNokResponse(loginRequest({ email: randomString(12) }), 'email invalid'))
-    it('password too short', () => expectNokResponse(loginRequest({ password: randomString(7) }), 'password invalid'))
-    it('password too long', () => expectNokResponse(loginRequest({ password: randomString(51) }), 'password invalid'))
   })
 
   describe('fatal client errors', () => {
+    const standardPw = pwhasher('something')
+    it('password too short', () => expectError(loginRequest({ password: standardPw.substring(1) })))
+    it('password too long', () => expectError(loginRequest({ password: standardPw + '1' })))
+
     it('invalid action', () => expectError(loginRequest({ action: 'loginX' })))
 
     it('additional request parameters', () => {

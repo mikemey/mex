@@ -12,14 +12,15 @@ const email = ({ message = 'email invalid', warn = false } = {}) => Joi.string()
     return errors
   })
 
-const password = ({ message = 'password invalid', warn = false } = {}) => Joi.string()
+const plainPassword = ({ message = 'password invalid' } = {}) => Joi.string()
   .pattern(/^[a-zA-Z0-9!"#$%&'()*+,-./:;[\]<=>?@\\^_`{|}~]{8,50}$/)
-  .rule({ message, warn })
-  .required()
+  .rule({ message })
   .error(errors => {
     errors.forEach(err => { err.message = message })
     return errors
   })
+
+const hashedPassword = () => Joi.string().hex().length(64).required()
 
 const defaultFail = (message, origin) => { throw new Error(message) }
 
@@ -40,4 +41,4 @@ const createCheck = (
   }
 }
 
-module.exports = { createCheck, oneTimeValidation, path, secretToken, email, password }
+module.exports = { createCheck, oneTimeValidation, path, secretToken, email, plainPassword, hashedPassword }

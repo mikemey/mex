@@ -1,4 +1,4 @@
-const { TestDataSetup: { dbConfig, seedTestData, registeredUser } } = require('../test-tools')
+const { pwhasher, TestDataSetup: { dbConfig, seedTestData, registeredUser } } = require('../test-tools')
 const { wsmessages: { OK_STATUS } } = require('../utils')
 
 const { WSClient } = require('../connectors')
@@ -28,7 +28,11 @@ const startService = () => {
 
 const stopService = () => { return sessionService.stop() }
 
-const loginRequest = ({ email = registeredUser.email, password = registeredUser.password, action = 'login' } = {}) => {
+const loginRequest = ({
+  email = registeredUser.email,
+  password = pwhasher(registeredUser.password),
+  action = 'login'
+} = {}) => {
   return { action, email, password }
 }
 

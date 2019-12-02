@@ -19,7 +19,7 @@ const configSchema = Joi.object({
 const loginRegisterSchema = Joi.object({
   action: Joi.string().valid(KW_REGISTER, KW_LOGIN).required(),
   email: Validator.email({ warn: true }),
-  password: Validator.password({ warn: true })
+  password: Validator.hashedPassword()
 })
 
 const verifySchema = Joi.object({
