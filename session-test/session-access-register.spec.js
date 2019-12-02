@@ -10,8 +10,8 @@ const {
 describe('SessionService register', () => {
   const wsClient = SessionTestSetup.wsClient
 
-  before(SessionTestSetup.start)
-  after(SessionTestSetup.stop)
+  before(SessionTestSetup.startService)
+  after(SessionTestSetup.stopService)
   afterEach(() => wsClient.stop())
 
   const registerReq = ({ email = trand.randEmail(), password = trand.randPass(), action = 'register' } = {}) => {
@@ -59,20 +59,9 @@ describe('SessionService register', () => {
         .then(() => expectNokResponse(request, `duplicate name [${request.email}]`))
     })
 
-    it('username not an email', () => {
-      const request = registerReq({ email: randomString(12) })
-      return expectNokResponse(request, 'email invalid')
-    })
-
-    it('password too short', () => {
-      const request = registerReq({ password: randomString(7) })
-      return expectNokResponse(request, 'password invalid')
-    })
-
-    it('password too long', () => {
-      const request = registerReq({ password: randomString(51) })
-      return expectNokResponse(request, 'password invalid')
-    })
+    it('username not an email', () => expectNokResponse(registerReq({ email: randomString(12) }), 'email invalid'))
+    it('password too short', () => expectNokResponse(registerReq({ password: randomString(7) }), 'password invalid'))
+    it('password too long', () => expectNokResponse(registerReq({ password: randomString(51) }), 'password invalid'))
   })
 
   describe('fatal client errors', () => {

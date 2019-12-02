@@ -1,4 +1,5 @@
-const { TestDataSetup } = require('../test-tools')
+const { TestDataSetup: { dbConfig, seedTestData, registeredUser } } = require('../test-tools')
+const { wsmessages: { OK_STATUS } } = require('../utils')
 
 const { WSClient } = require('../connectors')
 const { SessionService } = require('../session')
@@ -11,16 +12,26 @@ const url = `ws://localhost:${port}${path}`
 const testConfig = {
   jwtkey: 'ZCdvaCwganVzdCBhIHRlc3RrZXkK',
   wsserver: { port, path, authorizedTokens: [testToken] },
-  db: TestDataSetup.dbConfig
+  db: dbConfig
 }
 const sessionService = new SessionService(testConfig)
 const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500 })
 
-const start = () => {
-  TestDataSetup.seedTestData()
+const startService = () => {
+  seedTestData()
   return sessionService.start()
 }
 
-const stop = () => { return sessionService.stop() }
+const stopService = () => { return sessionService.stop() }
 
-module.exports = { sessionConfig: testConfig, wsClient, start, stop, registeredUser: TestDataSetup.registeredUser }
+const loginRequest = ({ email = registeredUser.email, password = registeredUser.password, action = 'login' } = {}) => {
+  return { action, email, password }
+}
+
+const loginTestUser = () => wsClient.send(loginRequest())
+  .then(result => {
+    result.status.should.equal(OK_STATUS)
+    return result
+  })
+
+module.exports = { sessionConfig: testConfig, wsClient, startService, stopService, loginTestUser, loginRequest, registeredUser }

@@ -5,7 +5,7 @@ const model = require('./model')
 const SessionServiceClient = require('./session-client')
 
 const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require('../utils')
-const { createAccessService, KW_LOGIN, KW_REGISTER } = require('./session-access')
+const { createAccessService, KW_LOGIN, KW_REGISTER, KW_VERIFY } = require('./session-access')
 
 const configSchema = Joi.object({
   jwtkey: Validator.secretToken('jwtkey'),
@@ -16,13 +16,20 @@ const configSchema = Joi.object({
   }).required()
 })
 
-const requestSchema = Joi.object({
+const loginRegisterSchema = Joi.object({
   action: Joi.string().valid(KW_REGISTER, KW_LOGIN).required(),
   email: Validator.email({ warn: true }),
   password: Validator.password({ warn: true })
 })
 
-const requestCheck = Validator.createCheck(requestSchema, {
+const verifySchema = Joi.object({
+  action: Joi.string().valid(KW_VERIFY).required(),
+  jwt: Joi.string().min(20).required()
+})
+
+const fullSchema = Joi.alternatives().try(verifySchema, loginRegisterSchema)
+
+const requestCheck = Validator.createCheck(fullSchema, {
   onError: () => { throw new ClientError('invalid request', wsmessages.error('invalid request'), false) },
   onWarning: (msg, origin) => { throw new ClientError(msg, wsmessages.withAction(origin.action).nok(msg)) }
 })
@@ -32,7 +39,11 @@ class SessionService extends WSServer {
     super(config.wsserver)
     Validator.oneTimeValidation(configSchema, config)
     this.dbConfig = config.db
-    this.accessService = createAccessService(Buffer.from(config.jwtkey, 'base64'), { expiresIn: '2h' })
+    this.accessService = createAccessService(
+      Buffer.from(config.jwtkey, 'base64'),
+      { expiresIn: '2h' },
+      this.log.bind(this)
+    )
   }
 
   start () {
@@ -47,8 +58,9 @@ class SessionService extends WSServer {
   received (message) {
     requestCheck(message)
     switch (message.action) {
-      case KW_LOGIN: return this.accessService.loginUser(message, this.secretBuffer)
+      case KW_LOGIN: return this.accessService.loginUser(message)
       case KW_REGISTER: return this.accessService.registerUser(message)
+      case KW_VERIFY: return this.accessService.verify(message)
       default: throw new Error(`unexpected action ${message.action}`)
     }
   }

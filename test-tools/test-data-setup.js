@@ -6,6 +6,7 @@ const dbConfig = { url: 'mongodb://127.0.0.1:27017', name: 'mex-test' }
 const seedDir = 'seed-data'
 
 const registeredUser = {
+  id: '5de363fbd0f61042035dc603',
   email: 'test_user@test.com',
   password: 'test_pwd'
 }
