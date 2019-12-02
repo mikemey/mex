@@ -22,7 +22,7 @@ const revokeOK = wsmessages.withAction(KW_REVOKE).ok()
 const authenticate = Credentials.authenticate()
 
 const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
-  const jwtcache = new NodeCache({
+  const revokedJwtCache = new NodeCache({
     stdTTL: jwtExpirationSecs,
     useClones: false
   })
@@ -44,7 +44,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
     })
 
   const verifyToken = message => new Promise((resolve, reject) => {
-    if (jwtcache.get(message.jwt)) { return resolve(verifyNOK) }
+    if (revokedJwtCache.get(message.jwt)) { return resolve(verifyNOK) }
     verify(message.jwt, secretBuffer, err => {
       if (err) {
         logFunc('jwt verification failed:', err.message)
@@ -57,17 +57,15 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
     })
   })
 
-  const revokeToken = message => {
-    jwtcache.set(message.jwt, true)
-    return revokeOK
-  }
+  const revokeToken = message => new Promise((resolve, reject) => {
+    verify(message.jwt, secretBuffer, err => {
+      err ? logFunc('revoke jwt failed:', err.message)
+        : revokedJwtCache.set(message.jwt, true)
+      resolve(revokeOK)
+    })
+  })
 
-  const stop = () => {
-    jwtcache.close()
-    jwtcache.flushAll()
-  }
-
-  return { registerUser, loginUser, verifyToken, revokeToken, stop }
+  return { registerUser, loginUser, verifyToken, revokeToken, revokedJwtCache }
 }
 
 module.exports = { createAccessService, KW_REGISTER, KW_LOGIN, KW_VERIFY, KW_REVOKE }

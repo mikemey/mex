@@ -9,6 +9,10 @@ const port = 12021
 const path = '/sessions'
 const url = `ws://localhost:${port}${path}`
 
+const outdatedJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkZTM2M2ZiZDBmNjEwNDIwM' +
+  'zVkYzYwMyIsImVtYWlsIjoidGVzdF91c2VyQHRlc3QuY29tIiwiaWF0IjoxNTc1Mjg3MTM' +
+  '4LCJleHAiOjE1NzUyOTQzMzh9.JUCz3CvyyMS-Jhh0s0ucDnaQ2zUs8diTl8KC59FcL14'
+
 const testConfig = {
   jwtkey: 'ZCdvaCwganVzdCBhIHRlc3RrZXkK',
   wsserver: { port, path, authorizedTokens: [testToken] },
@@ -34,4 +38,14 @@ const loginTestUser = () => wsClient.send(loginRequest())
     return result
   })
 
-module.exports = { sessionConfig: testConfig, wsClient, startService, stopService, loginTestUser, loginRequest, registeredUser }
+module.exports = {
+  sessionService,
+  sessionConfig: testConfig,
+  wsClient,
+  startService,
+  stopService,
+  loginTestUser,
+  loginRequest,
+  registeredUser,
+  outdatedJwt
+}

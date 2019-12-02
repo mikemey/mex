@@ -1,7 +1,7 @@
 const chai = require('chai')
 chai.use(require('chai-string'))
 
-const { wsClient, startService, stopService, loginTestUser } = require('./session-test-setup')
+const { wsClient, startService, stopService, loginTestUser, outdatedJwt } = require('./session-test-setup')
 const { wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS } } = require('../utils')
 
 describe('SessionService verify', () => {
@@ -40,10 +40,9 @@ describe('SessionService verify', () => {
       return expectNokResponse(verifyReq({ jwt: tamperedJwt }))
     })
 
-    it('failed verification - jwt expired', () => {
-      const outdatedJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkZTM2M2ZiZDBmNjEwNDIwMzVkYzYwMyIsImVtYWlsIjoidGVzdF91c2VyQHRlc3QuY29tIiwiaWF0IjoxNTc1Mjg3MTM4LCJleHAiOjE1NzUyOTQzMzh9.JUCz3CvyyMS-Jhh0s0ucDnaQ2zUs8diTl8KC59FcL14'
-      return expectNokResponse(verifyReq({ jwt: outdatedJwt }), 'jwt expired')
-    })
+    it('failed verification - jwt expired', () => expectNokResponse(verifyReq(
+      { jwt: outdatedJwt }), 'jwt expired')
+    )
   })
 
   describe('fatal client errors', () => {

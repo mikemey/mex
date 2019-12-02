@@ -53,7 +53,6 @@ class SessionService extends WSServer {
   }
 
   stop () {
-    this.accessService.stop()
     return super.stop().then(dbconnection.close)
   }
 
