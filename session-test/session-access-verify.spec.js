@@ -44,13 +44,10 @@ describe('SessionService verify', () => {
       const outdatedJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkZTM2M2ZiZDBmNjEwNDIwMzVkYzYwMyIsImVtYWlsIjoidGVzdF91c2VyQHRlc3QuY29tIiwiaWF0IjoxNTc1Mjg3MTM4LCJleHAiOjE1NzUyOTQzMzh9.JUCz3CvyyMS-Jhh0s0ucDnaQ2zUs8diTl8KC59FcL14'
       return expectNokResponse(verifyReq({ jwt: outdatedJwt }), 'jwt expired')
     })
-
-    xit('revoke jwt', () => {
-    })
   })
 
   describe('fatal client errors', () => {
-    it('invalid action', () => expectError(verifyReq({ action: 'loginX' })))
+    it('invalid action', () => expectError(verifyReq({ action: 'verifyx' })))
 
     it('missing action parameter', () => {
       const req = verifyReq()

@@ -5,7 +5,7 @@ const model = require('./model')
 const SessionServiceClient = require('./session-client')
 
 const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require('../utils')
-const { createAccessService, KW_LOGIN, KW_REGISTER, KW_VERIFY } = require('./session-access')
+const { createAccessService, KW_LOGIN, KW_REGISTER, KW_VERIFY, KW_REVOKE } = require('./session-access')
 
 const configSchema = Joi.object({
   jwtkey: Validator.secretToken('jwtkey'),
@@ -23,7 +23,7 @@ const loginRegisterSchema = Joi.object({
 })
 
 const verifySchema = Joi.object({
-  action: Joi.string().valid(KW_VERIFY).required(),
+  action: Joi.string().valid(KW_VERIFY, KW_REVOKE).required(),
   jwt: Joi.string().min(20).required()
 })
 
@@ -34,6 +34,8 @@ const requestCheck = Validator.createCheck(fullSchema, {
   onWarning: (msg, origin) => { throw new ClientError(msg, wsmessages.withAction(origin.action).nok(msg)) }
 })
 
+const jwtExpirationSecs = 2 * 60 * 60
+
 class SessionService extends WSServer {
   constructor (config) {
     super(config.wsserver)
@@ -41,9 +43,7 @@ class SessionService extends WSServer {
     this.dbConfig = config.db
 
     this.accessService = createAccessService(
-      Buffer.from(config.jwtkey, 'base64'),
-      { expiresIn: '2h' },
-      this.log.bind(this)
+      Buffer.from(config.jwtkey, 'base64'), jwtExpirationSecs, this.log.bind(this)
     )
   }
 
@@ -53,6 +53,7 @@ class SessionService extends WSServer {
   }
 
   stop () {
+    this.accessService.stop()
     return super.stop().then(dbconnection.close)
   }
 
@@ -62,6 +63,7 @@ class SessionService extends WSServer {
       case KW_LOGIN: return this.accessService.loginUser(message)
       case KW_REGISTER: return this.accessService.registerUser(message)
       case KW_VERIFY: return this.accessService.verifyToken(message)
+      case KW_REVOKE: return this.accessService.revokeToken(message)
       default: throw new Error(`unexpected action ${message.action}`)
     }
   }
