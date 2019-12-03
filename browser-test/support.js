@@ -1,4 +1,4 @@
-const { LoginPage, HomePage } = require('./pages')
+const { LoginPage, HomePage } = require('./page-objects')
 
 const loginpage = new LoginPage()
 const homepage = new HomePage()

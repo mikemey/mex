@@ -1,5 +1,5 @@
 
-const { RegistrationPage, LoginPage, HomePage, MenuBar } = require('../pages')
+const { RegistrationPage, LoginPage, HomePage, MenuBar } = require('../page-objects')
 
 describe('Menu bar', () => {
   const homepage = new HomePage()

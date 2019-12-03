@@ -1,5 +1,5 @@
 
-const { RegistrationPage, LoginPage, HomePage } = require('../pages')
+const { RegistrationPage, LoginPage, HomePage } = require('../page-objects')
 
 describe('Login', () => {
   const regpage = new RegistrationPage()
