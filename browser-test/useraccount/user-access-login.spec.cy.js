@@ -17,7 +17,7 @@ describe('Login', () => {
     regpage.visit()
     regpage.register(email, password).registerButton().click()
     loginpage.assertPageActive()
-    loginpage.login(email, password).loginButton().click()
+    loginpage.login(email, password)
     homepage.assertPageActive()
   })
 
@@ -26,16 +26,16 @@ describe('Login', () => {
     loginpage.assertPageActive()
     loginpage.message().contains('Please log-in')
 
-    loginpage.login('X' + registeredUser.email, registeredUser.password).loginButton().click()
+    loginpage.login('X' + registeredUser.email, registeredUser.password)
     loginpage.assertPageActive()
     loginpage.errorMsg().contains('Password or username is incorrect')
     loginpage.email().should('have.attr', 'value', 'X' + registeredUser.email)
 
-    loginpage.login(registeredUser.email, 'X' + registeredUser.password).loginButton().click()
+    loginpage.login(registeredUser.email, 'X' + registeredUser.password)
     loginpage.errorMsg().contains('Password or username is incorrect')
     loginpage.email().should('have.attr', 'value', registeredUser.email)
 
-    loginpage.login(registeredUser.email, registeredUser.password).loginButton().click()
+    loginpage.login(registeredUser.email, registeredUser.password)
     homepage.assertPageActive()
   })
 })

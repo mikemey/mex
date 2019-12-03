@@ -13,7 +13,7 @@ class LoginPage extends ATestPage {
   login (emailText, passwordText) {
     this.email().clear().type(emailText)
     this.password().type(passwordText)
-    return this
+    this.loginButton().click()
   }
 }
 

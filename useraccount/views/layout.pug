@@ -4,6 +4,19 @@ html
   head
     title mex #{ page_title || "" }
   body
+    #header
+      if user
+        ul
+          li
+            a(href='index') Home
+          li #{user.email}
+      else
+        ul
+          li
+            a(href='login') Login
+          li
+            a(href='register') Register
+
     block content
     block foot
       footer

@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const express = require('express')
+const jsonwebtoken = require('jsonwebtoken')
 const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
@@ -37,7 +38,7 @@ class AccessRouter extends LogTrait {
 
   createAuthenticationCheck () {
     const pathPrefix = this.httpConfig.path
-    const unprotectedPaths = [`${pathPrefix}/login`, `${pathPrefix}/register`, `${pathPrefix}/version`, '/favicon.ico']
+    const unprotectedPaths = [`${pathPrefix}/login`, `${pathPrefix}/register`, `${pathPrefix}/version`]
     const verifyMessages = withAction('verify')
 
     const redirectToLogin = (res, flag = 'auth') => {
@@ -51,7 +52,10 @@ class AccessRouter extends LogTrait {
         return this.sessionClient.send(verifyMessages.build({ jwt: req.session.jwt }))
           .then(result => {
             switch (result.status) {
-              case OK_STATUS: return next()
+              case OK_STATUS: {
+                res.locals.user = jsonwebtoken.decode(req.session.jwt)
+                return next()
+              }
               case NOK_STATUS: return redirectToLogin(res)
               default:
                 this.log('session service verification error:', result.message)

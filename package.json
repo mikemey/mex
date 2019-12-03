@@ -61,7 +61,8 @@
     "globals": [
       "BigInt",
       "cy",
-      "Cypress"
+      "Cypress",
+      "expect"
     ]
   }
 }
