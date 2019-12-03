@@ -19,7 +19,7 @@
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s && npm run e2e -s",
     "~test": "nodemon -x 'npm run alltest -s'",
-    "wtest": "mocha wallet-test/**/**.spec.js  -r chai/register-should"
+    "wtest": "nodemon -x 'mocha wallet-test/**/**.spec.js  -r chai/register-should'"
   },
   "dependencies": {
     "@hapi/joi": "^16.1.8",
@@ -39,8 +39,6 @@
     "ws": "^7.2.0"
   },
   "devDependencies": {
-    "@carnesen/bitcoin-config": "0.0.3",
-    "@carnesen/bitcoin-service": "0.0.1",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "chai-string": "^1.5.0",
