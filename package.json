@@ -19,7 +19,8 @@
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s && npm run e2e -s",
     "~test": "nodemon -x 'npm run alltest -s'",
-    "wtest": "nodemon -x 'mocha wallet-test/**/**.spec.js  -r chai/register-should'"
+    "wtest": "mocha wallet-test/**/**.spec.js  -r chai/register-should",
+    "~wtest": "nodemon -x 'npm run wtest -s'"
   },
   "dependencies": {
     "@hapi/joi": "^16.1.8",

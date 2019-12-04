@@ -1,16 +1,12 @@
 const RegtestSetup = require('./regtest.orch')
 
-describe('A unit test', () => {
+describe('First regtest', () => {
   const regtest = RegtestSetup()
 
-  // before(function () {
-  //   this.timeout(60000)
-  //   return regtest.start()
-  // })
-  // after(regtest.stop)
+  before(regtest.start)
+  after(regtest.stop)
 
-  it('does the right thing', () => regtest.getBalance()
-    .then(balance => {
-      console.log('the balance is:', balance)
-    }))
+  it('faucet balance', () => regtest.getFaucetBalance()
+    .then(balance => balance.should.be.at.least(50))
+  )
 })

@@ -6,34 +6,22 @@ const path = require('path')
 const download = require('download')
 const BitcoinClient = require('bitcoin-core')
 
-const oscheck = () => {
-  if (os.platform() !== 'darwin') {
-    throw Error('platform not supported:', os.platform())
-  }
-}
-
 const btcversion = '0.19.0.1'
-const regtestDir = path.join(__dirname, '.regtest')
-
-const regtestConfig = {
-  btcBinUrl: `https://bitcoincore.org/bin/bitcoin-core-${btcversion}/bitcoin-${btcversion}-osx64.tar.gz`,
-  btcBinDir: path.join(regtestDir, `bitcoin-${btcversion}`),
-  btcProcess: null
-}
+const dataDir = path.join(__dirname, '.regtest')
 
 const btcConfigFile = {
-  location: path.join(regtestDir, 'regtest.config'),
+  location: path.join(dataDir, 'bitcoin.conf'),
   content: {
-    datadir: regtestDir,
     regtest: 1,
-    daemon: 1,
+    pid: path.join(dataDir, 'regtest.pid'),
     sections: {
       regtest: {
+        bind: '127.0.0.1',
+        daemon: 1,
+        server: 1,
         rpcauth: 'regtester:a1c4c0cf083f71dc25d230298beab0a9$479765cb0999b734931ddfe4ac0a5b6245ff6ebd13a36d675432ea88817e5d7f',
-        // rpcauth: 'regtester:regtester',
         rpcbind: '127.0.0.1',
         port: 36963,
-        // rpcbind: 'localhost',
         rpcport: 24842,
         wallet: 'faucet'
       }
@@ -41,7 +29,33 @@ const btcConfigFile = {
   }
 }
 
-const keyValuePair = obj => Object.keys(obj).map(key => `${key}=${obj[key]}`)
+const btcClientCfg = {
+  network: 'regtest',
+  host: btcConfigFile.content.sections.regtest.rpcbind,
+  port: btcConfigFile.content.sections.regtest.rpcport,
+  username: 'regtester',
+  password: 'regtester'
+}
+
+const setupCfg = {
+  btcBinUrl: `https://bitcoincore.org/bin/bitcoin-core-${btcversion}/bitcoin-${btcversion}-osx64.tar.gz`,
+  btcBinDir: path.join(dataDir, `bitcoin-${btcversion}`, 'bin'),
+  dataDirArg: `-datadir=${dataDir}`,
+  faucetWallet: new BitcoinClient(Object.assign({ wallet: 'faucet' }, btcClientCfg)),
+  minFaucetBalance: 50
+}
+
+const oscheck = () => {
+  if (os.platform() !== 'darwin') {
+    throw Error('platform not supported:', os.platform())
+  }
+}
+
+const installBinaries = () => {
+  console.log('installing regtest to', dataDir)
+  fs.mkdirSync(dataDir)
+  return download(setupCfg.btcBinUrl, dataDir, { extract: true })
+}
 
 const writeConfigFile = () => {
   const content = btcConfigFile.content
@@ -57,59 +71,80 @@ const writeConfigFile = () => {
   fs.writeFileSync(btcConfigFile.location, configData.join('\n'))
 }
 
-const btcClientConfig = {
-  network: 'regtest',
-  // host: btcConfigFile.content.sections.regtest.rpcbind,
-  host: 'localhost',
-  port: btcConfigFile.content.sections.regtest.rpcport,
-  username: 'regtester',
-  password: 'regtester'
+const keyValuePair = obj => Object.keys(obj).map(key => `${key}=${obj[key]}`)
+
+const startBitcoind = () => {
+  if (fs.existsSync(btcConfigFile.content.pid)) {
+    console.log('bitcoind already running')
+    return
+  }
+  const command = path.join(setupCfg.btcBinDir, 'bitcoind')
+  const args = [setupCfg.dataDirArg]
+  childProcess.spawnSync(command, args)
+  console.log('bitcoind started')
 }
 
-const install = () => {
-  console.log('installing regtest to', regtestDir)
-  fs.mkdirSync(regtestDir)
-  return download(regtestConfig.btcBinUrl, regtestDir, { extract: true })
-}
+const waitForFaucet = (attempts = 5) => new Promise((resolve, reject) => {
+  const checkWallet = currentAttempt => {
+    if (currentAttempt <= 0) { return reject(Error('Faucet wallet not available!')) }
+    console.log(`waiting for wallet (${currentAttempt})...`)
 
-const startBitcoind = () => new Promise((resolve, reject) => {
-  const command = path.join(regtestConfig.btcBinDir, 'bin', 'bitcoind')
-  const args = [`-conf=${btcConfigFile.location}`]
-  regtestConfig.btcProcess = childProcess.spawn(command, args, { stdio: 'ignore' })
-
-  regtestConfig.btcProcess.on('error', reject)
-  regtestConfig.btcProcess.on('exit', code => {
-    if (code === 0) { return resolve() }
-    reject(new Error(`bitcoind start failed: ${code}`))
-  })
-
-  setTimeout(reject, 1000, Error('bitcoind start timed out'))
+    setTimeout(() => {
+      setupCfg.faucetWallet.getWalletInfo()
+        .then(resolve)
+        .catch(_ => checkWallet(currentAttempt - 1))
+    }, 250)
+  }
+  checkWallet(attempts)
 })
+
+const generateBlocks = (blocks = 1) => setupCfg.faucetWallet.getNewAddress()
+  .then(address => setupCfg.faucetWallet.generateToAddress(blocks, address))
+
+const refillFaucet = () => {
+  const faucet = setupCfg.faucetWallet
+  const needMoreBlocks = () => generateBlocks()
+    .then(() => faucet.command('getbalances'))
+    .then(balances => {
+      if (balances.mine.trusted < setupCfg.minFaucetBalance) {
+        return needMoreBlocks()
+      }
+    })
+  return needMoreBlocks()
+}
+
+const stopBitcoind = () => {
+  const command = path.join(setupCfg.btcBinDir, 'bitcoin-cli')
+  const args = [setupCfg.dataDirArg, 'stop']
+  childProcess.spawnSync(command, args)
+  console.log('bitcoind stopped')
+}
 
 const RegtestSetup = () => {
   oscheck()
 
   async function start () {
+    this.timeout(60000)
     if (!fs.existsSync(btcConfigFile.location)) {
-      await install()
+      await installBinaries()
+      writeConfigFile()
+      await startBitcoind()
+      await waitForFaucet(20)
+      await generateBlocks(101)
+    } else {
+      await startBitcoind()
+      const walletInfo = await waitForFaucet()
+      if (walletInfo.balance < setupCfg.minFaucetBalance) {
+        await refillFaucet()
+      }
     }
-    writeConfigFile()
-    await startBitcoind()
   }
 
-  const stop = () => { }
-  const faucetWallet = new BitcoinClient(Object.assign({ wallet: 'faucet' }, btcClientConfig))
+  const stop = () => stopBitcoind()
 
-  const getBalance = () => faucetWallet.getBalance()
+  const getFaucetBalance = () => setupCfg.faucetWallet.getBalance()
 
-  return { start, stop, getBalance }
+  return { start, stop, getFaucetBalance }
 }
-
-// return faucetWallet.getNewAddress()
-//   .then(address => faucetWallet.command('generatetoaddress', 101, address))
-//   .then(result => {
-//     console.log('generated!')
-//     console.log(result)
-//   })
 
 module.exports = RegtestSetup
