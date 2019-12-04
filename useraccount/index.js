@@ -5,7 +5,7 @@ const Joi = require('@hapi/joi')
 
 const { HttpServer } = require('../connectors')
 const { Validator } = require('../utils')
-const { SessionServiceClient } = require('../session')
+const { WSClient } = require('../connectors')
 
 const AccessRouter = require('./access-router')
 
@@ -24,7 +24,7 @@ class UserAccountService extends HttpServer {
 
     this.config = config
     this.server = null
-    this.sessionClient = new SessionServiceClient(config.sessionService)
+    this.sessionClient = new WSClient(config.sessionService)
     this.accessRouter = new AccessRouter(this.sessionClient, this.config.httpserver)
     Validator.oneTimeValidation(configSchema, this.config)
   }
