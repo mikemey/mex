@@ -3,7 +3,7 @@ const Joi = require('@hapi/joi')
 const { WSServer, WSClient } = require('../connectors')
 
 const {
-  wsmessages: { withAction, OK_STATUS, NOK_STATUS },
+  wsmessages: { error, withAction, OK_STATUS, NOK_STATUS },
   Validator, LogTrait
 } = require('../utils')
 
@@ -25,10 +25,10 @@ const {
 // })
 
 const verifyMessages = withAction('verify')
+const sessionServiceUnavailable = error('session-service unavailable')
 
 class WSSecureServer extends WSServer {
   constructor (config) {
-    console.log('WSSecureServer calling super(config)')
     const serverConfig = Object.assign({}, config)
     const sessionClientConfig = serverConfig.sessionService
     delete serverConfig.sessionService
@@ -42,13 +42,16 @@ class WSSecureServer extends WSServer {
   }
 
   async received (message) {
-    const verification = await this.sessionClient.send(verifyMessages.build({ jwt: message.jwt }))
-    switch (verification.status) {
-      case OK_STATUS: {
-        return this.secureReceived(message)
-      }
-      default: return verification
-    }
+    return this.sessionClient
+      .send(verifyMessages.build({ jwt: message.jwt }))
+      .then(verification => {
+        switch (verification.status) {
+          case OK_STATUS: return this.secureReceived(message)
+          case NOK_STATUS: return verification
+          default: return sessionServiceUnavailable
+        }
+      })
+      .catch(() => sessionServiceUnavailable)
   }
 
   secureReceived (message) { return Promise.resolve(message) }
