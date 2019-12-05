@@ -1,7 +1,7 @@
 const { WSSecureServer } = require('../session')
 const { WSClient } = require('../connectors')
 const { WSServerMock } = require('../test-tools')
-const { wsmessages: { error, withAction, OK_STATUS, NOK_STATUS, ERROR_STATUS } } = require('../utils')
+const { wsmessages: { error, withAction } } = require('../utils')
 
 describe('WSSecureServer', () => {
   const sessionMockToken = 'c2Vzc2lvbi1tb2NrLXRlc3R0b2tlbgo='
@@ -48,61 +48,71 @@ describe('WSSecureServer', () => {
   }
 
   const sessionServiceMock = new WSServerMock(sessionMockConfig)
-  const wsSecureServer = new WSSecureServerDummyImpl(wsSecureServerConfig)
+  const securedServer = new WSSecureServerDummyImpl(wsSecureServerConfig)
   const userClient = new WSClient(userClientConfig)
 
-  const testJwt = 'bladibladibla'
+  const testJwt = '12345678901234567890'
   const clientRequest = { jwt: testJwt, action: 'client-request' }
 
-  const verifyMessage = withAction('verify')
-  const verifyRequest = verifyMessage.build({ jwt: testJwt })
+  const verifyMessages = withAction('verify')
+  const verifyRequest = verifyMessages.build({ jwt: testJwt })
 
   describe('session service running', () => {
-    before(() => Promise.all([wsSecureServer.start(), sessionServiceMock.start()]))
-    after(() => Promise.all([wsSecureServer.stop(), sessionServiceMock.stop()]))
-    beforeEach(() => Promise.all([wsSecureServer.reset(), sessionServiceMock.reset()]))
+    before(() => Promise.all([securedServer.start(), sessionServiceMock.start()]))
+    after(() => Promise.all([securedServer.stop(), sessionServiceMock.stop()]))
+    beforeEach(() => Promise.all([securedServer.reset(), sessionServiceMock.reset()]))
 
     it('allows requests when session-service responds OK', async () => {
-      sessionServiceMock.addMockFor(verifyRequest, verifyMessage.ok())
+      sessionServiceMock.addMockFor(verifyRequest, verifyMessages.ok())
       const response = await userClient.send(clientRequest)
       response.should.deep.equal(secureServerResponse)
       sessionServiceMock.assertReceived(verifyRequest)
-      wsSecureServer.assertReceived(clientRequest)
+      securedServer.assertReceived(clientRequest)
     })
 
     it('rejects requests when session-service responds NOK', async () => {
-      sessionServiceMock.addMockFor(verifyRequest, verifyMessage.nok())
+      sessionServiceMock.addMockFor(verifyRequest, verifyMessages.nok())
       const response = await userClient.send(clientRequest)
-      response.should.deep.equal({ status: 'nok', action: 'verify' })
+      response.should.deep.equal(verifyMessages.nok())
       sessionServiceMock.assertReceived(verifyRequest)
-      wsSecureServer.assertReceived()
+      securedServer.assertReceived()
     })
 
     it('rejects requests when session-service responds ERROR', async () => {
-      const verificationError = { status: ERROR_STATUS, message: 'invalid request' }
-      sessionServiceMock.addMockFor(verifyRequest, verificationError)
+      sessionServiceMock.addMockFor(verifyRequest, error('invalid request'))
       const response = await userClient.send(clientRequest)
-      response.should.deep.equal({ status: 'error', message: 'session-service unavailable' })
+      response.should.deep.equal(error('session-service unavailable'))
       sessionServiceMock.assertReceived(verifyRequest)
-      wsSecureServer.assertReceived()
+      securedServer.assertReceived()
+    })
+
+    it('when missing jwt field', async () => {
+      const invalidClientRequest = Object.assign({}, clientRequest)
+      delete invalidClientRequest.jwt
+      const response = await userClient.send(invalidClientRequest)
+      response.should.deep.equal(error('invalid request'))
+      sessionServiceMock.assertReceived()
+      securedServer.assertReceived()
     })
   })
 
   describe('session service down', () => {
-    before(() => wsSecureServer.start())
-    after(() => wsSecureServer.stop())
+    before(() => securedServer.start())
+    after(() => securedServer.stop())
 
     it('rejects requests', async () => {
       const response = await userClient.send(clientRequest)
-      response.should.deep.equal({ status: 'error', message: 'session-service unavailable' })
-      wsSecureServer.assertReceived()
+      response.should.deep.equal(error('session-service unavailable'))
+      securedServer.assertReceived()
     })
   })
 
   describe('fatal client errors', () => {
-    xit('configuration missing "sessionService" parameter', () => { })
-    xit('when missing jwt field', () => {
-
+    it('configuration missing "sessionService" parameter', () => {
+      const errorConfig = Object.assign({}, wsSecureServerConfig)
+      delete errorConfig.sessionService
+      return (() => new WSSecureServer(errorConfig))
+        .should.throw(Error, '"sessionService" is required')
     })
   })
 })

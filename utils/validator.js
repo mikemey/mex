@@ -22,6 +22,8 @@ const plainPassword = ({ message = 'password invalid' } = {}) => Joi.string()
 
 const hashedPassword = () => Joi.string().hex().length(64).required()
 
+const jwt = () => Joi.string().min(20).required()
+
 const defaultFail = (message, origin) => { throw new Error(message) }
 
 const oneTimeValidation = (schema, data) => {
@@ -41,4 +43,13 @@ const createCheck = (
   }
 }
 
-module.exports = { createCheck, oneTimeValidation, path, secretToken, email, plainPassword, hashedPassword }
+module.exports = {
+  createCheck,
+  oneTimeValidation,
+  path,
+  secretToken,
+  email,
+  plainPassword,
+  hashedPassword,
+  jwt
+}

@@ -24,7 +24,7 @@ const loginRegisterSchema = Joi.object({
 
 const verifySchema = Joi.object({
   action: Joi.string().valid(KW_VERIFY, KW_REVOKE).required(),
-  jwt: Joi.string().min(20).required()
+  jwt: Validator.jwt()
 })
 
 const fullSchema = Joi.alternatives().try(verifySchema, loginRegisterSchema)
