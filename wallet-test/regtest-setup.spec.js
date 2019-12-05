@@ -1,12 +1,8 @@
-const RegtestSetup = require('./regtest.orch')
+const { faucetWallet } = require('./btc-regtest.orch')
 
-describe('First regtest', () => {
-  const regtest = RegtestSetup()
-
-  before(regtest.start)
-  after(regtest.stop)
-
-  it('faucet balance', () => regtest.getFaucetBalance()
-    .then(balance => balance.should.be.at.least(50))
-  )
+describe('Regtest node setup', () => {
+  it('faucet has balance', async () => {
+    const balance = await faucetWallet.getBalance()
+    balance.should.be.at.least(50)
+  })
 })

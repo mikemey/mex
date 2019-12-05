@@ -9,6 +9,20 @@ const BitcoinClient = require('bitcoin-core')
 const btcversion = '0.19.0.1'
 const dataDir = path.join(__dirname, '.regtest')
 
+const btcClientConfig = {
+  network: 'regtest',
+  host: '127.0.0.1',
+  port: 24842,
+  username: 'regtester',
+  password: 'regtester'
+}
+
+const mainWalletName = 'mex-test-wallet'
+const faucetWalletName = 'faucet'
+
+const mainWalletConfig = (wallet = mainWalletName) => Object.assign({ wallet }, btcClientConfig)
+const faucetWallet = new BitcoinClient(mainWalletConfig(faucetWalletName))
+
 const btcConfigFile = {
   location: path.join(dataDir, 'bitcoin.conf'),
   content: {
@@ -20,28 +34,19 @@ const btcConfigFile = {
         daemon: 1,
         server: 1,
         rpcauth: 'regtester:a1c4c0cf083f71dc25d230298beab0a9$479765cb0999b734931ddfe4ac0a5b6245ff6ebd13a36d675432ea88817e5d7f',
-        rpcbind: '127.0.0.1',
+        rpcbind: btcClientConfig.host,
         port: 36963,
-        rpcport: 24842,
-        wallet: 'faucet'
+        rpcport: btcClientConfig.port,
+        wallet: [faucetWalletName, mainWalletName]
       }
     }
   }
-}
-
-const btcClientCfg = {
-  network: 'regtest',
-  host: btcConfigFile.content.sections.regtest.rpcbind,
-  port: btcConfigFile.content.sections.regtest.rpcport,
-  username: 'regtester',
-  password: 'regtester'
 }
 
 const setupCfg = {
   btcBinUrl: `https://bitcoincore.org/bin/bitcoin-core-${btcversion}/bitcoin-${btcversion}-osx64.tar.gz`,
   btcBinDir: path.join(dataDir, `bitcoin-${btcversion}`, 'bin'),
   dataDirArg: `-datadir=${dataDir}`,
-  faucetWallet: new BitcoinClient(Object.assign({ wallet: 'faucet' }, btcClientCfg)),
   minFaucetBalance: 50
 }
 
@@ -71,7 +76,10 @@ const writeConfigFile = () => {
   fs.writeFileSync(btcConfigFile.location, configData.join('\n'))
 }
 
-const keyValuePair = obj => Object.keys(obj).map(key => `${key}=${obj[key]}`)
+const keyValuePair = obj => Object.keys(obj)
+  .reduce((all, key) => Array.isArray(obj[key])
+    ? [...all, ...obj[key].map(elem => `${key}=${elem}`)]
+    : [...all, `${key}=${obj[key]}`], [])
 
 const startBitcoind = () => {
   if (fs.existsSync(btcConfigFile.content.pid)) {
@@ -84,13 +92,13 @@ const startBitcoind = () => {
   console.log('bitcoind started')
 }
 
-const waitForFaucet = (attempts = 5) => new Promise((resolve, reject) => {
+const waitForFaucet = (attempts = 9) => new Promise((resolve, reject) => {
   const checkWallet = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('Faucet wallet not available!')) }
     console.log(`waiting for wallet (${currentAttempt})...`)
 
     setTimeout(() => {
-      setupCfg.faucetWallet.getWalletInfo()
+      faucetWallet.getWalletInfo()
         .then(resolve)
         .catch(_ => checkWallet(currentAttempt - 1))
     }, 250)
@@ -98,11 +106,11 @@ const waitForFaucet = (attempts = 5) => new Promise((resolve, reject) => {
   checkWallet(attempts)
 })
 
-const generateBlocks = (blocks = 1) => setupCfg.faucetWallet.getNewAddress()
-  .then(address => setupCfg.faucetWallet.generateToAddress(blocks, address))
+const generateBlocks = (blocks = 1) => faucetWallet.getNewAddress()
+  .then(address => faucetWallet.generateToAddress(blocks, address))
 
 const refillFaucet = () => {
-  const faucet = setupCfg.faucetWallet
+  const faucet = faucetWallet
   const needMoreBlocks = () => generateBlocks()
     .then(() => faucet.command('getbalances'))
     .then(balances => {
@@ -120,31 +128,25 @@ const stopBitcoind = () => {
   console.log('bitcoind stopped')
 }
 
-const RegtestSetup = () => {
+before(async function () {
+  this.timeout(60000)
   oscheck()
-
-  async function start () {
-    this.timeout(60000)
-    if (!fs.existsSync(btcConfigFile.location)) {
-      await installBinaries()
-      writeConfigFile()
-      await startBitcoind()
-      await waitForFaucet(20)
-      await generateBlocks(101)
-    } else {
-      await startBitcoind()
-      const walletInfo = await waitForFaucet()
-      if (walletInfo.balance < setupCfg.minFaucetBalance) {
-        await refillFaucet()
-      }
+  if (!fs.existsSync(btcConfigFile.location)) {
+    await installBinaries()
+    writeConfigFile()
+    await startBitcoind()
+    await waitForFaucet(20)
+    await generateBlocks(101)
+  } else {
+    writeConfigFile()
+    await startBitcoind()
+    const walletInfo = await waitForFaucet()
+    if (walletInfo.balance < setupCfg.minFaucetBalance) {
+      await refillFaucet()
     }
   }
+})
 
-  const stop = () => stopBitcoind()
+after(() => stopBitcoind())
 
-  const getFaucetBalance = () => setupCfg.faucetWallet.getBalance()
-
-  return { start, stop, getFaucetBalance }
-}
-
-module.exports = RegtestSetup
+module.exports = { faucetWallet, mainWalletConfig }
