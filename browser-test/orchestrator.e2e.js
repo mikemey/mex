@@ -1,5 +1,5 @@
 const UserAccountService = require('../useraccount')
-const { SessionService } = require('../session')
+const SessionService = require('../session')
 const { TestDataSetup } = require('../test-tools')
 
 const authToken = 'ZTJlLXRlc3QtdG9rZW4K'

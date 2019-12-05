@@ -2,7 +2,7 @@ const { pwhasher, TestDataSetup: { dbConfig, seedTestData, registeredUser } } = 
 const { wsmessages: { OK_STATUS } } = require('../utils')
 
 const { WSClient } = require('../connectors')
-const { SessionService } = require('../session')
+const SessionService = require('../session')
 
 const testToken = 'c2Vzc2lvbi1zZXJ2aWNlLXRlc3R0b2tlbgo='
 const port = 12021

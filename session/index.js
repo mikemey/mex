@@ -1,8 +1,6 @@
 const Joi = require('@hapi/joi')
 
 const { WSServer } = require('../connectors')
-const model = require('./model')
-const WSSecureServer = require('./ws-secure-server')
 
 const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require('../utils')
 const { createAccessService, KW_LOGIN, KW_REGISTER, KW_VERIFY, KW_REVOKE } = require('./session-access')
@@ -68,4 +66,4 @@ class SessionService extends WSServer {
   }
 }
 
-module.exports = { SessionService, model, WSSecureServer }
+module.exports = SessionService

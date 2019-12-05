@@ -1,4 +1,4 @@
-const { model } = require('../session')
+const model = require('../session/model')
 
 const { trand, pwhasher } = require('../test-tools')
 const SessionTestSetup = require('./session-test-setup')

@@ -1,4 +1,4 @@
-const { SessionService } = require('../session')
+const SessionService = require('../session')
 
 describe('SessionService configuration', () => {
   const testToken = 'c2Vzc2lvbi1jb25maWcK'
