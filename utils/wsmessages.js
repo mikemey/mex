@@ -30,9 +30,12 @@ const error = message => {
 }
 
 const withAction = action => {
-  const ok = (obj = {}) => Object.assign(obj, { status: OK_STATUS, action })
-  const nok = message => message ? { status: NOK_STATUS, action, message } : { status: NOK_STATUS, action }
-  const build = obj => Object.assign(obj, { action })
+  const actionBase = { action }
+  const okBase = Object.assign({ status: OK_STATUS }, actionBase)
+  const nokBase = Object.assign({ status: NOK_STATUS }, actionBase)
+  const ok = (obj = {}) => Object.assign(obj, okBase)
+  const nok = message => message ? Object.assign({ message }, nokBase) : nokBase
+  const build = obj => Object.assign(obj, actionBase)
 
   return { ok, nok, build }
 }
