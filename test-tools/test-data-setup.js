@@ -17,14 +17,14 @@ const dropTestDatabase = () => Promise.resolve(childProcess.execSync(
 
 const seedTestData = () => {
   return new Promise((resolve, reject) => {
-    const url = `${dbConfig.url}/${dbConfig.name}`
+    const commonArgs = `--db=${dbConfig.name} --quiet --drop --jsonArray`
     fs.readdir(path.join(__dirname, seedDir), (err, files) => {
       if (err) { return reject(err) }
       return Promise.all(files
         .filter(seedFile => seedFile.endsWith('json'))
-        .map(seedFile => childProcess.execSync(
-          `mongoimport --uri=${url} --quiet --drop --jsonArray ${path.join(__dirname, seedDir, seedFile)}`
-        ))
+        .map(seedFile => {
+          childProcess.execSync(`mongoimport ${commonArgs} ${path.join(__dirname, seedDir, seedFile)}`)
+        })
       ).then(resolve)
     })
   })
