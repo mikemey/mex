@@ -23,7 +23,6 @@ describe('UserAccount register', () => {
   const expectRegistrationOk = expectedBackendRequest => res => {
     const htmlres = orchestrator.withHtml(res)
     htmlres.status.should.equal(200)
-    console.log(htmlres.html.$.text())
     htmlres.html.pageTitle().should.equal('mex login')
     sessionMock.assertReceived(expectedBackendRequest)
   }
