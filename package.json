@@ -14,13 +14,11 @@
   },
   "scripts": {
     "lint": "standard",
-    "alltest": "TESTING=true mocha 'connectors-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' -r chai/register-should",
+    "alltest": "TESTING=true mocha 'connectors-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' 'wallet-test/**/**.spec.js' -r chai/register-should",
     "e2e": "./browser-test/e2ehelper.sh",
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s && npm run e2e -s",
-    "~test": "nodemon -x 'npm run alltest -s'",
-    "wtest": "mocha wallet-test/**/**.spec.js  -r chai/register-should",
-    "~wtest": "nodemon -x 'npm run wtest -s'"
+    "~test": "nodemon -x 'npm run alltest -s'"
   },
   "dependencies": {
     "@hapi/joi": "^16.1.8",
