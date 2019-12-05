@@ -1,6 +1,7 @@
 const Joi = require('@hapi/joi')
 
-const { WSServer, WSClient } = require('../connectors')
+const WSServer = require('./wsserver')
+const WSClient = require('./wsclient')
 
 const {
   wsmessages: { error, withAction, OK_STATUS, NOK_STATUS }, Validator, errors: { ClientError }

@@ -1,5 +1,4 @@
-const { WSSecureServer } = require('../session')
-const { WSClient } = require('../connectors')
+const { WSSecureServer, WSClient } = require('../connectors')
 const { WSServerMock } = require('../test-tools')
 const { wsmessages: { error, withAction } } = require('../utils')
 
