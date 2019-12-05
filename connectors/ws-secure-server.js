@@ -25,10 +25,9 @@ const sessionServiceUnavailable = error('session-service unavailable')
 class WSSecureServer extends WSServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
-    const serverConfig = Object.assign({}, config)
-    const sessionClientConfig = serverConfig.sessionService
-    delete serverConfig.sessionService
-    super(serverConfig)
+    const sessionClientConfig = config.sessionService
+    delete config.sessionService
+    super(config)
 
     this.sessionClient = new WSClient(sessionClientConfig)
   }
