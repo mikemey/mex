@@ -5,19 +5,23 @@ const orchestrator = require('./useraccount.orch')
 const defaultSettings = require('../useraccount/defaults.json')
 
 describe('UserAccountService', () => {
-  const agent = orchestrator.agent()
+  let agent
 
   describe('uses configuration', () => {
-    before(() => orchestrator.start({ startMock: false }))
+    before(() => orchestrator.start({ startSessionMock: false })
+      .then(orchagent => { agent = orchagent })
+    )
     after(() => orchestrator.stop())
 
     it('version', () => agent.get('/version')
       .then(res => res.text.should.startWith(defaultSettings.httpserver.version))
     )
 
-    it('csrf is working', () => orchestrator.agent().post('/')
-      .then(res => res.status.should.equal(403))
-    )
+    it('csrf is working', async () => {
+      const agent = await orchestrator.createAgent()
+      const res = await agent.post('/')
+      res.status.should.equal(403)
+    })
   })
 
   describe('user access', () => {

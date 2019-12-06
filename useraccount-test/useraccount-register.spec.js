@@ -3,22 +3,22 @@ const { wsmessages } = require('../utils')
 const { pwhasher } = require('../test-tools')
 
 describe('UserAccount register', () => {
-  const agent = orchestrator.agent()
+  let agent
   const sessionMock = orchestrator.sessionMock
   const registerAction = wsmessages.withAction('register')
 
-  before(() => orchestrator.start().then(() => agent.get('/version')))
+  before(() => orchestrator.start().then(orchagent => {
+    agent = orchagent
+    return orchagent.get('/version')
+  }))
   after(() => orchestrator.stop())
-  beforeEach(() => sessionMock.reset())
-  afterEach(() => sessionMock.errorCheck())
 
   const testEmail = 'hello@bla.com'
   const testPassword = 'mysecret'
 
   const postRegistration = ({ email = testEmail, password = testPassword, confirmation = password }) =>
     agent.post('/register')
-      .type('form')
-      .send({ email, password, confirmation })
+      .type('form').send({ email, password, confirmation })
 
   const expectRegistrationOk = expectedBackendRequest => res => {
     const htmlres = orchestrator.withHtml(res)

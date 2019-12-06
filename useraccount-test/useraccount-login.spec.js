@@ -3,21 +3,22 @@ const { wsmessages } = require('../utils')
 const { pwhasher } = require('../test-tools')
 
 describe('UserAccount login', () => {
-  const agent = orchestrator.agent()
+  let agent
   const sessionMock = orchestrator.sessionMock
   const loginAction = wsmessages.withAction('login')
   const verifyAction = wsmessages.withAction('verify')
 
-  before(() => orchestrator.start().then(() => agent.get('/version')))
+  before(() => orchestrator.start().then(orchagent => {
+    agent = orchagent
+    return orchagent.get('/version')
+  }))
   after(() => orchestrator.stop())
-  beforeEach(() => sessionMock.reset())
-  afterEach(() => sessionMock.errorCheck())
 
   const testEmail = 'holla_holla@bla.com'
   const testPassword = 'mysecret'
 
   const postLogin = ({ email = testEmail, password = testPassword } = {}) => agent.post('/login')
-    .send(`email=${email}`).send(`password=${password}`)
+    .type('form').send({ email, password })
 
   const expectLoginError = (errMessage, sessionMockCalled = 0) => res => {
     res = orchestrator.withHtml(res)
