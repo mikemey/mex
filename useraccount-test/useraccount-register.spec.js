@@ -3,21 +3,17 @@ const { wsmessages } = require('../utils')
 const { pwhasher } = require('../test-tools')
 
 describe('UserAccount register', () => {
-  let agent
-  const sessionMock = orchestrator.sessionMock
+  let useragent, sessionMock
   const registerAction = wsmessages.withAction('register')
 
-  before(() => orchestrator.start().then(orchagent => {
-    agent = orchagent
-    return orchagent.get('/version')
-  }))
+  before(async () => ({ useragent, sessionMock } = await orchestrator.start()))
   after(() => orchestrator.stop())
 
   const testEmail = 'hello@bla.com'
   const testPassword = 'mysecret'
 
   const postRegistration = ({ email = testEmail, password = testPassword, confirmation = password }) =>
-    agent.post('/register')
+    useragent.post('/register')
       .type('form').send({ email, password, confirmation })
 
   const expectRegistrationOk = expectedBackendRequest => res => {
@@ -42,7 +38,7 @@ describe('UserAccount register', () => {
       el.attr('placeholder').should.equal(expPlaceholder)
     }
 
-    it('has all required fields', () => agent.get('/register')
+    it('has all required fields', () => useragent.get('/register')
       .then(orchestrator.withHtml)
       .then(res => {
         checkField(res.html.$('#email'), 'email', 'Email')
