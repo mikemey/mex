@@ -2,7 +2,7 @@ const chai = require('chai')
 chai.use(require('chai-string'))
 
 const orchestrator = require('./useraccount.orch')
-const defaultSettings = require('../useraccount/defaults.json')
+const UserAccountService = require('../useraccount')
 
 describe('UserAccountService', () => {
   let useragent
@@ -12,7 +12,7 @@ describe('UserAccountService', () => {
     after(() => orchestrator.stop())
 
     it('version', () => useragent.get('/version')
-      .then(res => res.text.should.startWith(defaultSettings.httpserver.version))
+      .then(res => res.text.should.startWith(orchestrator.httpserverConfig.version))
     )
 
     it('csrf is working', async () => {
@@ -49,5 +49,28 @@ describe('UserAccountService', () => {
         })
       )
     })
+  })
+
+  describe('configuration check', () => {
+    const testParameters = [
+      { title: 'missing httpserver configuration', changeConfig: cfg => delete cfg.httpserver, error: '"httpserver" is required' },
+      { title: 'missing sessionService configuration', changeConfig: cfg => delete cfg.sessionService, error: '"sessionService" is required' },
+      { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' }
+    ]
+
+    testParameters.forEach(params => {
+      it(params.title, () => {
+        const config = {
+          httpserver: { does: 'not-matter' },
+          sessionService: { does: 'not-matter' },
+          db: { does: 'not-matter' }
+        }
+        params.changeConfig(config)
+        assertConfigError(config, params.error)
+      })
+    })
+
+    const assertConfigError = (errconfig, expectedMessage) =>
+      (() => new UserAccountService(errconfig)).should.throw(Error, expectedMessage)
   })
 })

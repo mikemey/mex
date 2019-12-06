@@ -1,25 +1,30 @@
 const UserAccountService = require('../useraccount')
 const SessionService = require('../session')
-const { TestDataSetup } = require('../test-tools')
+const { TestDataSetup: { dbConfig } } = require('../test-tools')
 
 const authToken = 'ZTJlLXRlc3QtdG9rZW4K'
 const sessionServiceConfig = {
   jwtkey: 'c3VyZSB0aGlzIGlzIGEgcHJvZCBrZXkK',
   wsserver: { path: '/session', port: 13043, authorizedTokens: [authToken] },
-  db: TestDataSetup.dbConfig
+  db: dbConfig
 }
 
-const useraccountConfig = { path: '/uac', port: 13500 }
-const useraccountSessionClientConfig = {
-  url: `ws://localhost:${sessionServiceConfig.wsserver.port}${sessionServiceConfig.wsserver.path}`,
-  authToken,
-  timeout: 2000
+const useraccountConfig = {
+  secret: 'ZTJlLXRlc3Qtc2VjcmV0Cg==',
+  version: '0.0.1',
+  path: '/uac',
+  port: 13500
 }
 
 const sessionService = new SessionService(sessionServiceConfig)
 const uacService = new UserAccountService({
   httpserver: useraccountConfig,
-  sessionService: useraccountSessionClientConfig
+  sessionService: {
+    url: `ws://localhost:${sessionServiceConfig.wsserver.port}${sessionServiceConfig.wsserver.path}`,
+    authToken,
+    timeout: 2000
+  },
+  db: dbConfig
 })
 
 const testBaseUrl = `http://localhost:${useraccountConfig.port}${useraccountConfig.path}`

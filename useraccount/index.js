@@ -13,20 +13,21 @@ const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
 
 const configSchema = Joi.object({
   httpserver: Joi.object().min(1).required(),
-  sessionService: Joi.object().min(1).required()
+  sessionService: Joi.object().min(1).required(),
+  db: Joi.object().min(1).required()
 })
 
 class UserAccountService extends HttpServer {
   constructor (config) {
-    config.httpserver = Object.assign({}, defconfig.httpserver, config.httpserver)
-    config.sessionService = Object.assign({}, defconfig.sessionService, config.sessionService)
-    super(config.httpserver)
+    Validator.oneTimeValidation(configSchema, config)
+    const httpserverConfig = Object.assign({}, defconfig.httpserver, config.httpserver)
+    const sessionServiceConfig = config.sessionService
+    // const dbConfig = config.dbConfig
+    super(httpserverConfig)
 
-    this.config = config
     this.server = null
-    this.sessionClient = new WSClient(config.sessionService)
-    this.accessRouter = new AccessRouter(this.sessionClient, this.config.httpserver)
-    Validator.oneTimeValidation(configSchema, this.config)
+    this.sessionClient = new WSClient(sessionServiceConfig)
+    this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
   }
 
   start () {

@@ -5,13 +5,18 @@ const { sign } = require('jsonwebtoken')
 
 const UserAccountService = require('../useraccount')
 const { wsmessages: { withAction } } = require('../utils')
-const { WSServerMock, pwhasher } = require('../test-tools')
-// const { WSServerMock, pwhasher, TestDataSetup: { dbConfig } } = require('../test-tools')
+const { WSServerMock, pwhasher, TestDataSetup: { dbConfig } } = require('../test-tools')
 
 const authToken = 'dXNlcmFjY291bm50LXRlc3QtdG9rZW4K'
 const sessionMockConfig = { path: '/sessionmock', port: 12500, authorizedTokens: [authToken] }
 
-const httpserverConfig = { path: '/uacc-test', port: 12023 }
+const httpserverConfig = {
+  secret: 'dXNlcmFjY291bnQtdGVzdC1zZWNyZXQK',
+  version: '99.0.1',
+  path: '/uacc-test',
+  port: 12023
+}
+
 const sessionServiceConfig = {
   url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
   authToken,
@@ -20,8 +25,8 @@ const sessionServiceConfig = {
 
 const service = new UserAccountService({
   httpserver: httpserverConfig,
-  sessionService: sessionServiceConfig
-  // db: dbConfig
+  sessionService: sessionServiceConfig,
+  db: dbConfig
 })
 
 const sessionMock = new WSServerMock(sessionMockConfig)
@@ -95,4 +100,4 @@ const withHtml = res => {
   return res
 }
 
-module.exports = { start, stop, createAgent, withHtml, testUserId }
+module.exports = { start, stop, createAgent, withHtml, testUserId, httpserverConfig }
