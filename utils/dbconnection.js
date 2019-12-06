@@ -18,8 +18,4 @@ const close = () => connectionEstablished
   ? mongoose.connection.close().then(() => { connectionEstablished = false })
   : Promise.resolve()
 
-module.exports = {
-  connect,
-  close,
-  mongoose
-}
+module.exports = { connect, close }

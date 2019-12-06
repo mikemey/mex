@@ -1,6 +1,6 @@
 const passportLocalMongoose = require('passport-local-mongoose')
 
-const mg = require('../utils').dbconnection.mongoose
+const mg = require('mongoose')
 
 const CredentialsSchema = new mg.Schema({
   email: { type: String, index: true },
