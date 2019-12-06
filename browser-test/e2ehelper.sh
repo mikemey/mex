@@ -50,7 +50,7 @@ function main () {
       start_e2e_infrastructure
     ;;
     "stop" )
-      stop_e2e_infrastructure
+      stop_e2e_infrastructure true
     ;;
     "fullrun" )
       start_e2e_infrastructure
@@ -67,13 +67,14 @@ function main () {
 function start_e2e_infrastructure () {
   [[ -f "$e2e_output" ]] && \
       echo "$(basename "$e2e_output") exists, shutting down existing e2e infrastructure..." && \
-      stop_e2e_infrastructure
+      stop_e2e_infrastructure true
   echo "new session $(date)" > "$e2e_output"
   start_server
   wait_for_server
 }
 
 function stop_e2e_infrastructure () {
+  force_stop=$1
   if [[ ! -f "$e2e_output" ]]; then
     error_message "session log file not found: $e2e_output"
     return
@@ -82,7 +83,7 @@ function stop_e2e_infrastructure () {
   echo "e2e infrastructure stopped."
 
   errors=`grep -i "error" ${e2e_output}`
-  if [[ -z ${errors} ]]; then
+  if [[ -z ${errors} ]] || [[ -n ${force_stop} ]]; then
     rm "$e2e_output"
   else
     echo "found errors in log-file, keeping ${e2e_output}"
