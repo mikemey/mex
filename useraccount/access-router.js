@@ -57,9 +57,10 @@ class AccessRouter extends LogTrait {
                 return next()
               }
               case NOK_STATUS: return redirectToLogin(res)
-              default:
+              default: {
                 this.log('session service verification error:', result.message)
                 return redirectToLogin(res, 'unavailable')
+              }
             }
           })
       }

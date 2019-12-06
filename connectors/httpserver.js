@@ -18,10 +18,10 @@ const configSchema = Joi.object({
   suppressRequestLog: Joi.array().items(Validator.path.optional()).required()
 })
 
-const sessionStore = config => cookieSession({
+const sessionStore = secret => cookieSession({
   name: SESSION_COOKIE_NAME,
-  secret: config.secret,
-  path: config.path,
+  secret,
+  path: '/',
   httpOnly: true,
   signed: true,
   maxAge: 2 * 60 * 60 * 1000
@@ -105,7 +105,7 @@ class HttpServer extends LogTrait {
 
     const suppressList = this.httpconfig.suppressRequestLog.map(entry => `${this.httpconfig.path}${entry}`)
     app.use(requestLogger(suppressList))
-    app.use(sessionStore(this.httpconfig))
+    app.use(sessionStore(this.httpconfig.secret))
     app.use(csrfProtection(errorFunc))
     this.setupApp(app)
 
