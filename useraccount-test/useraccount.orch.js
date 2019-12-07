@@ -23,7 +23,7 @@ const sessionServiceConfig = {
   timeout: 40
 }
 
-const service = new UserAccountService({
+const userAccountService = new UserAccountService({
   httpserver: httpserverConfig,
   sessionService: sessionServiceConfig,
   db: dbConfig
@@ -34,7 +34,7 @@ const sessionMock = new WSServerMock(sessionMockConfig)
 const loginMessages = withAction('login')
 const verifyMessages = withAction('verify')
 
-const testUserId = '987654321'
+const testUserId = '123456789012345678901234'
 const testEmail = 'uaorch-test-user@test.com'
 const testPassword = 'abcdefghijk'
 const testJwt = sign({ id: testUserId }, 'whateva')
@@ -62,7 +62,7 @@ sessionMock.softReset = () => {
 const start = ({ startSessionMock = true, startService = true, authenticatedAgent = false } = {}) => Promise
   .all([
     startSessionMock ? sessionMock.start() : Promise.resolve(),
-    startService ? service.start() : Promise.resolve()
+    startService ? userAccountService.start() : Promise.resolve()
   ])
   .then(async () => {
     testRun.allRequestsAuthenticated = authenticatedAgent
@@ -72,7 +72,7 @@ const start = ({ startSessionMock = true, startService = true, authenticatedAgen
     }
   })
 
-const stop = () => Promise.all([service.stop(), sessionMock.stop()])
+const stop = () => Promise.all([userAccountService.stop(), sessionMock.stop()])
 
 const createAgent = async ({ authenticated = false, crsf = false }) => {
   const useragent = chai.request.agent(`http://localhost:${httpserverConfig.port}${httpserverConfig.path}`)

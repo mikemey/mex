@@ -1,8 +1,9 @@
 
-const { RegistrationPage, LoginPage, HomePage, MenuBar } = require('../page-objects')
+const { RegistrationPage, LoginPage, HomePage, BalancePage, MenuBar } = require('../page-objects')
 
 describe('Menu bar', () => {
   const homepage = new HomePage()
+  const balancepage = new BalancePage()
   const menubar = new MenuBar()
   const regpage = new RegistrationPage()
   const loginpage = new LoginPage()
@@ -24,9 +25,11 @@ describe('Menu bar', () => {
 
   it('for authenticated users', () => cy.loginRegisteredUser()
     .then(user => {
-      menubar.assertItems(['Home', user.email])
+      menubar.assertItems(['Home', 'Balances', user.email])
       menubar.clickHome()
       homepage.assertPageActive()
+      menubar.clickBalances()
+      balancepage.assertPageActive()
     })
   )
 })

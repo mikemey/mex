@@ -4,10 +4,11 @@ const path = require('path')
 const Joi = require('@hapi/joi')
 
 const { HttpServer } = require('../connectors')
-const { Validator } = require('../utils')
+const { dbconnection, Validator } = require('../utils')
 const { WSClient } = require('../connectors')
 
 const AccessRouter = require('./access-router')
+const BalanceRouter = require('./balance-router')
 
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
 
@@ -21,22 +22,22 @@ class UserAccountService extends HttpServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
     const httpserverConfig = Object.assign({}, defconfig.httpserver, config.httpserver)
-    const sessionServiceConfig = config.sessionService
-    // const dbConfig = config.dbConfig
     super(httpserverConfig)
 
-    this.server = null
+    const sessionServiceConfig = config.sessionService
+    this.dbConfig = config.db
     this.sessionClient = new WSClient(sessionServiceConfig)
+
     this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
+    this.balanceRouter = new BalanceRouter()
   }
 
   start () {
-    return super.start()
+    return Promise.all([dbconnection.connect(this.dbConfig), super.start()])
   }
 
   stop () {
-    return this.sessionClient.stop()
-      .then(() => super.stop())
+    return Promise.all([this.sessionClient.stop(), super.stop(), dbconnection.close()])
   }
 
   setupApp (app) {
@@ -49,6 +50,7 @@ class UserAccountService extends HttpServer {
   addRoutes (router) {
     router.get('/index', (_, res) => res.render('index', { email: 'hello you' }))
     router.use('/', this.accessRouter.createRoutes())
+    router.use('/', this.balanceRouter.createRoutes())
   }
 }
 

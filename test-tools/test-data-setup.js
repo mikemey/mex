@@ -11,9 +11,9 @@ const registeredUser = {
   password: 'test_pwd'
 }
 
-const dropTestDatabase = () => Promise.resolve(childProcess.execSync(
+const dropTestDatabase = () => childProcess.execSync(
   `mongo ${dbConfig.name} --eval "db.dropDatabase()"`
-))
+)
 
 const seedTestData = () => {
   return new Promise((resolve, reject) => {
@@ -23,7 +23,8 @@ const seedTestData = () => {
       return Promise.all(files
         .filter(seedFile => seedFile.endsWith('json'))
         .map(seedFile => {
-          childProcess.execSync(`mongoimport ${commonArgs} ${path.join(__dirname, seedDir, seedFile)}`)
+          const fullPath = path.join(__dirname, seedDir, seedFile)
+          childProcess.execSync(`mongoimport ${commonArgs} ${fullPath}`)
         })
       ).then(resolve)
     })

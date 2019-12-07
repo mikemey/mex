@@ -18,6 +18,10 @@ class MenuBar {
   clickHome () {
     menuButton('Home').click()
   }
+
+  clickBalances () {
+    menuButton('Balances').click()
+  }
 }
 
 module.exports = MenuBar

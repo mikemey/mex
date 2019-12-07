@@ -1,12 +1,16 @@
-const mongoose = require('mongoose')
+const mg = require('mongoose')
+require('mongoose-long')(mg)
+
+const ObjectId = mg.Types.ObjectId
+const Long = require('mongodb').Long
 
 let connectionEstablished = false
 
 const connect = ({ url, name }) => {
   if (connectionEstablished) { return Promise.resolve() }
-  const mongooseUrl = `${url}/${name}`
-  console.log(`connecting to: [${mongooseUrl}]`)
-  return mongoose.connect(mongooseUrl, {
+  const dbUrl = `${url}/${name}`
+  console.log(`connecting to: [${dbUrl}]`)
+  return mg.connect(dbUrl, {
     useCreateIndex: true,
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -15,7 +19,9 @@ const connect = ({ url, name }) => {
 }
 
 const close = () => connectionEstablished
-  ? mongoose.connection.close().then(() => { connectionEstablished = false })
+  ? mg.connection.close().then(() => { connectionEstablished = false })
   : Promise.resolve()
 
-module.exports = { connect, close }
+const collection = name => mg.connection.collection(name)
+
+module.exports = { connect, close, collection, ObjectId, Long, mg }

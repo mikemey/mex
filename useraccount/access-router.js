@@ -24,6 +24,13 @@ const loginSchema = Joi.object({
   password: Validator.plainPassword()
 })
 
+const registerMessages = withAction('register')
+const loginMessages = withAction('login')
+const registerCheck = Validator.createCheck(registerSchema)
+const loginCheck = Validator.createCheck(loginSchema)
+
+const errorResponse = (res, view, message, email) => res.render(view, { error: message, email })
+
 const LOGIN_VIEW = 'login'
 const REGISTER_VIEW = 'register'
 
@@ -69,19 +76,12 @@ class AccessRouter extends LogTrait {
   }
 
   createRoutes () {
-    const router = express.Router()
-
-    const registerMessages = withAction('register')
-    const loginMessages = withAction('login')
-    const registerCheck = Validator.createCheck(registerSchema)
-    const loginCheck = Validator.createCheck(loginSchema)
-
-    const errorResponse = (res, view, message, email) => res.render(view, { error: message, email })
     const serviceUnavailable = (res, view, backendMessage, email) => {
       this.log('session service error:', backendMessage)
       errorResponse(res, view, 'service unavailable', email)
     }
 
+    const router = express.Router()
     router.get('/register', (_, res) => res.render(REGISTER_VIEW))
 
     router.post('/register', (req, res) => {

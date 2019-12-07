@@ -1,0 +1,16 @@
+extends layout.pug
+block variables
+  - var page_title = 'balances'
+
+block content
+  h2 Balances
+  table(style="border: 1px solid black;")
+    thead
+      tr
+        th Asset
+        th Balance
+    tbody
+      each asset in assets
+        tr
+          td #{asset.hrname}
+          td(data-balance=asset.symbol) #{asset.hramount}
