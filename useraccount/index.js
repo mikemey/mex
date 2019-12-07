@@ -15,6 +15,7 @@ const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
 const configSchema = Joi.object({
   httpserver: Joi.object().min(1).required(),
   sessionService: Joi.object().min(1).required(),
+  walletService: Joi.object().min(1).required(),
   db: Joi.object().min(1).required()
 })
 
@@ -24,9 +25,9 @@ class UserAccountService extends HttpServer {
     const httpserverConfig = Object.assign({}, defconfig.httpserver, config.httpserver)
     super(httpserverConfig)
 
-    const sessionServiceConfig = config.sessionService
     this.dbConfig = config.db
-    this.sessionClient = new WSClient(sessionServiceConfig)
+    this.sessionClient = new WSClient(config.sessionService)
+    this.walletClient = new WSClient(config.walletService)
 
     this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
     this.balanceRouter = new BalanceRouter()
@@ -37,7 +38,9 @@ class UserAccountService extends HttpServer {
   }
 
   stop () {
-    return Promise.all([this.sessionClient.stop(), super.stop(), dbconnection.close()])
+    return Promise.all([
+      this.sessionClient.stop(), this.walletClient.stop(), super.stop(), dbconnection.close()
+    ])
   }
 
   setupApp (app) {

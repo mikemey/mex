@@ -9,6 +9,7 @@ const { WSServerMock, pwhasher, TestDataSetup: { dbConfig } } = require('../test
 
 const authToken = 'dXNlcmFjY291bm50LXRlc3QtdG9rZW4K'
 const sessionMockConfig = { path: '/sessionmock', port: 12500, authorizedTokens: [authToken] }
+const walletMockConfig = { path: '/walletmock', port: 12501, authorizedTokens: [authToken] }
 
 const httpserverConfig = {
   secret: 'dXNlcmFjY291bnQtdGVzdC1zZWNyZXQK',
@@ -17,15 +18,14 @@ const httpserverConfig = {
   port: 12023
 }
 
-const sessionServiceConfig = {
-  url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
-  authToken,
-  timeout: 40
+const createClientConfig = ({ port, path }) => {
+  return { url: `ws://localhost:${port}${path}`, authToken, timeout: 40 }
 }
 
 const userAccountService = new UserAccountService({
   httpserver: httpserverConfig,
-  sessionService: sessionServiceConfig,
+  sessionService: createClientConfig(sessionMockConfig),
+  walletService: createClientConfig(walletMockConfig),
   db: dbConfig
 })
 
