@@ -45,12 +45,12 @@ class AccessRouter extends LogTrait {
 
   createAuthenticationCheck () {
     const pathPrefix = this.httpConfig.path
-    const unprotectedPaths = [`${pathPrefix}/login`, `${pathPrefix}/register`, `${pathPrefix}/version`]
+    const unprotectedPaths = [`${pathPrefix}/access/login`, `${pathPrefix}/access/register`, `${pathPrefix}/version`]
     const verifyMessages = withAction('verify')
 
     const redirectToLogin = (res, flag = 'auth') => {
       this.log('authentication required')
-      return res.redirect(303, `${pathPrefix}/${LOGIN_VIEW}?` + querystring.stringify({ flag }))
+      return res.redirect(303, `${pathPrefix}/access/login?` + querystring.stringify({ flag }))
     }
 
     return (req, res, next) => {
@@ -95,8 +95,9 @@ class AccessRouter extends LogTrait {
       }
       return this.sessionClient.send(registerMessages.build({ email, password: hash(password) }))
         .then(result => {
+          const pathPrefix = this.httpConfig.path
           switch (result.status) {
-            case OK_STATUS: return res.redirect(303, `${LOGIN_VIEW}?${querystring.stringify({ flag: 'reg' })}`)
+            case OK_STATUS: return res.redirect(303, `${pathPrefix}/access/login?${querystring.stringify({ flag: 'reg' })}`)
             case NOK_STATUS: {
               this.log('registration failed:', result.message)
               return errorResponse(res, REGISTER_VIEW, result.message, email)
@@ -126,7 +127,7 @@ class AccessRouter extends LogTrait {
           switch (result.status) {
             case OK_STATUS: {
               req.session.jwt = result.jwt
-              return res.redirect(303, 'index')
+              return res.redirect(303, '../index')
             }
             case NOK_STATUS: {
               this.log('login failed:', result.message)

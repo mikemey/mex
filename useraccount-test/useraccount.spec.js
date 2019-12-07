@@ -40,7 +40,7 @@ describe('UserAccountService', () => {
       })
     )
 
-    const publicEndpoints = ['/version', '/login', '/register']
+    const publicEndpoints = ['/version', '/access/login', '/access/register']
     publicEndpoints.forEach(freePath => {
       it(`${freePath} is available without authorization`, () => useragent.get(freePath).redirects(false)
         .then(res => {

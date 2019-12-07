@@ -52,8 +52,8 @@ class UserAccountService extends HttpServer {
 
   addRoutes (router) {
     router.get('/index', (_, res) => res.render('index', { email: 'hello you' }))
-    router.use('/', this.accessRouter.createRoutes())
-    router.use('/', this.balanceRouter.createRoutes())
+    router.use('/access', this.accessRouter.createRoutes())
+    router.use('/balance', this.balanceRouter.createRoutes())
   }
 }
 

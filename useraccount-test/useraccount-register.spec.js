@@ -13,7 +13,7 @@ describe('UserAccount register', () => {
   const testPassword = 'mysecret'
 
   const postRegistration = ({ email = testEmail, password = testPassword, confirmation = password }) =>
-    useragent.post('/register')
+    useragent.post('/access/register')
       .type('form').send({ email, password, confirmation })
 
   const expectRegistrationOk = expectedBackendRequest => res => {
@@ -38,7 +38,7 @@ describe('UserAccount register', () => {
       el.attr('placeholder').should.equal(expPlaceholder)
     }
 
-    it('has all required fields', () => useragent.get('/register')
+    it('has all required fields', () => useragent.get('/access/register')
       .then(orchestrator.withHtml)
       .then(res => {
         checkField(res.html.$('#email'), 'email', 'Email')
@@ -75,7 +75,7 @@ describe('UserAccount register', () => {
       return postRegistration({}).redirects(false)
         .then(res => {
           res.should.have.status(303)
-          res.should.have.header('location', 'login?flag=reg')
+          res.should.have.header('location', '/access/login?flag=reg')
         })
     })
 

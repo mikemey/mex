@@ -38,10 +38,8 @@ class BalanceRouter extends LogTrait {
   createRoutes () {
     const router = express.Router()
 
-    router.get('/balance', async (req, res, next) => {
-      const { id } = jsonwebtoken.decode(req.session.jwt)
-
-      return Balances.findById(id, 'assets').exec((err, doc) => {
+    router.get('/', async (req, res, next) => {
+      return Balances.findById(res.locals.user.id, 'assets').exec((err, doc) => {
         if (err) { return next(err) }
 
         const balance = doc === null

@@ -2,7 +2,7 @@ const ATestPage = require('./apage')
 
 class RegistrationPage extends ATestPage {
   constructor () {
-    super('/register', 'registration')
+    super('/access/register', 'registration')
   }
 
   email () { return cy.get('input#email') }

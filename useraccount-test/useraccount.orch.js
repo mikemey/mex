@@ -8,8 +8,9 @@ const { wsmessages: { withAction } } = require('../utils')
 const { WSServerMock, pwhasher, TestDataSetup: { dbConfig } } = require('../test-tools')
 
 const authToken = 'dXNlcmFjY291bm50LXRlc3QtdG9rZW4K'
+const walletToken = 'aG9wc2Fhc3Nhc3NzYXNzc3Nhc3MK'
 const sessionMockConfig = { path: '/sessionmock', port: 12500, authorizedTokens: [authToken] }
-const walletMockConfig = { path: '/walletmock', port: 12501, authorizedTokens: [authToken] }
+const walletMockConfig = { path: '/walletmock', port: 12501, authorizedTokens: [walletToken] }
 
 const httpserverConfig = {
   secret: 'dXNlcmFjY291bnQtdGVzdC1zZWNyZXQK',
@@ -18,7 +19,7 @@ const httpserverConfig = {
   port: 12023
 }
 
-const createClientConfig = ({ port, path }) => {
+const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
   return { url: `ws://localhost:${port}${path}`, authToken, timeout: 40 }
 }
 
@@ -30,6 +31,7 @@ const userAccountService = new UserAccountService({
 })
 
 const sessionMock = new WSServerMock(sessionMockConfig)
+const walletMock = new WSServerMock(walletMockConfig)
 
 const loginMessages = withAction('login')
 const verifyMessages = withAction('verify')
@@ -59,27 +61,29 @@ sessionMock.softReset = () => {
   }
 }
 
-const start = ({ startSessionMock = true, startService = true, authenticatedAgent = false } = {}) => Promise
+const start = ({ startSessionMock = true, startWalletMock = true, authenticatedAgent = false } = {}) => Promise
   .all([
     startSessionMock ? sessionMock.start() : Promise.resolve(),
-    startService ? userAccountService.start() : Promise.resolve()
+    startWalletMock ? walletMock.start() : Promise.resolve(),
+    userAccountService.start()
   ])
   .then(async () => {
     testRun.allRequestsAuthenticated = authenticatedAgent
     return {
       useragent: await createAgent({ authenticated: authenticatedAgent, crsf: true }),
-      sessionMock
+      sessionMock,
+      walletMock
     }
   })
 
-const stop = () => Promise.all([userAccountService.stop(), sessionMock.stop()])
+const stop = () => Promise.all([userAccountService.stop(), sessionMock.stop(), walletMock.stop()])
 
 const createAgent = async ({ authenticated = false, crsf = false }) => {
   const useragent = chai.request.agent(`http://localhost:${httpserverConfig.port}${httpserverConfig.path}`)
   if (authenticated) {
     sessionMock.softReset()
     await useragent.get('/version')
-    const res = await useragent.post('/login').type('form').send(testRun.user)
+    const res = await useragent.post('/access/login').type('form').send(testRun.user)
     withHtml(res).html.pageTitle().should.equal('mex home')
   } else if (crsf) {
     await useragent.get('/version')
@@ -88,7 +92,10 @@ const createAgent = async ({ authenticated = false, crsf = false }) => {
 }
 
 beforeEach(async () => sessionMock.softReset())
-afterEach(() => sessionMock.errorCheck())
+afterEach(() => {
+  sessionMock.errorCheck()
+  walletMock.errorCheck()
+})
 
 const HtmlWrapper = $ => {
   const pageTitle = () => $('title').text()
