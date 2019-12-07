@@ -1,7 +1,7 @@
 const BitcoinClient = require('bitcoin-core')
 
 const { startServices, stopServices, wsClient, testJwt } = require('./wallet.orch')
-const { mainWalletConfig } = require('./btc-regtest.orch')
+const { mainWalletConfig } = require('./btcnode.orch')
 const { wsmessages: { withAction, OK_STATUS } } = require('../utils')
 
 const addressMessages = withAction('newaddress')

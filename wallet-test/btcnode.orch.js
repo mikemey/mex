@@ -30,11 +30,10 @@ const btcConfigFile = {
     pid: path.join(dataDir, 'regtest.pid'),
     sections: {
       regtest: {
-        bind: '127.0.0.1',
+        bind: btcClientConfig.host,
         daemon: 1,
         server: 1,
         rpcauth: 'regtester:a1c4c0cf083f71dc25d230298beab0a9$479765cb0999b734931ddfe4ac0a5b6245ff6ebd13a36d675432ea88817e5d7f',
-        rpcbind: btcClientConfig.host,
         port: 36963,
         rpcport: btcClientConfig.port,
         wallet: [faucetWalletName, mainWalletName]
@@ -63,7 +62,7 @@ const installBinaries = () => {
 }
 
 const writeConfigFile = () => {
-  const content = btcConfigFile.content
+  const content = Object.assign({}, btcConfigFile.content)
   const sections = content.sections
   delete content.sections
 
@@ -121,15 +120,7 @@ const refillFaucet = () => {
   return needMoreBlocks()
 }
 
-const stopBitcoind = () => {
-  const command = path.join(setupCfg.btcBinDir, 'bitcoin-cli')
-  const args = [setupCfg.dataDirArg, 'stop']
-  childProcess.spawnSync(command, args)
-  console.log('bitcoind stopped')
-}
-
-before(async function () {
-  this.timeout(60000)
+const start = async () => {
   oscheck()
   if (!fs.existsSync(btcConfigFile.location)) {
     await installBinaries()
@@ -145,8 +136,29 @@ before(async function () {
       await refillFaucet()
     }
   }
+}
+
+const stop = async () => {
+  const command = path.join(setupCfg.btcBinDir, 'bitcoin-cli')
+  const args = [setupCfg.dataDirArg, 'stop']
+  childProcess.spawnSync(command, args)
+  await waitForNodeDown()
+  console.log('bitcoind stopped')
+}
+
+const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
+  const checkPidFile = currentAttempt => {
+    if (currentAttempt <= 0) { return reject(Error('bitcoind shutdown failed!')) }
+    console.log(`waiting for shutdown (${currentAttempt})...`)
+
+    setTimeout(() => {
+      fs.access(btcConfigFile.content.pid, fs.F_OK, (err) => {
+        if (err) { return resolve() }
+        checkPidFile(currentAttempt - 1)
+      })
+    }, 500)
+  }
+  checkPidFile(attempts)
 })
 
-after(() => stopBitcoind())
-
-module.exports = { faucetWallet, mainWalletConfig }
+module.exports = { start, stop, faucetWallet, mainWalletConfig }

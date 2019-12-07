@@ -1,7 +1,7 @@
 const WalletService = require('../wallet')
 const { WSClient } = require('../connectors')
 const { WSServerMock } = require('../test-tools')
-const { mainWalletConfig } = require('./btc-regtest.orch')
+const btcnode = require('./btcnode.orch')
 const { wsmessages: { withAction } } = require('../utils')
 
 const sessionAuthToken = 'bW9jay1zZXNzaW9uLXRva2VuCg=='
@@ -17,7 +17,7 @@ const walletServiceConfig = {
     authToken: sessionAuthToken,
     timeout: 40
   },
-  btcClient: mainWalletConfig()
+  btcClient: btcnode.mainWalletConfig()
 }
 
 const wsClientConfig = {
@@ -33,11 +33,14 @@ const sessionMock = new WSServerMock(sessionMockConfig)
 sessionMock.addMockFor(verifyMessages.build({ jwt: testJwt }), verifyMessages.ok())
 const wsClient = new WSClient(wsClientConfig)
 
-const startServices = ({ startMock = true } = {}) => Promise.all([
-  startMock ? sessionMock.start() : Promise.resolve(),
-  walletService.start()
-])
+const startServices = async function () {
+  this.timeout(60000)
+  await btcnode.start()
+  await Promise.all([sessionMock.start(), walletService.start()])
+}
 
-const stopServices = () => Promise.all([walletService.stop(), sessionMock.stop()])
+const stopServices = () => Promise.all([
+  walletService.stop(), sessionMock.stop(), btcnode.stop()
+])
 
 module.exports = { startServices, stopServices, walletService, wsClient, testJwt }
