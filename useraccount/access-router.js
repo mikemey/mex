@@ -1,6 +1,5 @@
 const crypto = require('crypto')
 const express = require('express')
-const jsonwebtoken = require('jsonwebtoken')
 const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
@@ -63,8 +62,8 @@ class AccessRouter extends LogTrait {
           .then(result => {
             switch (result.status) {
               case OK_STATUS: {
-                req.user = jsonwebtoken.decode(req.session.jwt)
-                res.locals.user = req.user
+                req.user = result.user
+                res.locals.user = result.user
                 return next()
               }
               case NOK_STATUS: return redirectToLogin(res)

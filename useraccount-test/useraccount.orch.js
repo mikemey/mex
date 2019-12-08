@@ -1,7 +1,6 @@
 const chai = require('chai')
 chai.use(require('chai-http'))
 const cheerio = require('cheerio')
-const { sign } = require('jsonwebtoken')
 
 const UserAccountService = require('../useraccount')
 const { wsmessages: { withAction } } = require('../utils')
@@ -39,7 +38,7 @@ const verifyMessages = withAction('verify')
 const testUserId = '123456789012345678901234'
 const testEmail = 'uaorch-test-user@test.com'
 const testPassword = 'abcdefghijk'
-const testJwt = sign({ id: testUserId }, 'whateva')
+const testJwt = 'blablalbalblabla'
 
 const testRun = {
   allRequestsAuthenticated: false,
@@ -48,7 +47,7 @@ const testRun = {
     loginRequest: loginMessages.build({ email: testEmail, password: pwhasher(testPassword) }),
     loginResponse: loginMessages.ok({ jwt: testJwt }),
     verifyRequest: verifyMessages.build({ jwt: testJwt }),
-    verifyResponse: verifyMessages.ok()
+    verifyResponse: verifyMessages.ok({ user: { id: testUserId, email: testEmail } })
   }
 }
 
