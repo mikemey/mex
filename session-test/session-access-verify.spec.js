@@ -1,7 +1,7 @@
 const chai = require('chai')
 chai.use(require('chai-string'))
 
-const { wsClient, startService, stopService, loginTestUser, outdatedJwt } = require('./session-test-setup')
+const { wsClient, startService, stopService, loginTestUser, outdatedJwt, registeredUser } = require('./session-test-setup')
 const { wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS } } = require('../utils')
 
 describe('SessionService verify', () => {
@@ -29,7 +29,12 @@ describe('SessionService verify', () => {
 
   describe('valid requests', () => {
     it('successful verification', () => wsClient.send(verifyReq())
-      .then(result => result.should.deep.equal({ action: 'verify', status: OK_STATUS }))
+      .then(result => {
+        result.action.should.equal('verify')
+        result.status.should.equal(OK_STATUS)
+        result.user.id.should.equal(registeredUser.id)
+        result.user.email.should.equal(registeredUser.email)
+      })
     )
 
     it('failed verification - tampered jwt', () => {

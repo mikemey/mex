@@ -15,7 +15,6 @@ const registerResponse = wsmessages.withAction(KW_REGISTER)
 const registerOK = registerResponse.ok()
 const loginResponse = wsmessages.withAction(KW_LOGIN)
 const verifyResponse = wsmessages.withAction(KW_VERIFY)
-const verifyOK = verifyResponse.ok()
 const verifyNOK = verifyResponse.nok()
 const revokeOK = wsmessages.withAction(KW_REVOKE).ok()
 
@@ -45,7 +44,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
 
   const verifyToken = message => new Promise((resolve, reject) => {
     if (revokedJwtCache.get(message.jwt)) { return resolve(verifyNOK) }
-    verify(message.jwt, secretBuffer, err => {
+    verify(message.jwt, secretBuffer, (err, payload) => {
       if (err) {
         logFunc('jwt verification failed:', err.message)
         const response = err instanceof TokenExpiredError
@@ -53,7 +52,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
           : verifyNOK
         return resolve(response)
       }
-      resolve(verifyOK)
+      resolve(verifyResponse.ok({ user: payload }))
     })
   })
 
