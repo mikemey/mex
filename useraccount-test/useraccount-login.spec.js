@@ -14,7 +14,7 @@ describe('UserAccount login', () => {
   const testEmail = 'holla_holla@bla.com'
   const testPassword = 'mysecret'
 
-  const postLogin = ({ email = testEmail, password = testPassword } = {}) => useragent.post('/access/login')
+  const postLogin = ({ email = testEmail, password = testPassword } = {}) => useragent.post('/login')
     .type('form').send({ email, password })
 
   const expectLoginError = (errMessage, sessionMockCalled = 0) => res => {
@@ -55,7 +55,7 @@ describe('UserAccount login', () => {
       it('post forwards to main user page', () => postLogin().redirects(false)
         .then(res => {
           res.should.have.status(303)
-          res.should.have.header('location', '../index')
+          res.should.have.header('location', orchestrator.httpserverConfig.path + '/index')
         })
       )
 

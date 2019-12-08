@@ -24,15 +24,15 @@ const loginSchema = Joi.object({
   password: Validator.plainPassword()
 })
 
-const registerMessages = withAction('register')
-const loginMessages = withAction('login')
+const LOGIN = 'login'
+const REGISTER = 'register'
+
+const registerMessages = withAction(REGISTER)
+const loginMessages = withAction(LOGIN)
 const registerCheck = Validator.createCheck(registerSchema)
 const loginCheck = Validator.createCheck(loginSchema)
 
 const errorResponse = (res, view, message, email) => res.render(view, { error: message, email })
-
-const LOGIN_VIEW = 'login'
-const REGISTER_VIEW = 'register'
 
 const hash = data => crypto.createHash('sha256').update(data).digest('hex')
 
@@ -40,17 +40,20 @@ class AccessRouter extends LogTrait {
   constructor (sessionClient, httpConfig) {
     super()
     this.sessionClient = sessionClient
-    this.httpConfig = httpConfig
+    this.pathPrefix = httpConfig.path
+
+    this.loginPath = `${this.pathPrefix}/${LOGIN}`
+    this.registerPath = `${this.pathPrefix}/${REGISTER}`
+    this.homePath = `${this.pathPrefix}/index`
   }
 
   createAuthenticationCheck () {
-    const pathPrefix = this.httpConfig.path
-    const unprotectedPaths = [`${pathPrefix}/access/login`, `${pathPrefix}/access/register`, `${pathPrefix}/version`]
+    const unprotectedPaths = [this.loginPath, this.registerPath, `${this.pathPrefix}/version`]
     const verifyMessages = withAction('verify')
 
     const redirectToLogin = (res, flag = 'auth') => {
       this.log('authentication required')
-      return res.redirect(303, `${pathPrefix}/access/login?` + querystring.stringify({ flag }))
+      return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag }))
     }
 
     return (req, res, next) => {
@@ -82,44 +85,43 @@ class AccessRouter extends LogTrait {
     }
 
     const router = express.Router()
-    router.get('/register', (_, res) => res.render(REGISTER_VIEW))
+    router.get(`/${REGISTER}`, (_, res) => res.render(REGISTER))
 
-    router.post('/register', (req, res) => {
+    router.post(`/${REGISTER}`, (req, res) => {
       const email = req.body.email
       const password = req.body.password
       const confirmation = req.body.confirmation
       try {
         registerCheck({ email, password, confirmation })
       } catch (err) {
-        return errorResponse(res, REGISTER_VIEW, err.message, email)
+        return errorResponse(res, REGISTER, err.message, email)
       }
       return this.sessionClient.send(registerMessages.build({ email, password: hash(password) }))
         .then(result => {
-          const pathPrefix = this.httpConfig.path
           switch (result.status) {
-            case OK_STATUS: return res.redirect(303, `${pathPrefix}/access/login?${querystring.stringify({ flag: 'reg' })}`)
+            case OK_STATUS: return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag: 'reg' }))
             case NOK_STATUS: {
               this.log('registration failed:', result.message)
-              return errorResponse(res, REGISTER_VIEW, result.message, email)
+              return errorResponse(res, REGISTER, result.message, email)
             }
-            default: return serviceUnavailable(res, REGISTER_VIEW, result.message, email)
+            default: return serviceUnavailable(res, REGISTER, result.message, email)
           }
         })
-        .catch(err => serviceUnavailable(res, REGISTER_VIEW, err.message, email))
+        .catch(err => serviceUnavailable(res, REGISTER, err.message, email))
     })
 
-    router.get('/login', (req, res) => {
+    router.get(`/${LOGIN}`, (req, res) => {
       const flag = req.query.flag
-      res.render(LOGIN_VIEW, { flag })
+      res.render(LOGIN, { flag })
     })
 
-    router.post('/login', (req, res) => {
+    router.post(`/${LOGIN}`, (req, res) => {
       const email = req.body.email
       const password = req.body.password
       try {
         loginCheck({ email, password })
       } catch (err) {
-        return errorResponse(res, LOGIN_VIEW, err.message, email)
+        return errorResponse(res, LOGIN, err.message, email)
       }
 
       return this.sessionClient.send(loginMessages.build({ email, password: hash(password) }))
@@ -127,16 +129,16 @@ class AccessRouter extends LogTrait {
           switch (result.status) {
             case OK_STATUS: {
               req.session.jwt = result.jwt
-              return res.redirect(303, '../index')
+              return res.redirect(303, this.homePath)
             }
             case NOK_STATUS: {
               this.log('login failed:', result.message)
-              return errorResponse(res, LOGIN_VIEW, result.message, email)
+              return errorResponse(res, LOGIN, result.message, email)
             }
-            default: return serviceUnavailable(res, LOGIN_VIEW, result.message, email)
+            default: return serviceUnavailable(res, LOGIN, result.message, email)
           }
         })
-        .catch(err => serviceUnavailable(res, LOGIN_VIEW, err.message, email))
+        .catch(err => serviceUnavailable(res, LOGIN, err.message, email))
     })
 
     return router

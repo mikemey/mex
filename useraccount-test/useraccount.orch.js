@@ -83,7 +83,7 @@ const createAgent = async ({ authenticated = false, crsf = false }) => {
   if (authenticated) {
     sessionMock.softReset()
     await useragent.get('/version')
-    const res = await useragent.post('/access/login').type('form').send(testRun.user)
+    const res = await useragent.post('/login').type('form').send(testRun.user)
     withHtml(res).html.pageTitle().should.equal('mex home')
   } else if (crsf) {
     await useragent.get('/version')

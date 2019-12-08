@@ -1,5 +1,4 @@
 const express = require('express')
-const jsonwebtoken = require('jsonwebtoken')
 
 const { LogTrait } = require('../utils')
 
@@ -38,7 +37,7 @@ class BalanceRouter extends LogTrait {
   createRoutes () {
     const router = express.Router()
 
-    router.get('/', async (req, res, next) => {
+    router.get('/balance', async (req, res, next) => {
       return Balances.findById(res.locals.user.id, 'assets').exec((err, doc) => {
         if (err) { return next(err) }
 
@@ -56,6 +55,10 @@ class BalanceRouter extends LogTrait {
         })
         res.render(BALANCE_VIEW, { assets })
       })
+    })
+
+    router.get('/balance/address/:symbol', async (req, res, next) => {
+      console.log('received symobl: ', req.params.symbol)
     })
 
     return router
