@@ -62,9 +62,7 @@ class BalanceRouter extends LogTrait {
     })
 
     router.get('/balance/address/:symbol', async (req, res) => {
-      const addReq = addressMessages.build({
-        id: req.user.id, symbol: req.params.symbol
-      })
+      const addReq = addressMessages.build({ symbol: req.params.symbol })
       const addressRes = await this.walletClient.send(addReq)
       res.json({ address: addressRes.address }).end()
     })

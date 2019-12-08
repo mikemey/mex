@@ -50,7 +50,7 @@ describe('UserAccount balance', () => {
     const addressMessages = withAction('newaddress')
 
     it('request address from wallet service', async () => {
-      const addressReq = addressMessages.build({ id: orchestrator.testUserId, symbol: 'btc' })
+      const addressReq = addressMessages.build({ symbol: 'btc' })
       const addressRes = addressMessages.ok({ address: 'abcdef' })
 
       walletMock.addMockFor(addressReq, addressRes)
