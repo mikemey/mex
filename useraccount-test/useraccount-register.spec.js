@@ -75,7 +75,8 @@ describe('UserAccount register', () => {
       return postRegistration({}).redirects(false)
         .then(res => {
           res.should.have.status(303)
-          res.should.have.header('location', '/access/login?flag=reg')
+          const pathSlug = orchestrator.httpserverConfig.path
+          res.should.have.header('location', `${pathSlug}/access/login?flag=reg`)
         })
     })
 
