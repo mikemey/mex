@@ -22,7 +22,7 @@ class WalletService extends WSSecureServer {
     this.btcWallet = new BitcoinClient(config.btcClient)
   }
 
-  async received (request) {
+  async secureReceived (request) {
     const address = await this.btcWallet.getNewAddress()
     return newAddressMessages.ok({ address })
   }

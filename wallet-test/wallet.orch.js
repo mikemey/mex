@@ -27,12 +27,9 @@ const wsClientConfig = {
   authToken: walletAuthToken,
   timeout: 500
 }
-const verifyMessages = withAction('verify')
-const testJwt = '12345678909876543210'
 
 const walletService = new WalletService(walletServiceConfig)
 const sessionMock = new WSServerMock(sessionMockConfig)
-sessionMock.addMockFor(verifyMessages.build({ jwt: testJwt }), verifyMessages.ok())
 const wsClient = new WSClient(wsClientConfig)
 
 const startServices = async function () {
@@ -45,4 +42,14 @@ const stopServices = () => Promise.all([
   walletService.stop(), sessionMock.stop(), btcnode.stop()
 ])
 
-module.exports = { startServices, stopServices, walletService, wsClient, testJwt }
+const verifyMessages = withAction('verify')
+const testJwt = '12345678909876543210'
+beforeEach(async () => {
+  sessionMock.reset()
+  sessionMock.addMockFor(verifyMessages.build({ jwt: testJwt }), verifyMessages.ok())
+})
+afterEach(() => sessionMock.errorCheck())
+
+const withJwt = obj => Object.assign(obj, { jwt: testJwt })
+
+module.exports = { startServices, stopServices, walletService, wsClient, withJwt, sessionMock }
