@@ -11,7 +11,7 @@ const sessionServiceConfig = {
 
 const walletAuthToken = 'c291bmQgb2YgZGEgcG9saWNlCg=='
 const walletServiceConfig = {
-  path: '/wallet', port: 13044, authorizedTokens: [walletAuthToken]
+  port: 13044, path: '/wallet', authorizedTokens: [walletAuthToken]
 }
 
 const useraccountConfig = {

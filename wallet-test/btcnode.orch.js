@@ -20,8 +20,8 @@ const btcClientConfig = {
 const mainWalletName = 'mex-test-wallet'
 const faucetWalletName = 'faucet'
 
-const mainWalletConfig = (wallet = mainWalletName) => Object.assign({ wallet }, btcClientConfig)
-const faucetWallet = new BitcoinClient(mainWalletConfig(faucetWalletName))
+const walletConfig = (wallet = mainWalletName) => Object.assign({ wallet }, btcClientConfig)
+const faucetWallet = new BitcoinClient(walletConfig(faucetWalletName))
 
 const btcConfigFile = {
   location: path.join(dataDir, 'bitcoin.conf'),
@@ -161,4 +161,4 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   checkPidFile(attempts)
 })
 
-module.exports = { start, stop, faucetWallet, mainWalletConfig }
+module.exports = { start, stop, faucetWallet, walletConfig }

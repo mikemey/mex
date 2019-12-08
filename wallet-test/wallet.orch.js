@@ -1,8 +1,9 @@
 const WalletService = require('../wallet')
 const { WSClient } = require('../connectors')
-const { WSServerMock } = require('../test-tools')
-const btcnode = require('./btcnode.orch')
 const { wsmessages: { withAction } } = require('../utils')
+
+const { WSServerMock, TestDataSetup: { dbConfig } } = require('../test-tools')
+const btcnode = require('./btcnode.orch')
 
 const sessionAuthToken = 'bW9jay1zZXNzaW9uLXRva2VuCg=='
 const walletAuthToken = 'd2FsbGV0LXNlcnZpY2UtdG9rZW4K'
@@ -17,7 +18,8 @@ const walletServiceConfig = {
     authToken: sessionAuthToken,
     timeout: 40
   },
-  btcClient: btcnode.mainWalletConfig()
+  btcClient: btcnode.walletConfig(),
+  db: dbConfig
 }
 
 const wsClientConfig = {

@@ -1,0 +1,10 @@
+{
+  "btc": {
+    "hrname": "Bitcoin",
+    "fractions": 8
+  },
+  "eth": {
+    "hrname": "Ethereum",
+    "fractions": 18
+  }
+}

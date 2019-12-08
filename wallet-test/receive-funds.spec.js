@@ -1,10 +1,10 @@
 const BitcoinClient = require('bitcoin-core')
 
 const { startServices, stopServices, wsClient, testJwt } = require('./wallet.orch')
-const { mainWalletConfig } = require('./btcnode.orch')
+const { walletConfig } = require('./btcnode.orch')
 const { wsmessages: { withAction, OK_STATUS } } = require('../utils')
 
-const addressMessages = withAction('newaddress')
+const addressMessages = withAction('address')
 
 describe('Receiving funds', () => {
   before(startServices)
@@ -12,13 +12,13 @@ describe('Receiving funds', () => {
   afterEach(() => wsClient.stop())
 
   it('generate new address', async () => {
-    const newAddressRequest = addressMessages.build({ jwt: testJwt })
+    const newAddressRequest = addressMessages.build({ id: 'test-user-id?', jwt: testJwt, symbol: 'btc' })
     const newAddressResponse = await wsClient.send(newAddressRequest)
 
     newAddressResponse.status.should.equal(OK_STATUS)
-    newAddressResponse.action.should.equal('newaddress')
+    newAddressResponse.action.should.equal('address')
 
-    const mexWallet = new BitcoinClient(mainWalletConfig())
+    const mexWallet = new BitcoinClient(walletConfig())
     const addressInfo = await mexWallet.getAddressInfo(newAddressResponse.address)
     addressInfo.ismine.should.equal(true)
   })

@@ -1,8 +1,9 @@
 const express = require('express')
 
-const { LogTrait, wsmessages: { withAction } } = require('../utils')
-
-const { dbconnection: { Long, mg } } = require('../utils')
+const symbolData = require('../metadata/assets.json')
+const {
+  LogTrait, wsmessages: { withAction }, dbconnection: { Long, mg }
+} = require('../utils')
 
 const asset = mg.Schema({
   symbol: 'string',
@@ -18,10 +19,6 @@ const Balances = mg.model('balances', BalancesSchema)
 const BALANCE_VIEW = 'balance'
 
 const uiFractions = 8
-const symbolData = {
-  btc: { hrname: 'Bitcoin', fractions: 8 },
-  eth: { hrname: 'Ethereum', fractions: 18 }
-}
 
 const balanceDefaults = Object.keys(symbolData)
   .map(key => { return { symbol: key, amount: Long('0') } })
