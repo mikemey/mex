@@ -1,6 +1,6 @@
 const express = require('express')
 
-const { LogTrait } = require('../utils')
+const { LogTrait, wsmessages: { withAction } } = require('../utils')
 
 const { dbconnection: { Long, mg } } = require('../utils')
 
@@ -33,12 +33,19 @@ const asHRAmount = (amount, symdata) => {
   return `${whole}.${fraction}`
 }
 
+const addressMessages = withAction('newaddress')
+
 class BalanceRouter extends LogTrait {
+  constructor (walletClient) {
+    super()
+    this.walletClient = walletClient
+  }
+
   createRoutes () {
     const router = express.Router()
 
     router.get('/balance', async (req, res, next) => {
-      return Balances.findById(res.locals.user.id, 'assets').exec((err, doc) => {
+      return Balances.findById(req.user.id, 'assets').exec((err, doc) => {
         if (err) { return next(err) }
 
         const balance = doc === null
@@ -57,8 +64,12 @@ class BalanceRouter extends LogTrait {
       })
     })
 
-    router.get('/balance/address/:symbol', async (req, res, next) => {
-      console.log('received symobl: ', req.params.symbol)
+    router.get('/balance/address/:symbol', async (req, res) => {
+      const addReq = addressMessages.build({
+        id: req.user.id, symbol: req.params.symbol
+      })
+      const addressRes = await this.walletClient.send(addReq)
+      res.json({ address: addressRes.address }).end()
     })
 
     return router

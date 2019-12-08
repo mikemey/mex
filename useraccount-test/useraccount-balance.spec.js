@@ -1,16 +1,19 @@
-const { dbconnection: { ObjectId, Long, collection } } = require('../utils')
+const {
+  dbconnection: { ObjectId, Long, collection },
+  wsmessages: { withAction }
+} = require('../utils')
 
 const orchestrator = require('./useraccount.orch')
 const { TestDataSetup: { seedTestData, dropTestDatabase } } = require('../test-tools')
 
 describe('UserAccount balance', () => {
-  let useragent
+  let useragent, walletMock
   const balanceColl = () => collection('balances')
 
   before(async () => {
     await dropTestDatabase()
     await seedTestData();
-    ({ useragent } = await orchestrator.start({ authenticatedAgent: true }))
+    ({ useragent, walletMock } = await orchestrator.start({ authenticatedAgent: true }))
   })
   after(() => orchestrator.stop())
 
@@ -44,10 +47,17 @@ describe('UserAccount balance', () => {
   })
 
   describe('deposit', async () => {
+    const addressMessages = withAction('newaddress')
+
     it('request address from wallet service', async () => {
-      // const res = await useragent.get('/balance/address/btc')
-      // expect call to wallet-service
-      // returns wallet-service response address
+      const addressReq = addressMessages.build({ id: orchestrator.testUserId, symbol: 'btc' })
+      const addressRes = addressMessages.ok({ address: 'abcdef' })
+
+      walletMock.addMockFor(addressReq, addressRes)
+      const res = await useragent.get('/balance/address/btc')
+      res.status.should.equal(200)
+      res.body.address.should.equal(addressRes.address)
+      walletMock.assertReceived(addressReq)
     })
   })
 })

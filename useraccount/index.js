@@ -30,7 +30,7 @@ class UserAccountService extends HttpServer {
     this.walletClient = new WSClient(config.walletService)
 
     this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
-    this.balanceRouter = new BalanceRouter()
+    this.balanceRouter = new BalanceRouter(this.walletClient)
   }
 
   start () {

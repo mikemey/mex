@@ -63,7 +63,8 @@ class AccessRouter extends LogTrait {
           .then(result => {
             switch (result.status) {
               case OK_STATUS: {
-                res.locals.user = jsonwebtoken.decode(req.session.jwt)
+                req.user = jsonwebtoken.decode(req.session.jwt)
+                res.locals.user = req.user
                 return next()
               }
               case NOK_STATUS: return redirectToLogin(res)
