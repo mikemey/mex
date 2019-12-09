@@ -57,7 +57,7 @@ describe('Websocket Server', () => {
         : sendResponseCycle()
     }
 
-    describe('connection handling', () => {
+    describe('access tokens', () => {
       const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
         .then(() => { throw new Error('expected websocket to close') })
         .catch(err => {

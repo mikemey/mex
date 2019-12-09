@@ -36,11 +36,14 @@ class TimeoutError extends Error {
   }
 }
 
+const topicSubscription = topic => wsmessages.withAction('subscribe').build({ topic })
+
 class WSClient extends LogTrait {
   constructor (config) {
     super()
+    Validator.oneTimeValidation(configSchema, config)
+
     this.wsconfig = config
-    Validator.oneTimeValidation(configSchema, this.wsconfig)
     this._reset()
   }
 
@@ -49,6 +52,7 @@ class WSClient extends LogTrait {
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
     this.messageHandler = {}
+    this.topicHandler = {}
     callback()
   }
 
@@ -71,8 +75,9 @@ class WSClient extends LogTrait {
 
     this.ws.addListener('message', raw => {
       const message = wsmessages.extractMessage(raw)
-      const handler = this.messageHandler[message.id]
-      return handler ? handler(message) : this.log('dropping received:', `<${message.id}>`)
+      const handler = message.isBroadcast ? this.topicHandler[message.topic] : this.messageHandler[message.id]
+      const errorId = message.isBroadcast ? message.topic : message.id
+      return handler ? handler(message) : this.log('dropping received:', `<${errorId}>`)
     })
 
     const closedown = error => {
@@ -86,9 +91,14 @@ class WSClient extends LogTrait {
   }
 
   send (request) {
+    return this._internalSend(request)
+  }
+
+  _internalSend (request, callback) {
     return new Promise((resolve, reject) => {
       const waitfor = Waiter(this.ws, reject)
-      const sendMessage = () => this._requestResponse(request, resolve, reject)
+      const interceptResponse = callback ? callback(resolve) : resolve
+      const sendMessage = () => this._requestResponse(request, interceptResponse, reject)
       const openAndSendMessage = () => this._openWebsocket(sendMessage, reject)
 
       const state = this.ws === null ? WebSocket.CLOSED : this.ws.readyState
@@ -104,6 +114,19 @@ class WSClient extends LogTrait {
       const sendError = err instanceof TimeoutError ? err : new Error('disconnected')
       throw sendError
     })
+  }
+
+  subscribe (topic, callback = (topic, message) => { }) {
+    const addTopicCallback = resolve => subscriptionResponse => {
+      if (subscriptionResponse.status === wsmessages.OK_STATUS) {
+        this.topicHandler[topic] = message => {
+          this.log('received:', `<${topic}>`, message.body)
+          callback(topic, message.body)
+        }
+      }
+      resolve(subscriptionResponse)
+    }
+    return this._internalSend(topicSubscription(topic), addTopicCallback)
   }
 
   _requestResponse (request, resolve, reject) {
