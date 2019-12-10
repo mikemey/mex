@@ -29,7 +29,8 @@ class WSSecureServer extends WSServer {
     delete configCopy.sessionService
     super(configCopy)
 
-    this.sessionClient = new WSClient(config.sessionService)
+    const sessionClientCategory = `${this.constructor.name} SessionClient`
+    this.sessionClient = new WSClient(config.sessionService, sessionClientCategory)
   }
 
   stop () {
@@ -40,6 +41,10 @@ class WSSecureServer extends WSServer {
     jwtCheck(message)
     return this.sessionClient
       .send(verifyMessages.build({ jwt: message.jwt }))
+      .catch(err => {
+        this.log('verification error:', err)
+        return sessionServiceUnavailable
+      })
       .then(verification => {
         switch (verification.status) {
           case OK_STATUS: return this.secureReceived(message)
@@ -47,7 +52,6 @@ class WSSecureServer extends WSServer {
           default: return sessionServiceUnavailable
         }
       })
-      .catch(() => sessionServiceUnavailable)
   }
 
   secureReceived (message) { return Promise.resolve(message) }

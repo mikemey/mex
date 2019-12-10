@@ -39,8 +39,8 @@ class TimeoutError extends Error {
 const topicSubscription = topic => wsmessages.withAction('subscribe').build({ topic })
 
 class WSClient extends LogTrait {
-  constructor (config) {
-    super()
+  constructor (config, logCategory) {
+    super(logCategory)
     Validator.oneTimeValidation(configSchema, config)
 
     this.wsconfig = config

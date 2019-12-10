@@ -56,6 +56,8 @@ describe('WSSecureServer', () => {
   const verifyMessages = withAction('verify')
   const verifyRequest = verifyMessages.build({ jwt: testJwt })
 
+  afterEach(() => sessionServiceMock.errorCheck())
+
   describe('session service running', () => {
     before(() => Promise.all([securedServer.start(), sessionServiceMock.start()]))
     after(() => Promise.all([securedServer.stop(), sessionServiceMock.stop()]))
@@ -106,12 +108,46 @@ describe('WSSecureServer', () => {
     })
   })
 
-  describe('fatal client errors', () => {
+  describe('fatal implementation errors', () => {
     it('configuration missing "sessionService" parameter', () => {
       const errorConfig = Object.assign({}, wsSecureServerConfig)
       delete errorConfig.sessionService
       return (() => new WSSecureServer(errorConfig))
         .should.throw(Error, '"sessionService" is required')
+    })
+  })
+
+  describe('forwards errors from .secureReceived', () => {
+    let throwingServer
+
+    before(() => {
+      sessionServiceMock.addMockFor(verifyRequest, verifyMessages.ok())
+      return sessionServiceMock.start()
+    })
+    after(() => sessionServiceMock.stop())
+    beforeEach(() => { throwingServer = null })
+    afterEach(() => throwingServer && throwingServer.stop())
+
+    it('when thrown', async () => {
+      class TestImpl extends WSSecureServer {
+        secureReceived (_) { throw Error('throw-test-error') }
+      }
+      throwingServer = new TestImpl(wsSecureServerConfig)
+
+      await throwingServer.start()
+      const res = await userClient.send(clientRequest)
+      res.should.deep.equal(error(clientRequest))
+    })
+
+    it('when Promise.reject', async () => {
+      class TestImpl extends WSSecureServer {
+        secureReceived (_) { return Promise.reject(Error('promise-test-error')) }
+      }
+      throwingServer = new TestImpl(wsSecureServerConfig)
+
+      await throwingServer.start()
+      const res = await userClient.send(clientRequest)
+      res.should.deep.equal(error(clientRequest))
     })
   })
 })
