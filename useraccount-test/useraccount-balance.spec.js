@@ -8,7 +8,7 @@ const { TestDataSetup: { seedTestData, dropTestDatabase } } = require('../test-t
 
 describe('UserAccount balance', () => {
   let useragent, walletMock
-  const balanceColl = () => collection('balances')
+  const balanceColl = collection('balances')
 
   before(async () => {
     await dropTestDatabase()
@@ -34,7 +34,7 @@ describe('UserAccount balance', () => {
     })
 
     it('existing user with balance', async () => {
-      await balanceColl().insertOne({
+      await balanceColl.insertOne({
         _id: ObjectId(orchestrator.testUserId),
         assets: [{ symbol: 'btc', amount: Long.fromString('9223372036854775807') }]
       })
