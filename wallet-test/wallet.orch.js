@@ -1,6 +1,8 @@
+const BitcoinClient = require('bitcoin-core')
+
 const WalletService = require('../wallet')
 const { WSClient } = require('../connectors')
-const { wsmessages: { withAction } } = require('../utils')
+const { wsmessages: { withAction }, dbconnection } = require('../utils')
 
 const { WSServerMock, TestDataSetup: { dbConfig, registeredUser } } = require('../test-tools')
 const btcnode = require('./btcnode.orch')
@@ -47,6 +49,20 @@ const testJwt = '12345678909876543210'
 const verifyReq = verifyMessages.build({ jwt: testJwt })
 const verifyRes = verifyMessages.ok({ user: { id: registeredUser.id, email: registeredUser.email } })
 
+const withJwtMessages = (action, jwt = testJwt) => {
+  const baseAction = withAction(action)
+  const build = obj => baseAction.build(Object.assign({ jwt }, obj))
+  return { build }
+}
+
+const createDepositAddress = async (id = registeredUser.id) => {
+  const mainWallet = new BitcoinClient(btcnode.walletConfig())
+  const address = await mainWallet.getNewAddress()
+  await dbconnection.collection('addresses').insertOne(
+    { _id: dbconnection.ObjectId(id), reserved: [{ symbol: 'btc', address }] }
+  )
+}
+
 beforeEach(async () => {
   sessionMock.reset()
   sessionMock.addMockFor(verifyReq, verifyRes)
@@ -54,10 +70,6 @@ beforeEach(async () => {
 
 afterEach(() => { sessionMock.errorCheck() })
 
-const withJwtMessages = action => {
-  const baseAction = withAction(action)
-  const build = obj => baseAction.build(Object.assign({ jwt: testJwt }, obj))
-  return { build }
+module.exports = {
+  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, createDepositAddress
 }
-
-module.exports = { startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock }

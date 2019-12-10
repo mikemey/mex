@@ -1,35 +1,97 @@
 const BitcoinClient = require('bitcoin-core')
 
-const { startServices, stopServices, wsClient, withJwtMessages } = require('./wallet.orch')
-const { walletConfig } = require('./btcnode.orch')
-const { wsmessages: { OK_STATUS, ERROR_STATUS } } = require('../utils')
+const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../test-tools')
+const {
+  wsmessages: { OK_STATUS, ERROR_STATUS, withAction },
+  dbconnection: { collection, ObjectId }
+} = require('../utils')
+
+const {
+  startServices, stopServices, wsClient, withJwtMessages, sessionMock, createDepositAddress
+} = require('./wallet.orch')
+
+const btcnode = require('./btcnode.orch')
 
 describe('Receiving funds', () => {
-  const mexWallet = new BitcoinClient(walletConfig())
+  const mexWallet = new BitcoinClient(btcnode.walletConfig())
+  const addressColl = collection('addresses')
+
+  const addressMsgs = withJwtMessages('address')
+  const regUserAddressReq = () => addressMsgs.build({ symbol: 'btc' })
 
   before(startServices)
   after(stopServices)
+  beforeEach(async () => {
+    await dropTestDatabase()
+    await createDepositAddress()
+  })
   afterEach(() => wsClient.stop())
 
-  const addressMsgs = withJwtMessages('address')
-  const newBtcAddressReq = () => addressMsgs.build({ symbol: 'btc' })
+  describe('requesting address', () => {
+    it('generate new address for new user', async () => {
+      const testId = '5def654c9ad3f153493e3bbb'
+      const testJwt = 'bla-bla-bla-bla-bla-bla'
 
-  it('generate new address', async () => {
-    const newAddressResponse = await wsClient.send(newBtcAddressReq())
+      const verifyMessages = withAction('verify')
+      const verifyReq = verifyMessages.build({ jwt: testJwt })
+      const verifyRes = verifyMessages.ok({ user: { id: testId } })
+      sessionMock.reset()
+      sessionMock.addMockFor(verifyReq, verifyRes)
 
-    newAddressResponse.status.should.equal(OK_STATUS)
-    newAddressResponse.action.should.equal('address')
+      const addressReq = withJwtMessages('address', testJwt).build({ symbol: 'btc' })
+      const addressResponse = await wsClient.send(addressReq)
 
-    const addressInfo = await mexWallet.getAddressInfo(newAddressResponse.address)
-    addressInfo.ismine.should.equal(true)
+      addressResponse.status.should.equal(OK_STATUS)
+      addressResponse.action.should.equal('address')
+
+      const addressInfo = await mexWallet.getAddressInfo(addressResponse.address)
+      addressInfo.ismine.should.equal(true)
+
+      const storedAddress = await addressColl.findOne({ _id: ObjectId(testId) })
+      storedAddress.reserved.should.deep.equal([
+        { symbol: 'btc', address: addressResponse.address }
+      ])
+    })
+
+    it('returns existing address for existing user', async () => {
+      const address = 'overwritten-address'
+      await addressColl.updateOne({ _id: ObjectId(registeredUser.id) },
+        { $set: { reserved: [{ symbol: 'btc', address }] } }
+      )
+      const addressResponse = await wsClient.send(regUserAddressReq())
+      addressResponse.status.should.equal(OK_STATUS)
+      addressResponse.address.should.equal(address)
+    })
+
+    // it.only('broadcasts address received funding', async () => {
+    //   let receivedBroadcast = null
+    //   const subscribeRes = await wsClient.subscribe('address-funding', (topic, message) => {
+    //     topic.should.equal('address-funding')
+    //     receivedBroadcast = message
+    //   })
+    //   subscribeRes.status.should.equal(OK_STATUS)
+
+    //   const newAddressResponse = await wsClient.send(regUserAddressReq())
+    //   const txAmount = '1.2345'
+    //   btcnode.createTransaction(newAddressResponse.address, txAmount)
+    //   btcnode.generateBlock()
+
+    //   receivedBroadcast.should.deep.equal({
+    //     address:
+    //   })
+    // })
   })
 
   describe('client errors', () => {
     const expectNewAddressError = async (changeReq = _ => { }) => {
-      const req = newBtcAddressReq()
+      const req = regUserAddressReq()
       changeReq(req)
       const res = await wsClient.send(req)
-      res.should.deep.equal({ status: ERROR_STATUS, message: req })
+      const errorMessage = Object.assign({
+        user: { id: registeredUser.id, email: registeredUser.email }
+      }, req)
+      delete errorMessage.jwt
+      res.should.deep.equal({ status: ERROR_STATUS, message: errorMessage })
     }
 
     it('missing action parameter', () => expectNewAddressError(req => { delete req.action }))
