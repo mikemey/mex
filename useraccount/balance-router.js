@@ -1,6 +1,6 @@
 const express = require('express')
 
-const symbolData = require('../metadata/assets.json')
+const { assetsMetadata } = require('../metadata')
 const {
   LogTrait, wsmessages: { withAction }, dbconnection: { Long, mg }
 } = require('../utils')
@@ -20,7 +20,7 @@ const BALANCE_VIEW = 'balance'
 
 const uiFractions = 8
 
-const balanceDefaults = Object.keys(symbolData)
+const balanceDefaults = Object.keys(assetsMetadata)
   .map(key => { return { symbol: key, amount: Long('0') } })
 
 const asHRAmount = (amount, symdata) => {
@@ -30,7 +30,7 @@ const asHRAmount = (amount, symdata) => {
   return `${whole}.${fraction}`
 }
 
-const addressMessages = withAction('newaddress')
+const addressMessages = withAction('address')
 
 class BalanceRouter extends LogTrait {
   constructor (walletClient) {
@@ -52,7 +52,7 @@ class BalanceRouter extends LogTrait {
           )
 
         const assets = balance.map(asset => {
-          const symdata = symbolData[asset.symbol]
+          const symdata = assetsMetadata[asset.symbol]
           asset.hrname = symdata.hrname
           asset.hramount = asHRAmount(asset.amount, symdata)
           return asset

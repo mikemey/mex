@@ -47,7 +47,7 @@ describe('UserAccount balance', () => {
   })
 
   describe('deposit', async () => {
-    const addressMessages = withAction('newaddress')
+    const addressMessages = withAction('address')
 
     it('request address from wallet service', async () => {
       const addressReq = addressMessages.build({ symbol: 'btc' })
