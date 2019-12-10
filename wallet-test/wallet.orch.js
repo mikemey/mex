@@ -2,7 +2,7 @@ const WalletService = require('../wallet')
 const { WSClient } = require('../connectors')
 const { wsmessages: { withAction } } = require('../utils')
 
-const { WSServerMock, TestDataSetup: { dbConfig } } = require('../test-tools')
+const { WSServerMock, TestDataSetup: { dbConfig, registeredUser } } = require('../test-tools')
 const btcnode = require('./btcnode.orch')
 
 const sessionAuthToken = 'bW9jay1zZXNzaW9uLXRva2VuCg=='
@@ -44,12 +44,20 @@ const stopServices = () => Promise.all([
 
 const verifyMessages = withAction('verify')
 const testJwt = '12345678909876543210'
+const verifyReq = verifyMessages.build({ jwt: testJwt })
+const verifyRes = verifyMessages.ok({ user: { id: registeredUser.id, email: registeredUser.email } })
+
 beforeEach(async () => {
   sessionMock.reset()
-  sessionMock.addMockFor(verifyMessages.build({ jwt: testJwt }), verifyMessages.ok())
+  sessionMock.addMockFor(verifyReq, verifyRes)
 })
-afterEach(() => sessionMock.errorCheck())
 
-const withJwt = obj => Object.assign(obj, { jwt: testJwt })
+afterEach(() => { sessionMock.errorCheck() })
 
-module.exports = { startServices, stopServices, walletService, wsClient, withJwt, sessionMock }
+const withJwtMessages = action => {
+  const baseAction = withAction(action)
+  const build = obj => baseAction.build(Object.assign({ jwt: testJwt }, obj))
+  return { build }
+}
+
+module.exports = { startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock }

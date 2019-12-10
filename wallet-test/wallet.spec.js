@@ -1,7 +1,6 @@
 const WalletService = require('../wallet')
 
-const { startServices, stopServices, wsClient, withJwt, sessionMock } = require('./wallet.orch')
-const { wsmessages: { withAction } } = require('../utils')
+const { startServices, stopServices, wsClient, withJwtMessages, sessionMock } = require('./wallet.orch')
 
 describe('Wallet service', () => {
   describe('auth check', () => {
@@ -10,8 +9,8 @@ describe('Wallet service', () => {
     afterEach(() => wsClient.stop())
 
     it('calls session service', async () => {
-      const newAddressRequest = withJwt(withAction('address').build({ id: 'bla-bla-user-id', symbol: 'btc' }))
-      const expectedMessage = withJwt(withAction('verify').build({}))
+      const newAddressRequest = withJwtMessages('address').build({ symbol: 'btc' })
+      const expectedMessage = withJwtMessages('verify').build({})
 
       await wsClient.send(newAddressRequest)
       sessionMock.assertReceived(expectedMessage)
