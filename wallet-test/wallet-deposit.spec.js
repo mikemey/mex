@@ -10,10 +10,10 @@ const {
   startServices, stopServices, wsClient, withJwtMessages, sessionMock, createDepositAddress
 } = require('./wallet.orch')
 
-const btcnode = require('./btcnode.orch')
+const { faucetWallet, walletConfig, generateBlocks } = require('./btcnode.orch')
 
 describe('Wallet depositer', () => {
-  const mexWallet = new BitcoinClient(btcnode.walletConfig())
+  const mexWallet = new BitcoinClient(walletConfig())
   const addressColl = collection('addresses')
 
   const addressMsgs = withJwtMessages('address')
@@ -27,9 +27,9 @@ describe('Wallet depositer', () => {
   })
   afterEach(() => wsClient.stop())
 
-  const sendAndConfirmTx = (address, amount) => {
-    btcnode.createTransaction(address, amount)
-    btcnode.generateBlock()
+  const sendAndConfirmTx = async (address, amount) => {
+    await faucetWallet.sendToAddress(address, amount)
+    await generateBlocks()
   }
 
   describe('requesting address', () => {

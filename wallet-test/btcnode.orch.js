@@ -161,4 +161,4 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   checkPidFile(attempts)
 })
 
-module.exports = { start, stop, faucetWallet, walletConfig }
+module.exports = { start, stop, faucetWallet, walletConfig, generateBlocks }
