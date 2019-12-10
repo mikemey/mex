@@ -20,7 +20,7 @@ const createSymbolAddress = async (userAddresses, symbol, address) => {
   const newSymbolAddress = { symbol, address }
   userAddresses.reserved.push(newSymbolAddress)
   await addressesColl.updateOne(idFilter(userAddresses._id), {
-    $push: { reserved: newSymbolAddress }
+    $addToSet: { reserved: newSymbolAddress }
   })
   return newSymbolAddress
 }
