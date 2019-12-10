@@ -46,6 +46,8 @@ class WSSecureServer extends WSServer {
         return sessionServiceUnavailable
       })
       .then(verification => {
+        message.user = verification.user
+        delete message.jwt
         switch (verification.status) {
           case OK_STATUS: return this.secureReceived(message)
           case NOK_STATUS: return verification

@@ -52,6 +52,8 @@ describe('WSSecureServer', () => {
 
   const testJwt = '12345678901234567890'
   const clientRequest = { jwt: testJwt, action: 'client-request' }
+  const user = { testId: '123' }
+  const implementationRequest = { user, action: 'client-request' }
 
   const verifyMessages = withAction('verify')
   const verifyRequest = verifyMessages.build({ jwt: testJwt })
@@ -64,11 +66,13 @@ describe('WSSecureServer', () => {
     beforeEach(() => Promise.all([securedServer.reset(), sessionServiceMock.reset()]))
 
     it('allows requests when session-service responds OK', async () => {
-      sessionServiceMock.addMockFor(verifyRequest, verifyMessages.ok())
+      const verifyResponse = verifyMessages.ok({ user })
+
+      sessionServiceMock.addMockFor(verifyRequest, verifyResponse)
       const response = await userClient.send(clientRequest)
       response.should.deep.equal(secureServerResponse)
       sessionServiceMock.assertReceived(verifyRequest)
-      securedServer.assertReceived(clientRequest)
+      securedServer.assertReceived(implementationRequest)
     })
 
     it('rejects requests when session-service responds NOK', async () => {
@@ -121,7 +125,7 @@ describe('WSSecureServer', () => {
     let throwingServer
 
     before(() => {
-      sessionServiceMock.addMockFor(verifyRequest, verifyMessages.ok())
+      sessionServiceMock.addMockFor(verifyRequest, verifyMessages.ok({ user }))
       return sessionServiceMock.start()
     })
     after(() => sessionServiceMock.stop())
@@ -136,7 +140,7 @@ describe('WSSecureServer', () => {
 
       await throwingServer.start()
       const res = await userClient.send(clientRequest)
-      res.should.deep.equal(error(clientRequest))
+      res.should.deep.equal(error(implementationRequest))
     })
 
     it('when Promise.reject', async () => {
@@ -147,7 +151,7 @@ describe('WSSecureServer', () => {
 
       await throwingServer.start()
       const res = await userClient.send(clientRequest)
-      res.should.deep.equal(error(clientRequest))
+      res.should.deep.equal(error(implementationRequest))
     })
   })
 })
