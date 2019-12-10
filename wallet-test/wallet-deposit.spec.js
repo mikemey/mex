@@ -12,7 +12,7 @@ const {
 
 const btcnode = require('./btcnode.orch')
 
-describe('Receiving funds', () => {
+describe('Wallet depositer', () => {
   const mexWallet = new BitcoinClient(btcnode.walletConfig())
   const addressColl = collection('addresses')
 
@@ -26,6 +26,11 @@ describe('Receiving funds', () => {
     await createDepositAddress()
   })
   afterEach(() => wsClient.stop())
+
+  const sendAndConfirmTx = (address, amount) => {
+    btcnode.createTransaction(address, amount)
+    btcnode.generateBlock()
+  }
 
   describe('requesting address', () => {
     it('generate new address for new user', async () => {
@@ -63,23 +68,30 @@ describe('Receiving funds', () => {
       addressResponse.address.should.equal(address)
     })
 
-    // it.only('broadcasts address received funding', async () => {
-    //   let receivedBroadcast = null
-    //   const subscribeRes = await wsClient.subscribe('address-funding', (topic, message) => {
-    //     topic.should.equal('address-funding')
-    //     receivedBroadcast = message
-    //   })
-    //   subscribeRes.status.should.equal(OK_STATUS)
+    xit('broadcasts address received funding', async () => {
+      const receivedBroadcast = []
+      let broadcastCount = 0
+      const subscribeRes = await wsClient.subscribe('address-funding', (topic, message) => {
+        broadcastCount += 1
+        topic.should.equal('address-funding')
+        receivedBroadcast.push(message)
+      })
+      subscribeRes.status.should.equal(OK_STATUS)
 
-    //   const newAddressResponse = await wsClient.send(regUserAddressReq())
-    //   const txAmount = '1.2345'
-    //   btcnode.createTransaction(newAddressResponse.address, txAmount)
-    //   btcnode.generateBlock()
+      const { address } = await wsClient.send(regUserAddressReq())
+      const firstTxAmount = '1.23'
+      sendAndConfirmTx(address, firstTxAmount)
+      broadcastCount.should.equal(1)
+      receivedBroadcast.should.deep.equal([{ address, amount: firstTxAmount }])
 
-    //   receivedBroadcast.should.deep.equal({
-    //     address:
-    //   })
-    // })
+      const secondTxAmount = '0.23'
+      sendAndConfirmTx(address, secondTxAmount)
+      broadcastCount.should.equal(2)
+      receivedBroadcast.should.deep.equal([
+        { address, amount: firstTxAmount },
+        { address, amount: secondTxAmount }
+      ])
+    })
   })
 
   describe('client errors', () => {
