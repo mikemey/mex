@@ -9,7 +9,7 @@ describe('SessionService configuration', () => {
     const config = {
       jwtkey: 'SmFzb24gTWVuZG96YQo=',
       wsserver: { port, path, authorizedTokens: [testToken] },
-      db: { url: 'mongodb://this.shouldn.t/matter', name: 'mex-test' }
+      db: { url: 'mongodb://this.shouldn.t/matter', name: 'so wont this' }
     }
     update(config)
     assertConfigError(config, message)
