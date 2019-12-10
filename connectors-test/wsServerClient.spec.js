@@ -95,6 +95,11 @@ describe('Real WSServer + WSClient', () => {
       received.message.should.deep.equal(testMessage)
     })
 
+    it('allows broadcast without subscriptions', async () => {
+      wsserver.offerTopics('t1')
+      await wsserver.broadcast('t1', { what: 'ever' })
+    })
+
     it('reject invalid subscriptions', async () => {
       wsserver.offerTopics('t1')
       const subscribeRes = await wsclient.subscribe('xx', (topic, message) => { })
