@@ -21,6 +21,7 @@ const jwtCheck = Validator.createCheck(jwtSchema, {
 
 const verifyMessages = withAction('verify')
 const sessionServiceUnavailable = error('session-service unavailable')
+const userUnavailable = error('session-service user unavailable')
 
 class WSSecureServer extends WSServer {
   constructor (config) {
@@ -39,21 +40,22 @@ class WSSecureServer extends WSServer {
 
   async received (message) {
     jwtCheck(message)
-    return this.sessionClient
+    const result = await this.sessionClient
       .send(verifyMessages.build({ jwt: message.jwt }))
       .catch(err => {
         this.log('verification error:', err)
         return sessionServiceUnavailable
       })
-      .then(verification => {
-        message.user = verification.user
+    switch (result.status) {
+      case OK_STATUS: {
+        if (!result.user) { return userUnavailable }
         delete message.jwt
-        switch (verification.status) {
-          case OK_STATUS: return this.secureReceived(message)
-          case NOK_STATUS: return verification
-          default: return sessionServiceUnavailable
-        }
-      })
+        message.user = result.user
+        return this.secureReceived(message)
+      }
+      case NOK_STATUS: return result
+      default: return sessionServiceUnavailable
+    }
   }
 
   secureReceived (message) { return Promise.resolve(message) }

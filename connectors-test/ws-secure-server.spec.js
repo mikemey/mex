@@ -91,6 +91,15 @@ describe('WSSecureServer', () => {
       securedServer.assertReceived()
     })
 
+    it('rejects requests when session-service responds without user', async () => {
+      const verifyResponse = verifyMessages.ok()
+      sessionServiceMock.addMockFor(verifyRequest, verifyResponse)
+      const response = await userClient.send(clientRequest)
+      response.should.deep.equal(error('session-service user unavailable'))
+      sessionServiceMock.assertReceived(verifyRequest)
+      securedServer.assertReceived()
+    })
+
     it('when missing jwt field', async () => {
       const invalidClientRequest = Object.assign({}, clientRequest)
       delete invalidClientRequest.jwt
