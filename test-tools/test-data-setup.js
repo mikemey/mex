@@ -26,7 +26,7 @@ const seedTestData = () => {
           const fullPath = path.join(__dirname, seedDir, seedFile)
           childProcess.execSync(`mongoimport ${commonArgs} ${fullPath}`)
         })
-      ).then(resolve)
+      ).catch(reject).then(resolve)
     })
   })
 }
