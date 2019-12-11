@@ -28,8 +28,9 @@ describe('Wallet depositer', () => {
   afterEach(() => wsClient.stop())
 
   const sendAndConfirmTx = async (address, amount) => {
+    console.log('====== sendToAddress', address)
     await faucetWallet.sendToAddress(address, amount)
-    return generateBlocks()
+    await generateBlocks(2)
   }
 
   describe('requesting address', () => {
@@ -68,6 +69,8 @@ describe('Wallet depositer', () => {
       addressResponse.address.should.equal(address)
     })
 
+    const pause = ms => new Promise((resolve, reject) => setTimeout(resolve, ms))
+
     xit('broadcasts address received funding', async () => {
       const receivedBroadcast = []
       let broadcastCount = 0
@@ -81,6 +84,7 @@ describe('Wallet depositer', () => {
       const { address } = await wsClient.send(regUserAddressReq())
       const firstTxAmount = '1.23'
       await sendAndConfirmTx(address, firstTxAmount)
+      await pause(1500)
       broadcastCount.should.equal(1)
       receivedBroadcast.should.deep.equal([{ address, amount: firstTxAmount }])
 

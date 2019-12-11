@@ -42,7 +42,10 @@ const btcConfigFile = {
         port: 36963,
         rpcport: btcClientConfig.port,
         wallet: [faucetWalletName, mainWalletName],
-        zmqpubhashtx: zmqConfig
+        zmqpubhashtx: zmqConfig,
+        zmqpubrawtx: zmqConfig,
+        zmqpubhashblock: zmqConfig,
+        zmqpubrawblock: zmqConfig
       }
     }
   }
@@ -62,7 +65,7 @@ const oscheck = () => {
 }
 
 const installBinaries = () => {
-  logger.debug('installing regtest to', dataDir)
+  logger.info('installing regtest to', dataDir)
   fs.mkdirSync(dataDir)
   return download(setupCfg.btcBinUrl, dataDir, { extract: true })
 }
@@ -88,19 +91,19 @@ const keyValuePair = obj => Object.keys(obj)
 
 const startBitcoind = () => {
   if (fs.existsSync(btcConfigFile.content.pid)) {
-    logger.debug('bitcoind already running')
+    logger.info('bitcoind already running')
     return
   }
   const command = path.join(setupCfg.btcBinDir, 'bitcoind')
   const args = [setupCfg.dataDirArg]
   childProcess.spawnSync(command, args)
-  logger.debug('bitcoind started')
+  logger.info('bitcoind started')
 }
 
 const waitForFaucet = (attempts = 9) => new Promise((resolve, reject) => {
   const checkWallet = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('Faucet wallet not available!')) }
-    logger.debug(`waiting for wallet (${currentAttempt})...`)
+    logger.info(`waiting for wallet (${currentAttempt})...`)
 
     setTimeout(() => {
       faucetWallet.getWalletInfo()
@@ -112,7 +115,10 @@ const waitForFaucet = (attempts = 9) => new Promise((resolve, reject) => {
 })
 
 const generateBlocks = (blocks = 1) => faucetWallet.getNewAddress()
-  .then(address => faucetWallet.generateToAddress(blocks, address))
+  .then(address => {
+    logger.info('generateToAddress', address)
+    return faucetWallet.generateToAddress(blocks, address)
+  })
 
 const refillFaucet = () => {
   const needMoreBlocks = () => generateBlocks()
@@ -148,13 +154,13 @@ const stop = async () => {
   const args = [setupCfg.dataDirArg, 'stop']
   childProcess.spawnSync(command, args)
   await waitForNodeDown()
-  logger.debug('bitcoind stopped')
+  logger.info('bitcoind stopped')
 }
 
 const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   const checkPidFile = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('bitcoind shutdown failed!')) }
-    logger.debug(`waiting for shutdown (${currentAttempt})...`)
+    logger.info(`waiting for shutdown (${currentAttempt})...`)
 
     setTimeout(() => {
       fs.access(btcConfigFile.content.pid, fs.F_OK, (err) => {
