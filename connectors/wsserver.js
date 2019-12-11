@@ -78,7 +78,6 @@ class WSServer {
         message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
         drain: (ws) => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
         close: (ws, code) => {
-          console.log('ws.close _removeClientSocket')
           const clientSocket = this._removeClientSocket(ws)
           clientSocket.logger.info('socket closed:', code)
         }
@@ -150,7 +149,6 @@ class WSServer {
   }
 
   _sendingError (clientSocket, message) {
-    console.log('sending error _removeClientSocket')
     this._removeClientSocket(clientSocket.ws)
     clientSocket.logger.error(message)
     clientSocket.end()

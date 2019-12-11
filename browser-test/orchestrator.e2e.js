@@ -42,7 +42,7 @@ const start = () => Promise.all([
   console.log(`baseurl=${testBaseUrl}`)
   console.log(`pid=${process.pid}`)
 }).catch(err => {
-  console.log('ORCHESTRATOR ERROR:', err.message)
+  console.log('ORCHESTRATOR Error:', err.message)
   console.log('shutting down')
   return stop()
 })
@@ -50,7 +50,7 @@ const start = () => Promise.all([
 const stop = () => Promise.all([
   uacService.stop(), sessionService.stop()
 ]).catch(err => {
-  console.log('shutdown ERROR:', err.message)
+  console.log('shutdown Error:', err.message)
 })
 
 process.env.TESTING = true

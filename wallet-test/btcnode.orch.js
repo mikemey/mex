@@ -6,6 +6,9 @@ const path = require('path')
 const download = require('download')
 const BitcoinClient = require('bitcoin-core')
 
+const { Logger } = require('../utils')
+const logger = Logger('BTCNode')
+
 const btcversion = '0.19.0.1'
 const dataDir = path.join(__dirname, '.regtest')
 
@@ -59,7 +62,7 @@ const oscheck = () => {
 }
 
 const installBinaries = () => {
-  console.log('installing regtest to', dataDir)
+  logger.debug('installing regtest to', dataDir)
   fs.mkdirSync(dataDir)
   return download(setupCfg.btcBinUrl, dataDir, { extract: true })
 }
@@ -85,19 +88,19 @@ const keyValuePair = obj => Object.keys(obj)
 
 const startBitcoind = () => {
   if (fs.existsSync(btcConfigFile.content.pid)) {
-    console.log('bitcoind already running')
+    logger.debug('bitcoind already running')
     return
   }
   const command = path.join(setupCfg.btcBinDir, 'bitcoind')
   const args = [setupCfg.dataDirArg]
   childProcess.spawnSync(command, args)
-  console.log('bitcoind started')
+  logger.debug('bitcoind started')
 }
 
 const waitForFaucet = (attempts = 9) => new Promise((resolve, reject) => {
   const checkWallet = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('Faucet wallet not available!')) }
-    console.log(`waiting for wallet (${currentAttempt})...`)
+    logger.debug(`waiting for wallet (${currentAttempt})...`)
 
     setTimeout(() => {
       faucetWallet.getWalletInfo()
@@ -145,13 +148,13 @@ const stop = async () => {
   const args = [setupCfg.dataDirArg, 'stop']
   childProcess.spawnSync(command, args)
   await waitForNodeDown()
-  console.log('bitcoind stopped')
+  logger.debug('bitcoind stopped')
 }
 
 const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   const checkPidFile = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('bitcoind shutdown failed!')) }
-    console.log(`waiting for shutdown (${currentAttempt})...`)
+    logger.debug(`waiting for shutdown (${currentAttempt})...`)
 
     setTimeout(() => {
       fs.access(btcConfigFile.content.pid, fs.F_OK, (err) => {

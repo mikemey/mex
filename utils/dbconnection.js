@@ -4,12 +4,14 @@ require('mongoose-long')(mg)
 const ObjectId = mg.Types.ObjectId
 const Long = require('mongodb').Long
 
+const logger = require('./logger')('dbconnection')
+
 let connectionEstablished = false
 
 const connect = ({ url, name }) => {
   if (connectionEstablished) { return Promise.resolve() }
   const dbUrl = `${url}/${name}`
-  console.log(`connecting to: [${dbUrl}]`)
+  logger.info(`connecting to: [${dbUrl}]`)
   return mg.connect(dbUrl, {
     useCreateIndex: true,
     useNewUrlParser: true,
