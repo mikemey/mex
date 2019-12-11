@@ -1,8 +1,7 @@
 const { sign, verify, TokenExpiredError } = require('jsonwebtoken')
 const NodeCache = require('node-cache')
 
-const { wsmessages } = require('../utils')
-const Logger = require('../utils/tmplogger')
+const { Logger, wsmessages } = require('../utils')
 
 const { Credentials } = require('./model')
 

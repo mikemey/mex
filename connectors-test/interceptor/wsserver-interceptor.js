@@ -1,14 +1,13 @@
 const uws = require('uWebSockets.js')
 const {
-  LogTrait,
+  Logger,
   wsmessages: { createRawMessage, extractMessage, OK_STATUS }
 } = require('../../utils')
 
 const closeClientSockets = clients => clients.forEach(client => client.close())
 
-class WSServerInterceptor extends LogTrait {
+class WSServerInterceptor {
   constructor (port, path) {
-    super()
     this.port = port
     this.path = path
     this.listenSocket = null
@@ -20,6 +19,7 @@ class WSServerInterceptor extends LogTrait {
     }
     this.interceptors = {}
     this.resetInterceptors()
+    this.logger = Logger(this.constructor.name)
   }
 
   resetInterceptors () {
@@ -35,18 +35,18 @@ class WSServerInterceptor extends LogTrait {
       }
       uws.App({}).ws(this.path, {
         open: (ws, req) => {
-          this.log('incoming connection')
+          this.logger.debug('incoming connection')
           this.received.authTokens.push(req.getHeader('x-auth-token'))
           this.clients.push(ws)
         },
         message: (ws, buffer) => this._processMessage(ws, buffer),
         close: closingWs => {
-          this.log('socket closed')
+          this.logger.debug('socket closed')
           this._removeClient(closingWs)
         }
       }).listen(this.port, socket => {
         if (socket) {
-          this.log(`listening on: ${this.port}`)
+          this.logger.debug(`listening on: ${this.port}`)
           this.listenSocket = socket
           resolve()
         }
@@ -65,7 +65,7 @@ class WSServerInterceptor extends LogTrait {
         const rawMessage = String.fromCharCode.apply(null, new Uint8Array(buffer))
         const message = extractMessage(rawMessage)
         receivedMessageId = message.id
-        this.log(`received: <${message.id}>`, message.body)
+        this.logger.debug(`received: <${message.id}>`, message.body)
         resolve(message.body)
       } catch (err) { reject(err) }
     }).then(request => {
@@ -73,30 +73,30 @@ class WSServerInterceptor extends LogTrait {
       return this.interceptors.responsePromise(ws)
     }).then(response => {
       if (this.interceptors.stopProcessing) {
-        this.log('interceptors.stopProcessing flag is True')
+        this.logger.debug('interceptors.stopProcessing flag is True')
         return
       }
-      this.log(`responding: <${receivedMessageId}>`, response)
+      this.logger.debug(`responding: <${receivedMessageId}>`, response)
       return ws.send(createRawMessage(receivedMessageId, response))
     }).then(sendResultOk => {
       if (this.interceptors.stopProcessing) { return }
       const buffered = ws.getBufferedAmount()
-      this.log(`send result: ${sendResultOk}, backpressure: ${buffered}`)
+      this.logger.debug(`send result: ${sendResultOk}, backpressure: ${buffered}`)
       if (!sendResultOk || buffered > 0) { throw new Error('WSServerInterceptor: sending failed') }
       if (this.interceptors.afterResponse) {
         return this.interceptors.afterResponse(ws)
       }
     }).catch(err => {
-      this.log('processing error:', err)
+      this.logger.debug('processing error:', err)
       this._removeClient(ws)
     })
   }
 
   stop () {
     return new Promise(resolve => {
-      this.log('stop')
+      this.logger.debug('stop')
       if (this.listenSocket) {
-        this.log('closing all sockets...')
+        this.logger.debug('closing all sockets...')
         closeClientSockets(this.clients)
         uws.us_listen_socket_close(this.listenSocket)
         this.listenSocket = null

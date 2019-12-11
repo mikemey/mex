@@ -1,6 +1,6 @@
 const WebSocket = require('ws')
 
-const { LogTrait, wsmessages } = require('../../utils')
+const { wsmessages, Logger } = require('../../utils')
 
 const isConnected = ws => {
   if (ws === null) return Promise.resolve(false)
@@ -15,15 +15,15 @@ const isConnected = ws => {
   }
 }
 
-class WSClientInterceptor extends LogTrait {
+class WSClientInterceptor {
   constructor (port, path, token) {
-    super()
     this.ws = null
     this.wsconfig = { port, path }
     this._defaultInterceptors = {
       headers: { 'X-AUTH-TOKEN': token },
       afterSendAction: null
     }
+    this.logger = Logger(this.constructor.name)
     this.interceptors = {}
     this.resetInterceptors()
   }
@@ -37,14 +37,14 @@ class WSClientInterceptor extends LogTrait {
 
     return new Promise((resolve, reject) => {
       const url = `ws://localhost:${connectConfig.port}${connectConfig.path}`
-      this.log('connecting to', url)
+      this.logger.debug('connecting to', url)
       this.ws = new WebSocket(url, { headers: this.interceptors.headers })
       this.ws.on('open', () => {
-        this.log('connected')
+        this.logger.debug('connected')
         resolve()
       })
       this.ws.on('error', err => {
-        this.log('error:', err)
+        this.logger.debug('error:', err)
         reject(err)
       })
     })
@@ -54,30 +54,30 @@ class WSClientInterceptor extends LogTrait {
     if (this.ws === null) throw Error('not initialized')
     return new Promise((resolve, reject) => {
       this.ws.on('message', raw => {
-        this.log(`on message: [${raw}]`)
+        this.logger.debug(`on message: [${raw}]`)
         const incoming = wsmessages.extractMessage(raw)
         resolve(incoming.body)
       })
       this.ws.on('close', (code, reason) => {
-        this.log(`on close: ${code} [${reason}]`)
+        this.logger.debug(`on close: ${code} [${reason}]`)
         resolve()
       })
       this.ws.on('error', err => {
-        this.log('on error', err)
+        this.logger.debug('on error', err)
         reject(err)
       })
-      this.log('sending:', request)
+      this.logger.debug('sending:', request)
       const message = wsmessages.createRawMessage(wsmessages.randomMessageId(), request)
       this.ws.send(message, err => {
         if (err) {
-          this.log('sending error:', err)
+          this.logger.debug('sending error:', err)
           reject(err)
         } else {
-          this.log('sending done')
+          this.logger.debug('sending done')
         }
       })
       if (this.interceptors.afterSendAction) {
-        this.log('running afterSendAction')
+        this.logger.debug('running afterSendAction')
         this.interceptors.afterSendAction(this.ws)
       }
     })
@@ -88,11 +88,11 @@ class WSClientInterceptor extends LogTrait {
       .then(isConnected => new Promise((resolve, reject) => {
         if (!isConnected) { return resolve() }
 
-        this.log('closing connection...')
+        this.logger.debug('closing connection...')
         const closeTimeout = this._createTimeout(reject, 'closing timed out')
         const success = name => () => {
           clearTimeout(closeTimeout)
-          this.log(`FINISHED from ${name}`)
+          this.logger.debug(`FINISHED from ${name}`)
           resolve()
         }
         this.ws.prependOnceListener('close', success('close'))
@@ -107,7 +107,7 @@ class WSClientInterceptor extends LogTrait {
 
   _createTimeout (reject, message) {
     return setTimeout(() => {
-      this.log(message)
+      this.logger.debug(message)
       if (this.ws) { this.ws.removeAllListeners() }
       reject(Error(message))
     }, 200)

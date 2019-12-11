@@ -10,9 +10,10 @@ describe('Real WSServer + WSClient', () => {
   const createClient = ({
     url = `ws://localhost:${port}${path}`,
     timeout = 200,
-    authToken = authorizedTokens[0]
+    authToken = authorizedTokens[0],
+    logCategory = 'ws-server-client-test'
   } = {}) => {
-    const wsclient = new WSClient({ url, timeout, authToken })
+    const wsclient = new WSClient({ url, timeout, authToken }, logCategory)
     wsclient.broadcastReceived = []
     return wsclient
   }

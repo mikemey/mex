@@ -11,7 +11,7 @@ describe('Websocket client', () => {
   const authToken = '12345678901234567890'
   const timeout = 250
   const defTestConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout }
-  const defaultClient = (config = defTestConfig) => new WSClient(Object.assign({}, config))
+  const defaultClient = (config = defTestConfig) => new WSClient(Object.assign({}, config), 'ws-test-client')
 
   describe('configuration checks', () => {
     const checkConfigError = (errconfig, expectedMessage) => {

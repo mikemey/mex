@@ -5,7 +5,7 @@ const moment = require('moment')
 const morgan = require('morgan')
 const Joi = require('@hapi/joi')
 
-const { LogTrait, Validator } = require('../utils')
+const { Logger, Validator } = require('../utils')
 
 const SESSION_COOKIE_NAME = 'x-session'
 
@@ -27,7 +27,7 @@ const sessionStore = secret => cookieSession({
   maxAge: 2 * 60 * 60 * 1000
 })
 
-const csrfProtection = errorLog => {
+const csrfProtection = logger => {
   const tokens = new Tokens({})
   const secret = tokens.secretSync()
   const skipMethods = ['GET', 'HEAD', 'OPTIONS']
@@ -35,7 +35,7 @@ const csrfProtection = errorLog => {
     if (!skipMethods.includes(req.method)) {
       const recvToken = req.session.csrf
       if (!tokens.verify(secret, recvToken)) {
-        errorLog('csrf token verification failed')
+        logger.error('csrf token verification failed')
         return res.status(403).end()
       }
     }
@@ -57,8 +57,8 @@ const requestLogger = suppressList => {
   return morgan(format, { skip })
 }
 
-const errorLogger = errorFunc => (err, req, res, next) => {
-  errorFunc('ERROR:', err.message, err)
+const errorLogger = logger => (err, req, res, next) => {
+  logger.error('ERROR:', err.message, err)
   res.status(500).end()
 }
 
@@ -67,13 +67,13 @@ const createVersionEndpoint = version => {
   return (_, res) => res.send(response)
 }
 
-class HttpServer extends LogTrait {
+class HttpServer {
   constructor (httpconfig) {
-    super()
     this.server = null
     this.httpconfig = httpconfig
     this.connections = {}
     Validator.oneTimeValidation(configSchema, this.httpconfig)
+    this.logger = Logger(this.constructor.name)
   }
 
   setupApp (_) { }
@@ -85,28 +85,27 @@ class HttpServer extends LogTrait {
 
     return new Promise((resolve, reject) => {
       const server = this._createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {
-        this.log('started on port', server.address().port)
-        this.log('server version:', this.httpconfig.version)
+        this.logger.info('started on port', server.address().port)
+        this.logger.info('server version:', this.httpconfig.version)
         this._addConnectionListeners(server)
         this.server = server
         resolve(server)
       })
 
       server.once('error', err => {
-        this.log('server error:', err.message, err)
+        this.logger.error('server error:', err.message, err)
         reject(err)
       })
     })
   }
 
   _createServer () {
-    const errorFunc = this.log.bind(this)
     const app = express()
 
     const suppressList = this.httpconfig.suppressRequestLog.map(entry => `${this.httpconfig.path}${entry}`)
     app.use(requestLogger(suppressList))
     app.use(sessionStore(this.httpconfig.secret))
-    app.use(csrfProtection(errorFunc))
+    app.use(csrfProtection(this.logger))
     this.setupApp(app)
 
     const pathRouter = express.Router()
@@ -115,7 +114,7 @@ class HttpServer extends LogTrait {
     pathRouter.get('/version', createVersionEndpoint(this.httpconfig.version))
     this.addRoutes(pathRouter)
 
-    app.use(errorLogger(errorFunc))
+    app.use(errorLogger(this.logger))
     return app
   }
 
@@ -130,11 +129,11 @@ class HttpServer extends LogTrait {
   stop () {
     if (this.server === null) { return Promise.resolve() }
     return new Promise(resolve => {
-      this.log('shutting down...')
+      this.logger.info('shutting down...')
 
       this.server.close(() => {
         this.server = null
-        this.log('server closed')
+        this.logger.info('server closed')
         resolve()
       })
 

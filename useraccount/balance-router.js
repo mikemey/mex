@@ -2,7 +2,7 @@ const express = require('express')
 
 const { assetsMetadata } = require('../metadata')
 const {
-  LogTrait, wsmessages: { withAction }, dbconnection: { Long, mg }
+  Logger, wsmessages: { withAction }, dbconnection: { Long, mg }
 } = require('../utils')
 
 const asset = mg.Schema({
@@ -32,10 +32,10 @@ const asHRAmount = (amount, symdata) => {
 
 const addressMessages = withAction('address')
 
-class BalanceRouter extends LogTrait {
+class BalanceRouter {
   constructor (walletClient) {
-    super()
     this.walletClient = walletClient
+    this.logger = Logger(this.constructor.name)
   }
 
   createRoutes () {

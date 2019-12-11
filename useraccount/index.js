@@ -26,8 +26,8 @@ class UserAccountService extends HttpServer {
     super(httpserverConfig)
 
     this.dbConfig = config.db
-    this.sessionClient = new WSClient(config.sessionService)
-    this.walletClient = new WSClient(config.walletService)
+    this.sessionClient = new WSClient(config.sessionService, 'UserAccount SessionClient')
+    this.walletClient = new WSClient(config.walletService, 'UserAccount WalletClient')
 
     this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
     this.balanceRouter = new BalanceRouter(this.walletClient)

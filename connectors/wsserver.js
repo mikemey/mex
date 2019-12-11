@@ -1,9 +1,7 @@
 const uws = require('uWebSockets.js')
 const Joi = require('@hapi/joi')
 
-const { Validator, wsmessages, randomHash } = require('../utils')
-
-const Logger = require('../utils/tmplogger')
+const { Logger, Validator, wsmessages, randomHash } = require('../utils')
 
 const configSchema = Joi.object({
   port: Joi.number().port().required(),

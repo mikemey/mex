@@ -1,7 +1,7 @@
 const WebSocket = require('ws')
 const Joi = require('@hapi/joi')
 
-const { LogTrait, Validator, wsmessages } = require('../utils')
+const { Logger, Validator, wsmessages } = require('../utils')
 
 const configSchema = Joi.object({
   url: Joi.string().uri().required(),
@@ -38,17 +38,18 @@ class TimeoutError extends Error {
 
 const topicSubscription = topic => wsmessages.withAction('subscribe').build({ topic })
 
-class WSClient extends LogTrait {
+class WSClient {
   constructor (config, logCategory) {
-    super(logCategory)
+    if (!logCategory) { throw Error('logCategory required') }
     Validator.oneTimeValidation(configSchema, config)
 
+    this.logger = Logger(logCategory)
     this.wsconfig = config
     this._reset()
   }
 
   _reset (callback = () => { }) {
-    this.log('resetting state')
+    this.logger.debug('resetting state')
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
     this.messageHandler = {}
@@ -57,11 +58,11 @@ class WSClient extends LogTrait {
   }
 
   _openWebsocket (resolve, reject) {
-    this.log('connecting to:', this.wsconfig.url)
+    this.logger.info('connecting to:', this.wsconfig.url)
 
     const saveEnding = (endCb, ...args) => {
       this._clearListeners()
-      this.log(...args)
+      this.logger.info(...args)
       endCb()
     }
 
@@ -77,7 +78,7 @@ class WSClient extends LogTrait {
       const message = wsmessages.extractMessage(raw)
       const handler = message.isBroadcast ? this.topicHandler[message.topic] : this.messageHandler[message.id]
       const errorId = message.isBroadcast ? message.topic : message.id
-      return handler ? handler(message) : this.log('dropping received:', `<${errorId}>`)
+      return handler ? handler(message) : this.logger.info('dropping received:', `<${errorId}>`)
     })
 
     const closedown = error => {
@@ -110,7 +111,7 @@ class WSClient extends LogTrait {
         default: return reject(Error(`unexpected WebSocket state [${this.ws.readyState}]`))
       }
     }).catch(err => {
-      this.log('processing error:', err.message, err)
+      this.logger.error('processing error:', err.message, err)
       const sendError = err instanceof TimeoutError ? err : new Error('disconnected')
       throw sendError
     })
@@ -120,7 +121,7 @@ class WSClient extends LogTrait {
     const addTopicCallback = resolve => subscriptionResponse => {
       if (subscriptionResponse.status === wsmessages.OK_STATUS) {
         this.topicHandler[topic] = message => {
-          this.log('received:', `<${topic}>`, message.body)
+          this.logger.debug('received:', `<${topic}>`, message.body)
           callback(topic, message.body)
         }
       }
@@ -135,7 +136,7 @@ class WSClient extends LogTrait {
     const saveEnding = (func, obj, ...logArgs) => {
       this._clearListeners()
       delete this.messageHandler[sendingId]
-      this.log(...logArgs)
+      this.logger.info(...logArgs)
       func(obj)
     }
 
@@ -156,10 +157,10 @@ class WSClient extends LogTrait {
     this.ws.prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
     this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
 
-    this.log('sending:', `<${sendingId}>`, request)
+    this.logger.debug('sending:', `<${sendingId}>`, request)
     this.ws.send(wsmessages.createRawMessage(sendingId, request), err => err
       ? saveReject(err, 'sending error')
-      : this.log('sending done')
+      : this.logger.debug('sending done')
     )
   }
 
@@ -168,12 +169,12 @@ class WSClient extends LogTrait {
   }
 
   _stopSync (resolve = () => { }, reject = () => { }) {
-    this.log('stopping...')
+    this.logger.debug('stopping...')
     if (this.ws === null) return resolve()
 
     const waitfor = Waiter(this.ws, reject)
     const finalise = () => {
-      this.log('stopped')
+      this.logger.info('stopped')
       this._reset(resolve)
     }
     const closeSocket = () => this._closeWebsocket(finalise)
@@ -189,10 +190,10 @@ class WSClient extends LogTrait {
   }
 
   _closeWebsocket (resolve) {
-    this.log('closing connection...')
+    this.logger.debug('closing connection...')
     const saveEnding = message => {
       this._clearListeners()
-      this.log(message)
+      this.logger.info(message)
       resolve()
     }
     const closeTimeout = this._createTimeout(err => saveEnding(err.message), 'closing timed out')

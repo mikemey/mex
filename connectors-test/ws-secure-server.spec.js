@@ -48,7 +48,7 @@ describe('WSSecureServer', () => {
 
   const sessionServiceMock = new WSServerMock(sessionMockConfig)
   const securedServer = new WSSecureServerDummyImpl(wsSecureServerConfig)
-  const userClient = new WSClient(userClientConfig)
+  const userClient = new WSClient(userClientConfig, 'secure-test-client')
 
   const testJwt = '12345678901234567890'
   const clientRequest = { jwt: testJwt, action: 'client-request' }

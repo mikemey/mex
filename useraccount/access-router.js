@@ -4,8 +4,7 @@ const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
 const {
-  wsmessages: { withAction, OK_STATUS, NOK_STATUS },
-  Validator, LogTrait
+  wsmessages: { withAction, OK_STATUS, NOK_STATUS }, Validator, Logger
 } = require('../utils')
 
 const registerSchema = Joi.object({
@@ -35,12 +34,12 @@ const errorResponse = (res, view, message, email) => res.render(view, { error: m
 
 const hash = data => crypto.createHash('sha256').update(data).digest('hex')
 
-class AccessRouter extends LogTrait {
+class AccessRouter {
   constructor (sessionClient, httpConfig) {
-    super()
     this.sessionClient = sessionClient
     this.pathPrefix = httpConfig.path
 
+    this.logger = Logger(this.constructor.name)
     this.loginPath = `${this.pathPrefix}/${LOGIN}`
     this.registerPath = `${this.pathPrefix}/${REGISTER}`
     this.homePath = `${this.pathPrefix}/index`
@@ -51,7 +50,7 @@ class AccessRouter extends LogTrait {
     const verifyMessages = withAction('verify')
 
     const redirectToLogin = (res, flag = 'auth') => {
-      this.log('authentication required')
+      this.logger.info('authentication required')
       return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag }))
     }
 
@@ -68,7 +67,7 @@ class AccessRouter extends LogTrait {
               }
               case NOK_STATUS: return redirectToLogin(res)
               default: {
-                this.log('session service verification error:', result.message)
+                this.logger.error('session service verification error:', result.message)
                 return redirectToLogin(res, 'unavailable')
               }
             }
@@ -80,7 +79,7 @@ class AccessRouter extends LogTrait {
 
   createRoutes () {
     const serviceUnavailable = (res, view, backendMessage, email) => {
-      this.log('session service error:', backendMessage)
+      this.logger.error('session service error:', backendMessage)
       errorResponse(res, view, 'service unavailable', email)
     }
 
@@ -101,7 +100,7 @@ class AccessRouter extends LogTrait {
           switch (result.status) {
             case OK_STATUS: return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag: 'reg' }))
             case NOK_STATUS: {
-              this.log('registration failed:', result.message)
+              this.logger.info('registration failed:', result.message)
               return errorResponse(res, REGISTER, result.message, email)
             }
             default: return serviceUnavailable(res, REGISTER, result.message, email)
@@ -132,7 +131,7 @@ class AccessRouter extends LogTrait {
               return res.redirect(303, this.homePath)
             }
             case NOK_STATUS: {
-              this.log('login failed:', result.message)
+              this.logger.info('login failed:', result.message)
               return errorResponse(res, LOGIN, result.message, email)
             }
             default: return serviceUnavailable(res, LOGIN, result.message, email)

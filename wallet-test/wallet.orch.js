@@ -35,7 +35,7 @@ const wsClientConfig = {
 
 const walletService = new WalletService(walletServiceConfig)
 const sessionMock = new WSServerMock(sessionMockConfig)
-const wsClient = new WSClient(wsClientConfig)
+const wsClient = new WSClient(wsClientConfig, 'wallet-test-client')
 
 const startServices = async function () {
   this.timeout(60000)
