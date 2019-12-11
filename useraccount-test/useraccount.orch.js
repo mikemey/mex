@@ -29,8 +29,8 @@ const userAccountService = new UserAccountService({
   db: dbConfig
 })
 
-const sessionMock = new WSServerMock(sessionMockConfig)
-const walletMock = new WSServerMock(walletMockConfig)
+const sessionMock = new WSServerMock(sessionMockConfig, 'uac session-mock')
+const walletMock = new WSServerMock(walletMockConfig, 'uac wallet-mock')
 
 const loginMessages = withAction('login')
 const verifyMessages = withAction('verify')

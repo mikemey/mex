@@ -12,7 +12,7 @@ const configSchema = Joi.object({
 const ClientSocket = (ws, logger) => {
   const send = message => {
     try { return ws.send(message) } catch (err) {
-      ws.log(err)
+      logger.error(err)
       return false
     }
   }
@@ -56,10 +56,12 @@ class WSServer {
     return cs
   }
 
-  _removeClientSocket (ws) {
+  _removeClientSocket (ws, quietly = false) {
     const csIndex = this.clientSockets.findIndex(c => c.ws === ws)
-    if (csIndex < 0) { throw new Error('ws not found!') }
-    return this.clientSockets.splice(csIndex, 1)[0]
+    if (csIndex >= 0) {
+      return this.clientSockets.splice(csIndex, 1)[0]
+    }
+    if (!quietly && csIndex < 0) { throw new Error('ws not found!') }
   }
 
   start () {
@@ -149,8 +151,8 @@ class WSServer {
   }
 
   _sendingError (clientSocket, message) {
-    this._removeClientSocket(clientSocket.ws)
     clientSocket.logger.error(message)
+    this._removeClientSocket(clientSocket.ws, true)
     clientSocket.end()
   }
 

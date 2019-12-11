@@ -4,9 +4,11 @@ const _ = require('underscore')
 const { WSServer } = require('../connectors')
 
 class WSServerMock extends WSServer {
-  constructor (config) {
+  constructor (config, subCategory) {
     super(config)
     this.reset()
+    if (!subCategory) { throw new Error('WSServerMock requires log-subCategory') }
+    this.logger = this.logger.childLogger(subCategory)
   }
 
   reset () {

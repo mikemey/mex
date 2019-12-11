@@ -46,7 +46,7 @@ describe('WSSecureServer', () => {
     }
   }
 
-  const sessionServiceMock = new WSServerMock(sessionMockConfig)
+  const sessionServiceMock = new WSServerMock(sessionMockConfig, 'secure session-mock')
   const securedServer = new WSSecureServerDummyImpl(wsSecureServerConfig)
   const userClient = new WSClient(userClientConfig, 'secure-test-client')
 
