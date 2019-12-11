@@ -60,18 +60,21 @@ class WSClient {
   _openWebsocket (resolve, reject) {
     this.logger.info('connecting to:', this.wsconfig.url)
 
-    const saveEnding = (endCb, ...args) => {
+    const saveEnding = (endCb, logFunc, ...args) => {
       this._clearListeners()
-      this.logger.info(...args)
+      logFunc(...args)
       endCb()
     }
 
-    const connectTimeout = this._createTimeout(err => saveEnding(() => reject(err)), 'connecting timed out')
+    const connectTimeout = this._createTimeout(
+      err => saveEnding(() => reject(err), this.logger.error),
+      'connecting timed out'
+    )
 
     this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
     this.ws.prependOnceListener('open', () => {
       connectTimeout.cancel()
-      saveEnding(resolve, 'connection established')
+      saveEnding(resolve, this.logger.debug, 'connection established')
     })
 
     this.ws.addListener('message', raw => {
@@ -84,7 +87,7 @@ class WSClient {
     const closedown = error => {
       connectTimeout.cancel()
       const rejectOriginError = () => reject(error)
-      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), 'connection error:', error)
+      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), this.logger.error, 'connection error:', error)
     }
     this.ws.prependOnceListener('close', closedown)
     this.ws.prependOnceListener('error', closedown)
@@ -133,23 +136,26 @@ class WSClient {
   _requestResponse (request, resolve, reject) {
     const sendingId = wsmessages.randomMessageId()
 
-    const saveEnding = (func, obj, ...logArgs) => {
+    const saveEnding = (func, obj, logFunc, ...logArgs) => {
       this._clearListeners()
       delete this.messageHandler[sendingId]
-      this.logger.info(...logArgs)
+      logFunc(...logArgs)
       func(obj)
     }
 
-    const responseTimeout = this._createTimeout(err => saveEnding(reject, err, err.message), 'response timed out')
+    const responseTimeout = this._createTimeout(
+      err => saveEnding(reject, err, this.logger.error, err.message),
+      'response timed out'
+    )
 
     const handler = message => {
       responseTimeout.cancel()
-      saveEnding(resolve, message.body, 'received:', `<${message.id}>`, message.body)
+      saveEnding(resolve, message.body, this.logger.debug, 'received:', `<${message.id}>`, message.body)
     }
 
     const saveReject = (err, message) => {
       responseTimeout.cancel()
-      saveEnding(reject, err, message)
+      saveEnding(reject, err, this.logger.error, message)
     }
 
     this.messageHandler[sendingId] = handler
@@ -191,21 +197,21 @@ class WSClient {
 
   _closeWebsocket (resolve) {
     this.logger.debug('closing connection...')
-    const saveEnding = message => {
+    const saveEnding = (logFunc, message) => {
       this._clearListeners()
-      this.logger.info(message)
+      logFunc(message)
       resolve()
     }
-    const closeTimeout = this._createTimeout(err => saveEnding(err.message), 'closing timed out')
+    const closeTimeout = this._createTimeout(err => saveEnding(this.logger.error, err.message), 'closing timed out')
 
-    const cleanup = message => err => {
+    const cleanup = (logFunc, message) => err => {
       closeTimeout.cancel()
       if (err) { message = `${message} ${err}` }
-      saveEnding(message)
+      saveEnding(logFunc, message)
     }
-    this.ws.prependOnceListener('close', cleanup('closed'))
-    this.ws.prependOnceListener('error', cleanup('error closing:'))
-    this.ws.prependOnceListener('unexpected-response', cleanup('unexpected-response'))
+    this.ws.prependOnceListener('close', cleanup(this.logger.debug, 'closed'))
+    this.ws.prependOnceListener('error', cleanup(this.logger.error, 'error closing:'))
+    this.ws.prependOnceListener('unexpected-response', cleanup(this.logger.error, 'unexpected-response'))
     this.ws.close()
   }
 

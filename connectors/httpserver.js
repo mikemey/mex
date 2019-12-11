@@ -130,7 +130,7 @@ class HttpServer {
   stop () {
     if (this.server === null) { return Promise.resolve() }
     return new Promise(resolve => {
-      this.logger.info('shutting down...')
+      this.logger.debug('shutting down...')
 
       this.server.close(() => {
         this.server = null

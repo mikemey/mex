@@ -81,7 +81,7 @@ class WSServer {
         drain: (ws) => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
         close: (ws, code) => {
           const clientSocket = this._removeClientSocket(ws)
-          clientSocket.logger.info('socket closed:', code)
+          clientSocket.logger.debug('socket closed:', code)
         }
       }).listen(this.config.port, socket => {
         if (socket) {
@@ -100,12 +100,12 @@ class WSServer {
   stop () {
     return new Promise(resolve => {
       if (this.listenSocket) {
-        this.logger.info('shutting down')
+        this.logger.debug('shutting down')
         this.clientSockets.forEach(cs => cs.end())
         this.clientSockets = []
         uws.us_listen_socket_close(this.listenSocket)
         this.listenSocket = null
-        this.logger.info('stopped.')
+        this.logger.info('stopped')
       } else {
         this.logger.info('already stopped')
       }
