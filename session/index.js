@@ -40,9 +40,8 @@ class SessionService extends WSServer {
     Validator.oneTimeValidation(configSchema, config)
     this.dbConfig = config.db
 
-    this.accessService = createAccessService(
-      Buffer.from(config.jwtkey, 'base64'), jwtExpirationSecs, this.log.bind(this)
-    )
+    const secretBuffer = Buffer.from(config.jwtkey, 'base64')
+    this.accessService = createAccessService(secretBuffer, jwtExpirationSecs)
   }
 
   start () {

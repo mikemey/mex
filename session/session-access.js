@@ -2,6 +2,8 @@ const { sign, verify, TokenExpiredError } = require('jsonwebtoken')
 const NodeCache = require('node-cache')
 
 const { wsmessages } = require('../utils')
+const Logger = require('../utils/tmplogger')
+
 const { Credentials } = require('./model')
 
 const isUserExists = err => err.name === 'UserExistsError'
@@ -20,7 +22,8 @@ const revokeOK = wsmessages.withAction(KW_REVOKE).ok()
 
 const authenticate = Credentials.authenticate()
 
-const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
+const createAccessService = (secretBuffer, jwtExpirationSecs) => {
+  const logger = Logger('AccessService')
   const revokedJwtCache = new NodeCache({
     stdTTL: jwtExpirationSecs,
     useClones: false
@@ -29,7 +32,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
   const registerUser = message => Credentials.register({ email: message.email }, message.password)
     .then(() => registerOK)
     .catch(err => {
-      logFunc(err.message)
+      logger.error(err.message)
       if (isUserExists(err)) { return registerResponse.nok(`duplicate name [${message.email}]`) }
       throw err
     })
@@ -46,7 +49,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
     if (revokedJwtCache.get(message.jwt)) { return resolve(verifyNOK) }
     verify(message.jwt, secretBuffer, (err, payload) => {
       if (err) {
-        logFunc('jwt verification failed:', err.message)
+        logger.error('jwt verification failed:', err.message)
         const response = err instanceof TokenExpiredError
           ? verifyResponse.nok(err.message)
           : verifyNOK
@@ -58,7 +61,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs, logFunc) => {
 
   const revokeToken = message => new Promise((resolve, reject) => {
     verify(message.jwt, secretBuffer, err => {
-      err ? logFunc('revoke jwt failed:', err.message)
+      err ? logger.error('revoke jwt failed:', err.message)
         : revokedJwtCache.set(message.jwt, true)
       resolve(revokeOK)
     })

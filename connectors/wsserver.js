@@ -1,7 +1,9 @@
 const uws = require('uWebSockets.js')
 const Joi = require('@hapi/joi')
 
-const { LogTrait, Validator, wsmessages, randomHash } = require('../utils')
+const { Validator, wsmessages, randomHash } = require('../utils')
+
+const Logger = require('../utils/tmplogger')
 
 const configSchema = Joi.object({
   port: Joi.number().port().required(),
@@ -9,7 +11,7 @@ const configSchema = Joi.object({
   authorizedTokens: Joi.array().items(Validator.secretToken('authorizedToken')).required()
 })
 
-const ClientSocket = ws => {
+const ClientSocket = (ws, logger) => {
   const send = message => {
     try { return ws.send(message) } catch (err) {
       ws.log(err)
@@ -22,9 +24,8 @@ const ClientSocket = ws => {
   const getBufferedAmount = () => {
     try { return ws.getBufferedAmount() } catch (err) { return 0 }
   }
-  const log = (...args) => ws.log(...args)
 
-  return { ws, log, send, end, getBufferedAmount }
+  return { ws, logger, send, end, getBufferedAmount }
 }
 
 const SUBSCRIBE_ACT = 'subscribe'
@@ -34,47 +35,63 @@ const topicSubscriptionNOK = submsgs.nok()
 
 const isInvalid = topic => topic.includes('{')
 
-class WSServer extends LogTrait {
+class WSServer {
   constructor (config) {
-    super()
     Validator.oneTimeValidation(configSchema, config)
 
     this.listenSocken = null
     this.config = config
     this.clientSockets = []
     this.topics = {}
+    this.logger = Logger(this.constructor.name)
+  }
+
+  _createClientSocket (ws) {
+    const clientSocket = ClientSocket(ws, this.logger.childLogger(randomHash()))
+    this.clientSockets.push(clientSocket)
+    return clientSocket
+  }
+
+  _getClientSocket (ws) {
+    const cs = this.clientSockets.find(c => c.ws === ws)
+    if (!cs) { throw new Error('ws not found!') }
+    return cs
+  }
+
+  _removeClientSocket (ws) {
+    const csIndex = this.clientSockets.findIndex(c => c.ws === ws)
+    if (csIndex < 0) { throw new Error('ws not found!') }
+    return this.clientSockets.splice(csIndex, 1)[0]
   }
 
   start () {
-    this.clientSockets = []
-
     return new Promise((resolve, reject) => {
       uws.App({}).ws(this.config.path, {
         maxPayloadLength: 4 * 1024,
         open: (ws, req) => {
+          const clientSocket = this._createClientSocket(ws)
           const authToken = req.getHeader('x-auth-token')
           if (!this.config.authorizedTokens.includes(authToken)) {
-            this.log('authorization failed, closing socket')
+            clientSocket.logger.error('authorization failed, closing socket')
             return ws.close()
           }
-          ws.log = this.createIdLog(randomHash())
-          this._wslog(ws, 'client authorized successful')
-          this.clientSockets.push(ClientSocket(ws))
+          clientSocket.logger.info('client authorized successful')
         },
-        message: (ws, buffer) => this._processMessage(ClientSocket(ws), buffer),
-        drain: (ws) => this._wslog(ws, 'socket backpressure:', ws.getBufferedAmount()),
+        message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
+        drain: (ws) => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
         close: (ws, code) => {
-          this._removeClient(ClientSocket(ws))
-          this._wslog(ws, 'socket closed:', code)
+          console.log('ws.close _removeClientSocket')
+          const clientSocket = this._removeClientSocket(ws)
+          clientSocket.logger.info('socket closed:', code)
         }
       }).listen(this.config.port, socket => {
         if (socket) {
-          this.log('listening on port', this.config.port)
+          this.logger.info('listening on port', this.config.port)
           this.listenSocket = socket
           resolve()
         } else {
           const msg = `failed to listen on port ${this.config.port}`
-          this.log(msg)
+          this.logger.error(msg)
           reject(Error(msg))
         }
       })
@@ -84,13 +101,14 @@ class WSServer extends LogTrait {
   stop () {
     return new Promise(resolve => {
       if (this.listenSocket) {
-        this.log('shutting down')
-        this.clientSockets.forEach(ws => ws.end())
+        this.logger.info('shutting down')
+        this.clientSockets.forEach(cs => cs.end())
+        this.clientSockets = []
         uws.us_listen_socket_close(this.listenSocket)
         this.listenSocket = null
-        this.log('stopped.')
+        this.logger.info('stopped.')
       } else {
-        this.log('already stopped')
+        this.logger.info('already stopped')
       }
       resolve()
     })
@@ -103,34 +121,41 @@ class WSServer extends LogTrait {
         const raw = String.fromCharCode.apply(null, new Uint8Array(buffer))
         incoming.msg = wsmessages.extractMessage(raw)
         incoming.msg.prettyId = `<${incoming.msg.id}>`
-        this._wslog(clientSocket, 'received:', incoming.msg.prettyId, incoming.msg.body)
+        clientSocket.logger.debug('received:', incoming.msg.prettyId, incoming.msg.body)
         resolve(incoming.msg.body)
       } catch (err) { reject(err) }
     }).then(req => this._internalReceived(clientSocket, req))
       .catch(err => {
-        this._wslog(clientSocket, 'processing error:', err)
+        clientSocket.logger.error('processing error:', err)
         incoming.dropConnection = err.keepConnection !== true
         if (err.clientResponse) { return err.clientResponse }
         return wsmessages.error(incoming.msg.body)
       })
       .then(response => {
-        this._wslog(clientSocket, 'responding:', incoming.msg.prettyId, response)
+        clientSocket.logger.debug('responding:', incoming.msg.prettyId, response)
         const message = wsmessages.createRawMessage(incoming.msg.id, response)
         return clientSocket.send(message)
       })
       .catch(err => {
-        this._wslog(clientSocket, 'sending error:', err)
+        clientSocket.logger.error('sending error:', err)
         incoming.dropConnection = true
         return false
       })
       .then(sendResultOk => {
         const buffered = clientSocket.getBufferedAmount()
-        this._wslog(clientSocket, 'send result', incoming.msg.prettyId, 'OK:', sendResultOk, ' buffered:', buffered)
+        clientSocket.logger.debug('send result', incoming.msg.prettyId, 'OK:', sendResultOk, ' buffered:', buffered)
 
         if (!sendResultOk) { this._sendingError(clientSocket, 'send result NOK') }
         if (buffered > 0) { this._sendingError(clientSocket, `buffer not empty: ${buffered}`) }
         if (incoming.dropConnection) { this._sendingError(clientSocket, 'closing connection') }
       })
+  }
+
+  _sendingError (clientSocket, message) {
+    console.log('sending error _removeClientSocket')
+    this._removeClientSocket(clientSocket.ws)
+    clientSocket.logger.error(message)
+    clientSocket.end()
   }
 
   offerTopics (...topics) {
@@ -145,7 +170,7 @@ class WSServer extends LogTrait {
     if (!Object.keys(this.topics).includes(topic)) {
       return Promise.reject(Error(`invalid topic [${topic}]`))
     }
-    this.log('broadcasting:', `<${topic}>`, message)
+    this.logger.debug('broadcasting:', `<${topic}>`, message)
     const broadcastmsg = wsmessages.createBroadcastMessage(topic, message)
     const messageToClient = clientSocket => Promise.resolve(clientSocket.send(broadcastmsg))
     return Promise.all(this.topics[topic].map(messageToClient))
@@ -154,10 +179,10 @@ class WSServer extends LogTrait {
   _internalReceived (clientSocket, request) {
     if (request.action === SUBSCRIBE_ACT) {
       if (!Object.keys(this.topics).includes(request.topic)) {
-        this.log('topic not available:', request.topic)
+        clientSocket.logger.error('topic not available:', request.topic)
         return Promise.resolve(topicSubscriptionNOK)
       }
-      this.log('topic subscription:', request.topic)
+      clientSocket.logger.info('topic subscription:', request.topic)
       this.topics[request.topic].push(clientSocket)
       return Promise.resolve(topicSubscriptionOK)
     }
@@ -165,20 +190,6 @@ class WSServer extends LogTrait {
   }
 
   received (request) { return Promise.resolve(request) }
-
-  _sendingError (clientSocket, message) {
-    this._removeClient(clientSocket)
-    this.log(message)
-    clientSocket.end()
-  }
-
-  _removeClient (clientSocket) {
-    this.clientSockets = this.clientSockets.filter(c => c.ws !== clientSocket.ws)
-  }
-
-  _wslog (ws, ...args) {
-    (ws && ws.log) ? ws.log(...args) : this.log(...args)
-  }
 }
 
 module.exports = WSServer

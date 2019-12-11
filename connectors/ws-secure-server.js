@@ -43,7 +43,7 @@ class WSSecureServer extends WSServer {
     const result = await this.sessionClient
       .send(verifyMessages.build({ jwt: message.jwt }))
       .catch(err => {
-        this.log('verification error:', err)
+        this.logger.error('verification error:', err)
         return sessionServiceUnavailable
       })
     switch (result.status) {

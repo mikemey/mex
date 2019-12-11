@@ -82,7 +82,7 @@ function stop_e2e_infrastructure () {
   kill "$(extract_from_output "$server_pid_re")" && echo "server stopped."
   echo "e2e infrastructure stopped."
 
-  errors=`grep -i "error" ${e2e_output}`
+  errors=`grep "Error" ${e2e_output}`
   if [[ -z ${errors} ]] || [[ -n ${force_stop} ]]; then
     rm "$e2e_output"
   else
