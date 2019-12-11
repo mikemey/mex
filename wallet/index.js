@@ -9,7 +9,10 @@ const { assetsMetadata } = require('../metadata')
 const { createDepositer, ADDRESS_ACT } = require('./wallet-deposit')
 
 const configSchema = Joi.object({
-  btcClient: Joi.object().min(1).required(),
+  btcnode: Joi.object({
+    client: Joi.object().required(),
+    zmq: Joi.string().required()
+  }).required(),
   db: Joi.object().min(1).required()
 }).unknown()
 
@@ -24,22 +27,27 @@ class WalletService extends WSSecureServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
     const configCopy = Object.assign({}, config)
-    delete configCopy.btcClient
+    delete configCopy.btcnode
     delete configCopy.db
     super(configCopy)
 
     this.dbConfig = config.db
 
-    const btcWallet = new BitcoinClient(config.btcClient)
-    this.depositer = createDepositer(btcWallet)
+    const btcWallet = new BitcoinClient(config.btcnode.client)
+    this.depositer = createDepositer(btcWallet, config.btcnode.zmq)
+    this.offerTopics('address-funding')
   }
 
   start () {
-    return Promise.all([dbconnection.connect(this.dbConfig), super.start()])
+    return Promise.all([
+      dbconnection.connect(this.dbConfig), super.start(), this.depositer.startListener()
+    ])
   }
 
   stop () {
-    return Promise.all([super.stop(), dbconnection.close()])
+    return Promise.all([
+      super.stop(), dbconnection.close(), this.depositer.stopListener()
+    ])
   }
 
   async secureReceived (request) {

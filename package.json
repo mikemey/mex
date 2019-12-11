@@ -15,6 +15,8 @@
   "scripts": {
     "lint": "standard",
     "alltest": "TESTING=true mocha 'connectors-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' 'wallet-test/**/**.spec.js' -r chai/register-should",
+    "single": "TESTING=true mocha wallet-test/**/**.spec.js -r chai/register-should",
+    "~single": "nodemon -x 'npm run single -s'",
     "e2e": "./browser-test/e2ehelper.sh",
     "pretest": "npm install",
     "test": "npm run lint -s && npm run alltest -s && npm run e2e -s",
@@ -37,7 +39,8 @@
     "passport-local-mongoose": "^5.0.1",
     "pug": "^2.0.4",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v16.4.0",
-    "ws": "^7.2.0"
+    "ws": "^7.2.0",
+    "zeromq": "^6.0.0-beta.5"
   },
   "devDependencies": {
     "chai": "^4.2.0",

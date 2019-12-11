@@ -21,6 +21,8 @@ const mainWalletName = 'mex-test-wallet'
 const faucetWalletName = 'faucet'
 
 const walletConfig = (wallet = mainWalletName) => Object.assign({ wallet }, btcClientConfig)
+const zmqConfig = 'tcp://127.0.0.1:19591'
+
 const faucetWallet = new BitcoinClient(walletConfig(faucetWalletName))
 
 const btcConfigFile = {
@@ -36,7 +38,8 @@ const btcConfigFile = {
         rpcauth: 'regtester:a1c4c0cf083f71dc25d230298beab0a9$479765cb0999b734931ddfe4ac0a5b6245ff6ebd13a36d675432ea88817e5d7f',
         port: 36963,
         rpcport: btcClientConfig.port,
-        wallet: [faucetWalletName, mainWalletName]
+        wallet: [faucetWalletName, mainWalletName],
+        zmqpubhashtx: zmqConfig
       }
     }
   }
@@ -109,9 +112,8 @@ const generateBlocks = (blocks = 1) => faucetWallet.getNewAddress()
   .then(address => faucetWallet.generateToAddress(blocks, address))
 
 const refillFaucet = () => {
-  const faucet = faucetWallet
   const needMoreBlocks = () => generateBlocks()
-    .then(() => faucet.command('getbalances'))
+    .then(() => faucetWallet.command('getbalances'))
     .then(balances => {
       if (balances.mine.trusted < setupCfg.minFaucetBalance) {
         return needMoreBlocks()
@@ -161,4 +163,4 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   checkPidFile(attempts)
 })
 
-module.exports = { start, stop, faucetWallet, walletConfig, generateBlocks }
+module.exports = { start, stop, faucetWallet, walletConfig, generateBlocks, zmqConfig }

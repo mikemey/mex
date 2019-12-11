@@ -20,7 +20,10 @@ const walletServiceConfig = {
     authToken: sessionAuthToken,
     timeout: 40
   },
-  btcClient: btcnode.walletConfig(),
+  btcnode: {
+    client: btcnode.walletConfig(),
+    zmq: btcnode.zmqConfig
+  },
   db: dbConfig
 }
 
@@ -63,7 +66,7 @@ const createDepositAddress = async (id = registeredUser.id) => {
   )
 }
 
-beforeEach(async () => {
+beforeEach(() => {
   sessionMock.reset()
   sessionMock.addMockFor(verifyReq, verifyRes)
 })

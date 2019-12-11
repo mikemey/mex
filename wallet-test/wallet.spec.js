@@ -19,7 +19,9 @@ describe('Wallet service', () => {
 
   describe('configuration check', () => {
     const testParameters = [
-      { title: 'missing btcClient configuration', changeConfig: cfg => delete cfg.btcClient, error: '"btcClient" is required' },
+      { title: 'missing btcnode configuration', changeConfig: cfg => delete cfg.btcnode, error: '"btcnode" is required' },
+      { title: 'missing btcnode.client configuration', changeConfig: cfg => delete cfg.btcnode.client, error: '"btcnode.client" is required' },
+      { title: 'missing btcnode.zmq configuration', changeConfig: cfg => delete cfg.btcnode.zmq, error: '"btcnode.zmq" is required' },
       { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' }
     ]
 
@@ -27,7 +29,10 @@ describe('Wallet service', () => {
       it(params.title, () => {
         const config = {
           httpserver: { does: 'not-matter' },
-          btcClient: { does: 'not-matter' },
+          btcnode: {
+            client: { does: 'not-matter' },
+            zmq: 'does-not-matter'
+          },
           walletService: { does: 'not-matter' },
           db: { does: 'not-matter' }
         }

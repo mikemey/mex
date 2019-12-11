@@ -154,8 +154,10 @@ class WSServer extends LogTrait {
   _internalReceived (clientSocket, request) {
     if (request.action === SUBSCRIBE_ACT) {
       if (!Object.keys(this.topics).includes(request.topic)) {
+        this.log('topic not available:', request.topic)
         return Promise.resolve(topicSubscriptionNOK)
       }
+      this.log('topic subscription:', request.topic)
       this.topics[request.topic].push(clientSocket)
       return Promise.resolve(topicSubscriptionOK)
     }

@@ -1,3 +1,5 @@
+const zmq = require('zeromq')
+
 const { wsmessages: { withAction }, dbconnection } = require('../utils')
 
 const ADDRESS_ACT = 'address'
@@ -25,7 +27,9 @@ const createSymbolAddress = async (userAddresses, symbol, address) => {
   return newSymbolAddress
 }
 
-const createDepositer = wallet => {
+const createDepositer = (wallet, zmqUrl) => {
+  const data = { sock: null }
+
   const getAddress = async request => {
     const { user: { id }, symbol } = request
     const userAddresses = await findUserAddresses(id) || await createUserAddress(id)
@@ -35,7 +39,24 @@ const createDepositer = wallet => {
     return newAddressMessages.ok({ address: symbolAddress.address })
   }
 
-  return { getAddress }
+  const startListener = () => {
+    const run = async () => {
+      data.sock = new zmq.Subscriber()
+      data.sock.connect(zmqUrl)
+      data.sock.subscribe('hashtx')
+
+      for await (const [topic, msg] of data.sock) {
+        console.log('=====', topic.toString(), msg.toString('hex'))
+      }
+    }
+    run()
+  }
+
+  const stopListener = () => {
+    if (data.sock) { data.sock.close() }
+  }
+
+  return { getAddress, startListener, stopListener }
 }
 
 module.exports = { createDepositer, ADDRESS_ACT }
