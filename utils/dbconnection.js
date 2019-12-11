@@ -4,7 +4,7 @@ require('mongoose-long')(mg)
 const ObjectId = mg.Types.ObjectId
 const Long = require('mongodb').Long
 
-const logger = require('./logger')('dbconnection')
+const logger = require('./logger').Logger('dbconnection')
 
 let connectionEstablished = false
 

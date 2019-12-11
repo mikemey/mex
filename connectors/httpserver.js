@@ -5,7 +5,7 @@ const moment = require('moment')
 const morgan = require('morgan')
 const Joi = require('@hapi/joi')
 
-const { Logger, Validator } = require('../utils')
+const { Logger, LOG_LEVELS, Validator } = require('../utils')
 
 const SESSION_COOKIE_NAME = 'x-session'
 
@@ -45,14 +45,15 @@ const csrfProtection = logger => {
   }
 }
 
-const requestLogger = suppressList => {
+const requestLogger = (suppressList, logger) => {
   morgan.token('clientIP', req => req.headers['x-forwarded-for'] || req.connection.remoteAddress)
-  const format = ':date[iso] [:clientIP] :method :url [:status] [:res[content-length] bytes] - :response-time[0]ms :user-agent'
+  morgan.token('redirectUrl', (_, res) => res.statusCode >= 300 && res.statusCode < 400
+    ? ` --> ${res.getHeader('location')}]`
+    : ']'
+  )
+  const format = ':date[iso]  http [:clientIP] :method :url [:status:redirectUrl [:res[content-length] bytes] - :response-time[0]ms :user-agent'
 
-  const skip = (req, res) =>
-    suppressList.includes(req.originalUrl) ||
-    process.env.TESTING !== undefined ||
-    res.statusCode === 304
+  const skip = req => suppressList.includes(req.originalUrl) || logger.skipLogLevel(LOG_LEVELS.http)
 
   return morgan(format, { skip })
 }
@@ -103,7 +104,7 @@ class HttpServer {
     const app = express()
 
     const suppressList = this.httpconfig.suppressRequestLog.map(entry => `${this.httpconfig.path}${entry}`)
-    app.use(requestLogger(suppressList))
+    app.use(requestLogger(suppressList, this.logger))
     app.use(sessionStore(this.httpconfig.secret))
     app.use(csrfProtection(this.logger))
     this.setupApp(app)
