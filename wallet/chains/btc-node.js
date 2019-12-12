@@ -7,13 +7,13 @@ const { Validator, dbconnection } = require('../../utils')
 
 const configSchema = Joi.object({
   client: Joi.object().required(),
-  zmq: Joi.string().required(),
-  db: Joi.object().required()
+  zmq: Joi.string().required()
 })
 
-const create = async config => {
+const create = config => {
   Validator.oneTimeValidation(configSchema, config)
-  await dbconnection.connect(config.db)
+  if (!dbconnection.isConnected()) { throw new Error('no db connection available') }
+
   const btcAddressesCollection = dbconnection.collection('btc-addresses')
   const wallet = new BitcoinClient(config.client)
 

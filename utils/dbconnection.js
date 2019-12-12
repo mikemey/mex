@@ -20,10 +20,13 @@ const connect = ({ url, name }) => {
   }).then(() => { connectionEstablished = true })
 }
 
+const isConnected = () => mg.connection.db !== undefined &&
+  mg.connection.db.serverConfig.isConnected()
+
 const close = () => connectionEstablished
   ? mg.connection.close().then(() => { connectionEstablished = false })
   : Promise.resolve()
 
 const collection = name => mg.connection.collection(name)
 
-module.exports = { connect, close, collection, ObjectId, Long, mg }
+module.exports = { isConnected, connect, close, collection, ObjectId, Long, mg }

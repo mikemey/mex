@@ -91,19 +91,19 @@ const keyValuePair = obj => Object.keys(obj)
 
 const startBitcoind = () => {
   if (fs.existsSync(btcConfigFile.content.pid)) {
-    logger.info('bitcoind already running')
+    logger.debug('bitcoind already running')
     return
   }
   const command = path.join(setupCfg.btcBinDir, 'bitcoind')
   const args = [setupCfg.dataDirArg]
   childProcess.spawnSync(command, args)
-  logger.info('bitcoind started')
+  logger.debug('bitcoind started')
 }
 
 const waitForFaucet = (attempts = 9) => new Promise((resolve, reject) => {
   const checkWallet = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('Faucet wallet not available!')) }
-    logger.info(`waiting for wallet (${currentAttempt})...`)
+    logger.debug(`waiting for wallet (${currentAttempt})...`)
 
     setTimeout(() => {
       faucetWallet.getWalletInfo()
@@ -116,7 +116,7 @@ const waitForFaucet = (attempts = 9) => new Promise((resolve, reject) => {
 
 const generateBlocks = (blocks = 1) => faucetWallet.getNewAddress()
   .then(address => {
-    logger.info('generateToAddress', address)
+    logger.debug('generateToAddress', address)
     return faucetWallet.generateToAddress(blocks, address)
   })
 
@@ -155,13 +155,13 @@ const stopNode = async () => {
   const args = [setupCfg.dataDirArg, 'stop']
   childProcess.spawnSync(command, args)
   await waitForNodeDown()
-  logger.info('bitcoind stopped')
+  logger.debug('bitcoind stopped')
 }
 
 const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   const checkPidFile = currentAttempt => {
     if (currentAttempt <= 0) { return reject(Error('bitcoind shutdown failed!')) }
-    logger.info(`waiting for shutdown (${currentAttempt})...`)
+    logger.debug(`waiting for shutdown (${currentAttempt})...`)
 
     setTimeout(() => {
       fs.access(btcConfigFile.content.pid, fs.F_OK, (err) => {
