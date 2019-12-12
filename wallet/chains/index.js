@@ -8,4 +8,4 @@ const getChain = asset =>
   chains.find(chain => chain.symbol === asset) ||
   chainNotSupported(asset)
 
-module.exports = getChain
+module.exports = { getChain }

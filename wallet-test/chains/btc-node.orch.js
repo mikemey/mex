@@ -6,8 +6,8 @@ const path = require('path')
 const download = require('download')
 const BitcoinClient = require('bitcoin-core')
 
-const { Logger } = require('../utils')
-const logger = Logger('BTCNode')
+const { Logger } = require('../../utils')
+const logger = Logger('btc node orchetrator')
 
 const btcversion = '0.19.0.1'
 const dataDir = path.join(__dirname, '.regtest')
@@ -131,13 +131,14 @@ const refillFaucet = () => {
   return needMoreBlocks()
 }
 
-const start = async () => {
+const startNode = async function () {
+  this.timeout(60000)
   oscheck()
   if (!fs.existsSync(btcConfigFile.location)) {
     await installBinaries()
     writeConfigFile()
     await startBitcoind()
-    await waitForFaucet(20)
+    await waitForFaucet(30)
     await generateBlocks(101)
   } else {
     writeConfigFile()
@@ -149,7 +150,7 @@ const start = async () => {
   }
 }
 
-const stop = async () => {
+const stopNode = async () => {
   const command = path.join(setupCfg.btcBinDir, 'bitcoin-cli')
   const args = [setupCfg.dataDirArg, 'stop']
   childProcess.spawnSync(command, args)
@@ -172,4 +173,4 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   checkPidFile(attempts)
 })
 
-module.exports = { start, stop, faucetWallet, walletConfig, generateBlocks, zmqConfig }
+module.exports = { startNode, stopNode, faucetWallet, walletConfig, generateBlocks, zmqConfig }
