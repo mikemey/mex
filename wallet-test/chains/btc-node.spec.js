@@ -3,7 +3,7 @@ const BitcoinClient = require('bitcoin-core')
 const BtcChain = require('../../wallet/chains').getChain('btc')
 const { dbconnection } = require('../../utils')
 
-const { startNode, stopNode, faucetWallet, walletConfig, zmqConfig } = require('./btc-node.orch')
+const { startNode, stopNode, faucetWallet, walletConfig, zmqConfig, generateBlocks } = require('./btc-node.orch')
 const { TestDataSetup: { dbConfig, dropTestDatabase } } = require('../../test-tools')
 
 describe('Btc node', () => {
@@ -11,7 +11,9 @@ describe('Btc node', () => {
     client: walletConfig(),
     zmq: zmqConfig
   }
-  const createBtcNode = (config = btcNodeTestConfig) => BtcChain.create(config)
+  const createBtcNode = (
+    { config = btcNodeTestConfig, invoiceCallback = () => { } } = {}
+  ) => BtcChain.create(config, invoiceCallback)
 
   before(startNode)
   after(stopNode)
@@ -30,7 +32,7 @@ describe('Btc node', () => {
     beforeEach(dropTestDatabase)
     after(dbconnection.close)
 
-    // const pause = ms => new Promise((resolve, reject) => setTimeout(resolve, ms))
+    const pause = ms => new Promise((resolve, reject) => setTimeout(resolve, ms))
 
     it('get new address', async () => {
       const newAddress = await createBtcNode().createNewAddress()
@@ -44,17 +46,23 @@ describe('Btc node', () => {
       storedAddress.should.have.deep.property('blocks', [])
     })
 
-    // it('monitors new address for blocks', async () => {
-    // const newAddress = await btcNode.createNewAddress()
+    it.only('monitors new address for blocks', async () => {
+      const amount = '1.43256'
+      const received = {}
+      const invoiceCallback = async (invoice, amount) => {
+        received.invoice = invoice
+        received.amount = amount
+      }
+      const address = await createBtcNode({ invoiceCallback }).createNewAddress()
+      await faucetWallet.sendToAddress(address, amount)
+      await generateBlocks(1)
+      await pause(1500)
 
-    // const mainWallet = new BitcoinClient(walletConfig())
-    // const addressInfo = await mainWallet.getAddressInfo(newAddress)
-    // addressInfo.ismine.should.equal(true)
+      received.should.have.property('invoice')
+      received.should.have.property('amount', amount)
+    })
 
-    // const storedAddress = await addressColl.findOne({ address: newAddress })
-    // storedAddress.should.have.property('address', newAddress)
-    // storedAddress.should.have.deep.property('blocks', [])
-    // })
+    xit('monitors multiple stored/new addresses', async () => { })
   })
 
   describe('configuration check', () => {

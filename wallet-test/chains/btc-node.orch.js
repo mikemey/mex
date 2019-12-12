@@ -33,11 +33,10 @@ const btcConfigFile = {
   content: {
     regtest: 1,
     pid: path.join(dataDir, 'regtest.pid'),
+    rest: 1,
     sections: {
       regtest: {
-        bind: btcClientConfig.host,
         daemon: 1,
-        server: 1,
         rpcauth: 'regtester:a1c4c0cf083f71dc25d230298beab0a9$479765cb0999b734931ddfe4ac0a5b6245ff6ebd13a36d675432ea88817e5d7f',
         port: 36963,
         rpcport: btcClientConfig.port,
