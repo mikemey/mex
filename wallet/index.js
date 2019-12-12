@@ -19,7 +19,7 @@ const configSchema = Joi.object({
 const addressSchema = Joi.object({
   action: Joi.string().valid(ADDRESS_ACT).required(),
   user: Joi.object().required(),
-  symbol: Joi.string().valid(...Object.keys(assetsMetadata)).required()
+  asset: Joi.string().valid(...Object.keys(assetsMetadata)).required()
 })
 const requestCheck = Validator.createCheck(addressSchema)
 

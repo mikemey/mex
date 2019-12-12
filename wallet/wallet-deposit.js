@@ -43,23 +43,25 @@ const createDepositer = (wallet, zmqUrl) => {
     const run = async () => {
       data.sock = new zmq.Subscriber()
       data.sock.connect(zmqUrl)
-      data.sock.subscribe('hashtx', 'hashblock')
-      let txId = null
+      data.sock.subscribe('rawblock')
+      // let txId = null
 
       for await (const [rawtopic, rawmsg] of data.sock) {
         const topic = rawtopic.toString().toUpperCase()
-        console.log(`================================== ${topic} >>>>>>>>>>>>>`)
-        if (topic === 'HASHTX') {
-          txId = rawmsg.toString('hex')
-          // console.log(JSON.stringify(decodedTx, null, '  '))
-        } else if (topic === 'HASHBLOCK') {
-          console.log('KEPT TX-ID:', txId)
-          const txInfo = await wallet.getTransaction(txId)
-          console.log(txInfo)
-          // console.log(rawmsg.toString('hex'))
-        }
+        console.log(` ${topic} >>>>>>>>>>>>>`)
+        console.log(rawmsg.toString('hex', 0, 80))
 
-        // console.log(`<<<<<<<<<<<<< ${topic} ==================================`)
+        // if (topic === 'HASHTX') {
+        //   // txId = rawmsg.toString('hex')
+        //   // console.log('record TX-ID:', txId)
+        //   // console.log(JSON.stringify(decodedTx, null, '  '))
+        // } else if (topic === 'HASHBLOCK') {
+        //   console.log('KEPT TX-ID:', txId)
+        //   const txInfo = await wallet.getTransaction(txId)
+        //   console.log(txInfo)
+        //   // console.log(rawmsg.toString('hex'))
+        // }
+
       }
     }
     run()
