@@ -50,18 +50,6 @@ const createDepositer = (wallet, zmqUrl) => {
         const topic = rawtopic.toString().toUpperCase()
         console.log(` ${topic} >>>>>>>>>>>>>`)
         console.log(rawmsg.toString('hex', 0, 80))
-
-        // if (topic === 'HASHTX') {
-        //   // txId = rawmsg.toString('hex')
-        //   // console.log('record TX-ID:', txId)
-        //   // console.log(JSON.stringify(decodedTx, null, '  '))
-        // } else if (topic === 'HASHBLOCK') {
-        //   console.log('KEPT TX-ID:', txId)
-        //   const txInfo = await wallet.getTransaction(txId)
-        //   console.log(txInfo)
-        //   // console.log(rawmsg.toString('hex'))
-        // }
-
       }
     }
     run()

@@ -40,12 +40,12 @@
 
 //   describe('requesting address', () => {
 //     it('generate new address for new user', async () => {
-//       const testId = '5def654c9ad3f153493e3bbb'
+//       const testUserId = '5def654c9ad3f153493e3bbb'
 //       const testJwt = 'bla-bla-bla-bla-bla-bla'
 
 //       const verifyMessages = withAction('verify')
 //       const verifyReq = verifyMessages.build({ jwt: testJwt })
-//       const verifyRes = verifyMessages.ok({ user: { id: testId } })
+//       const verifyRes = verifyMessages.ok({ user: { id: testUserId } })
 //       sessionMock.reset()
 //       sessionMock.addMockFor(verifyReq, verifyRes)
 
@@ -58,7 +58,7 @@
 //       const addressInfo = await mexWallet.getAddressInfo(addressResponse.address)
 //       addressInfo.ismine.should.equal(true)
 
-//       const storedAddress = await addressColl.findOne({ _id: ObjectId(testId) })
+//       const storedAddress = await addressColl.findOne({ _id: ObjectId(testUserId) })
 //       storedAddress.reserved.should.deep.equal([
 //         { asset: 'btc', address: addressResponse.address }
 //       ])
@@ -123,3 +123,39 @@
 //     it('additional request parameters', () => expectNewAddressError(req => { req.additional = 'param' }))
 //   })
 // })
+
+// it.only('dbtesting', async () => {
+//   const coll = dbconnection.collection('adtest')
+//   await coll.insertMany([
+//     { address: '1', txs: [] },
+//     { address: '2', txs: [] },
+//     { address: '3', txs: [{ txid: 't2', block: 5 }] }
+//   ])
+//   await printdata()
+//   await coll.bulkWrite([
+//     { updateOne: { filter: { address: '2' }, update: { $addToSet: { txs: { txid: 't1', block: null } } } } },
+//     { updateOne: { filter: { address: '3' }, update: { $addToSet: { txs: { txid: 't3', block: null } } } } },
+//     { updateOne: { filter: { address: '4' }, update: { $addToSet: { txs: { txid: 'nope', block: null } } } } }
+//   ])
+
+//   await printdata()
+//   await coll.bulkWrite([
+//     { updateOne: { filter: { address: '2' }, update: { $addToSet: { txs: { txid: 't1', block: null } } } } },
+//     { updateOne: { filter: { address: '2', 'txs.txid': 't1' }, update: { $set: { 'txs.$.block': 6 } } } },
+//     { updateOne: { filter: { address: '3' }, update: { $addToSet: { txs: { txid: 't3', block: null } } } } },
+//     { updateOne: { filter: { address: '3', 'txs.txid': 't3' }, update: { $set: { 'txs.$.block': 6 } } } },
+//     { updateOne: { filter: { address: '44' }, update: { $addToSet: { txs: { txid: 'nope', block: null } } } } },
+//     { updateOne: { filter: { address: '44', 'txs.txid': 't1' }, update: { $set: { 'txs.$.block': 6 } } } },
+//     { updateOne: { filter: { address: '1' }, update: { $addToSet: { txs: { txid: 't7', block: null } } } } },
+//     { updateOne: { filter: { address: '1', 'txs.txid': 't7' }, update: { $set: { 'txs.$.block': 6 } } } }
+//   ])
+//   await printdata()
+// })
+// const printdata = async () => {
+//   const data = await dbconnection.collection('adtest').find({})
+//   data.forEach(d => {
+//     console.log('------------------------------')
+//     console.log(d)
+//   })
+//   console.log('=================================================================================')
+// }
