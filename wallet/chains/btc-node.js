@@ -34,14 +34,14 @@ const start = (config,
 
     for await (const [rawtopic, rawmsg] of sock) {
       const topic = rawtopic.toString()
+      const hashmsg = rawmsg.toString('hex')
       switch (topic) {
         case 'hashtx': {
           let tx = null
-          const txHash = rawmsg.toString('hex')
           try {
-            tx = await wallet.getTransactionByHash(txHash)
+            tx = await wallet.getTransactionByHash(hashmsg)
           } catch (err) {
-            logger.error('CANT FIND:', txHash)
+            logger.error('CANT FIND:', hashmsg)
             return
           }
           logger.info('received invoice-id:', tx.txid)
@@ -63,20 +63,19 @@ const start = (config,
           // console.log({ msg: rawmsg.toString() })
           // console.log({ hexmsg: rawmsg.toString('hex') })
 
-          // const blockHash = rawmsg.toString('hex')
-          // const block = await wallet.getBlockByHash(blockHash)
+          const block = await wallet.getBlockByHash(hashmsg)
           // // logger.info(block.toString('hex'))
           // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-          // block.tx.forEach(tx => {
-          //   logger.info('invoice-id:', tx.txid)
-          //   tx.vout.forEach(vout => {
-          //     if (vout.scriptPubKey.addresses) {
-          //       vout.scriptPubKey.addresses.forEach(address => {
-          //         logger.info(' --> out adddress:', address, ' receives:', vout.value)
-          //       })
-          //     }
-          //   })
-          // })
+          block.tx.forEach(tx => {
+            logger.info('invoice-id:', tx.txid)
+            tx.vout.forEach(vout => {
+              if (vout.scriptPubKey.addresses) {
+                vout.scriptPubKey.addresses.forEach(address => {
+                  logger.info(' --> out adddress:', address, ' receives:', vout.value)
+                })
+              }
+            })
+          })
           // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
           break
         } default: throw new Error(`unexpected topic ${topic}`)

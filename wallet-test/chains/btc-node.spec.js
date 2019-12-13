@@ -2,7 +2,7 @@ const BitcoinClient = require('bitcoin-core')
 
 const BtcChain = require('../../wallet/chains').getChain('btc')
 
-const { startNode, stopNode, faucetWallet, walletConfig, zmqConfig, generateBlocks } = require('./btc-node.orch')
+const { startNode, stopNode, faucetWallet, thirdPartyWallet, walletConfig, zmqConfig, generateBlocks } = require('./btc-node.orch')
 
 describe('Btc node', () => {
   let testBtcNode
@@ -45,9 +45,7 @@ describe('Btc node', () => {
     it('reports invoice from new transaction', async () => {
       const testAmount = '1.43256'
       let received = null
-      const newTransactionCb = async (invoiceId, outputs) => {
-        received = { invoiceId, outputs }
-      }
+      const newTransactionCb = async invoice => { received = invoice }
       const address = await startBtcNode({ newTransactionCb }).createNewAddress()
       const expectedInvoiceId = await faucetWallet.sendToAddress(address, testAmount)
       await pause(20)
@@ -58,7 +56,22 @@ describe('Btc node', () => {
       txoutput.amount.should.equal(testAmount)
     })
 
-    xit('reports invoice from new block', async () => {
+    it.only('reports invoice from new block', async () => {
+      const blockHeight = (await faucetWallet.getBlockchainInformation()).blocks
+      const testAmount = '1'
+      let received = null
+      const newBlockCb = async invoices => { received = invoices }
+      await startBtcNode({ newBlockCb })
+
+      const thirdPartyAddr = await thirdPartyWallet.getNewAddress()
+      const otherTxid = await faucetWallet.sendToAddress(thirdPartyAddr, testAmount)
+      await generateBlocks(1)
+      await pause(500)
+      received.should.have.length(2)
+      const thirdPartyInvoice = received.find(invoice => invoice.invoiceId === otherTxid)
+      thirdPartyInvoice.address.should.equal(thirdPartyAddr)
+      thirdPartyInvoice.amount.should.equal(testAmount)
+      thirdPartyInvoice.block.should.equal(blockHeight + 1)
     })
 
     xit('reports multiple addresses from transactions + blocks', async () => { })
