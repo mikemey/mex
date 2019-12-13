@@ -1,22 +1,28 @@
 const BitcoinClient = require('bitcoin-core')
 
 const BtcChain = require('../../wallet/chains').getChain('btc')
-const { dbconnection } = require('../../utils')
 
 const { startNode, stopNode, faucetWallet, walletConfig, zmqConfig, generateBlocks } = require('./btc-node.orch')
-const { TestDataSetup: { dbConfig, dropTestDatabase } } = require('../../test-tools')
 
 describe('Btc node', () => {
+  let testBtcNode
   const btcNodeTestConfig = {
     client: walletConfig(),
     zmq: zmqConfig
   }
-  const createBtcNode = (
-    { config = btcNodeTestConfig, invoiceCallback = () => { } } = {}
-  ) => BtcChain.create(config, invoiceCallback)
+  const startBtcNode = ({
+    config = btcNodeTestConfig, newTransactionCb = () => { }, newBlockCb = () => { }
+  } = {}) => {
+    testBtcNode = BtcChain.start(config, newTransactionCb, newBlockCb)
+    return testBtcNode
+  }
 
   before(startNode)
   after(stopNode)
+  beforeEach(() => { testBtcNode = null })
+  afterEach(() => {
+    if (testBtcNode) { testBtcNode.stop() }
+  })
 
   describe('btc node setup', () => {
     it('regtest faucet has balance', async () => {
@@ -26,43 +32,36 @@ describe('Btc node', () => {
   })
 
   describe('btw wallet operations', () => {
-    const addressColl = () => dbconnection.collection('btc-addresses')
-
-    before(() => dbconnection.connect(dbConfig))
-    beforeEach(dropTestDatabase)
-    after(dbconnection.close)
-
     const pause = ms => new Promise((resolve, reject) => setTimeout(resolve, ms))
 
     it('get new address', async () => {
-      const newAddress = await createBtcNode().createNewAddress()
+      const newAddress = await startBtcNode().createNewAddress()
 
       const mainWallet = new BitcoinClient(walletConfig())
       const addressInfo = await mainWallet.getAddressInfo(newAddress)
       addressInfo.ismine.should.equal(true)
-
-      const storedAddress = await addressColl().findOne({ address: newAddress })
-      storedAddress.should.have.property('address', newAddress)
-      storedAddress.should.have.deep.property('blocks', [])
     })
 
-    it.only('monitors new address for blocks', async () => {
-      const amount = '1.43256'
-      const received = {}
-      const invoiceCallback = async (invoice, amount) => {
-        received.invoice = invoice
-        received.amount = amount
+    it('reports invoice from new transaction', async () => {
+      const testAmount = '1.43256'
+      let received = null
+      const newTransactionCb = async (invoiceId, outputs) => {
+        received = { invoiceId, outputs }
       }
-      const address = await createBtcNode({ invoiceCallback }).createNewAddress()
-      await faucetWallet.sendToAddress(address, amount)
-      await generateBlocks(1)
-      await pause(1500)
+      const address = await startBtcNode({ newTransactionCb }).createNewAddress()
+      const expectedInvoiceId = await faucetWallet.sendToAddress(address, testAmount)
+      await pause(20)
 
-      received.should.have.property('invoice')
-      received.should.have.property('amount', amount)
+      received.invoiceId.should.equal(expectedInvoiceId)
+      received.outputs.should.have.length(2)
+      const txoutput = received.outputs.find(out => out.address === address)
+      txoutput.amount.should.equal(testAmount)
     })
 
-    xit('monitors multiple stored/new addresses', async () => { })
+    xit('reports invoice from new block', async () => {
+    })
+
+    xit('reports multiple addresses from transactions + blocks', async () => { })
   })
 
   describe('configuration check', () => {
@@ -75,12 +74,8 @@ describe('Btc node', () => {
       it(params.title, () => {
         const config = JSON.parse(JSON.stringify(btcNodeTestConfig))
         params.changeConfig(config);
-        (() => createBtcNode(config)).should.throw(Error, params.error)
+        (() => startBtcNode(config)).should.throw(Error, params.error)
       })
-    })
-
-    it('throws error if no DB connection', () => {
-      (() => createBtcNode(btcNodeTestConfig)).should.throw(Error, 'no db connection available')
     })
   })
 })

@@ -2,81 +2,93 @@ const symbol = 'btc'
 
 const BitcoinClient = require('bitcoin-core')
 const Joi = require('@hapi/joi')
-const NodeCache = require('node-cache')
 const zmq = require('zeromq')
 
-const { Validator, dbconnection } = require('../../utils')
+const { Logger, Validator } = require('../../utils')
 
 const configSchema = Joi.object({
   client: Joi.object().required(),
   zmq: Joi.string().required()
 })
 
-const create = (config, invoiceCallback) => {
+const start = (config,
+  newTranscationCb = (invoiceId, address, amount) => { },
+  newBlockCb = (invoiceId, address, amount) => { }
+) => {
   Validator.oneTimeValidation(configSchema, config)
-  if (!dbconnection.isConnected()) { throw new Error('no db connection available') }
 
-  const btcAddressesCollection = dbconnection.collection('btc-addresses')
+  const logger = Logger('BtcNode')
   const wallet = new BitcoinClient(config.client)
-  const watcher = AddressWatcher(config.zmq, wallet, invoiceCallback)
-  watcher.start()
+  const sock = new zmq.Subscriber()
 
   const createNewAddress = async () => {
     const newAddress = await wallet.getNewAddress()
-    console.log('generated new address', newAddress)
-    await btcAddressesCollection.insertOne({ address: newAddress, blocks: [] })
+    logger.info('generated new address', newAddress)
     return newAddress
   }
 
-  return { createNewAddress }
-}
-
-const AddressWatcher = (zmqUrl, wallet, invoiceCallback) => {
-  const sock = new zmq.Subscriber()
-  const addresses = new NodeCache({ useClones: false })
-  const addAddress = newAddress => {
-    addresses.set(newAddress)
-  }
-
-  const start = async () => {
-    sock.connect(zmqUrl)
+  const listenToZMQ = async () => {
+    sock.connect(config.zmq)
+    sock.subscribe('hashtx')
     sock.subscribe('hashblock')
 
     for await (const [rawtopic, rawmsg] of sock) {
-      const topic = rawtopic.toString().toUpperCase()
-      console.log(` ${topic} >>>>>>>>>>>>>`)
-
-      const blockHash = rawmsg.toString('hex')
-      const block = await wallet.getBlockByHash(blockHash)
-      // console.log(block.toString('hex'))
-      console.log('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-      block.tx.forEach(tx => {
-        console.log('invoice-id:', tx.txid)
-        tx.vout.forEach(vout => {
-          if (vout.scriptPubKey.addresses) {
-            vout.scriptPubKey.addresses.forEach(address => {
-              console.log(' --> out adddress:', address, ' receives:', vout.value)
-            })
+      const topic = rawtopic.toString()
+      switch (topic) {
+        case 'hashtx': {
+          let tx = null
+          const txHash = rawmsg.toString('hex')
+          try {
+            tx = await wallet.getTransactionByHash(txHash)
+          } catch (err) {
+            logger.error('CANT FIND:', txHash)
+            return
           }
-        })
-      })
-      console.log('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-      // console.log(await wallet.getBlockByHash(rawmsg.toString('hex', 0, 80)))
-      // invoiceCallback(rawmsg)
-    }
+          logger.info('received invoice-id:', tx.txid)
+          newTranscationCb(tx.txid, tx.vout.reduce((allVouts, vout) => {
+            if (vout.scriptPubKey.addresses) {
+              vout.scriptPubKey.addresses.forEach(address => {
+                allVouts.push({ address, amount: String(vout.value) })
+              })
+            }
+            return allVouts
+          }, []))
+          break
+        }
+        // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+        // logger.info(JSON.stringify(tx, null, '  '))
+        // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+        case 'hashblock': {
+          // console.log({ rawmsg })
+          // console.log({ msg: rawmsg.toString() })
+          // console.log({ hexmsg: rawmsg.toString('hex') })
 
-    // if (topic === 'HASHTX') {
-    //   // txId = rawmsg.toString('hex')
-    //   // console.log('record TX-ID:', txId)
-    //   // console.log(JSON.stringify(decodedTx, null, '  '))
-    // } else if (topic === 'HASHBLOCK') {
-    //   console.log('KEPT TX-ID:', txId)
-    //   const txInfo = await wallet.getTransaction(txId)
-    //   console.log(txInfo)
-    //   // console.log(rawmsg.toString('hex'))
-    // }
+          // const blockHash = rawmsg.toString('hex')
+          // const block = await wallet.getBlockByHash(blockHash)
+          // // logger.info(block.toString('hex'))
+          // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+          // block.tx.forEach(tx => {
+          //   logger.info('invoice-id:', tx.txid)
+          //   tx.vout.forEach(vout => {
+          //     if (vout.scriptPubKey.addresses) {
+          //       vout.scriptPubKey.addresses.forEach(address => {
+          //         logger.info(' --> out adddress:', address, ' receives:', vout.value)
+          //       })
+          //     }
+          //   })
+          // })
+          // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+          break
+        } default: throw new Error(`unexpected topic ${topic}`)
+      }
+    }
   }
-  return { addAddress, start }
+
+  const stop = () => sock.close()
+
+  listenToZMQ()
+
+  return { createNewAddress, stop }
 }
 
-module.exports = { create, symbol }
+module.exports = { start, symbol }
