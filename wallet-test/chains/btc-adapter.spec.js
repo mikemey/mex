@@ -1,26 +1,14 @@
 const BitcoinClient = require('bitcoin-core')
 
-const BtcChain = require('../../wallet/chains').getChain('btc')
+const BtcAdapter = require('../../wallet/chains/btc-adapter')
 
 const { startNode, stopNode, faucetWallet, thirdPartyWallet, defaultBtcAdapterConfig, walletConfig, generateBlocks } = require('./btc-node.orch')
 
-describe('Btc adapter', () => {
-  let testBtcNode
-
-  const startBtcNode = ({
-    config = defaultBtcAdapterConfig, newTransactionCb = () => { }, newBlockCb = () => { }
-  } = {}) => {
-    testBtcNode = BtcChain.start(config, newTransactionCb, newBlockCb)
-    return testBtcNode
-  }
+describe.only('Btc adapter', () => {
+  const btcAdapter = BtcAdapter.create(defaultBtcAdapterConfig)
 
   before(startNode)
   after(stopNode)
-  beforeEach(() => { testBtcNode = null })
-  afterEach(() => {
-    if (testBtcNode) { testBtcNode.stop() }
-    return clearMempool()
-  })
 
   const clearMempool = async () => generateBlocks(1)
 
@@ -32,8 +20,14 @@ describe('Btc adapter', () => {
   })
 
   describe('btw wallet operations', () => {
+    afterEach(() => {
+      btcAdapter.stopListener()
+      return clearMempool()
+    })
+
     it('get new address', async () => {
-      const newAddress = await startBtcNode().createNewAddress()
+      btcAdapter.startListener()
+      const newAddress = await btcAdapter.createNewAddress()
 
       const mainWallet = new BitcoinClient(walletConfig())
       const addressInfo = await mainWallet.getAddressInfo(newAddress)
@@ -50,7 +44,8 @@ describe('Btc adapter', () => {
       }).then(done).catch(done);
 
       (async () => {
-        intx.address = await startBtcNode({ newTransactionCb }).createNewAddress()
+        btcAdapter.startListener({ newTransactionCb })
+        intx.address = await btcAdapter.createNewAddress()
         intx.invoiceId = await faucetWallet.sendToAddress(intx.address, intx.amount)
       })().catch(done)
     })
@@ -69,7 +64,8 @@ describe('Btc adapter', () => {
 
       (async () => {
         intxs.mex.block = intxs.other.block = 1 + (await faucetWallet.getBlockchainInformation()).blocks
-        intxs.mex.address = await startBtcNode({ newBlockCb }).createNewAddress()
+        btcAdapter.startListener({ newBlockCb })
+        intxs.mex.address = await btcAdapter.createNewAddress()
         intxs.mex.invoiceId = await faucetWallet.sendToAddress(intxs.mex.address, intxs.mex.amount)
 
         intxs.other.address = await thirdPartyWallet.getNewAddress()
@@ -89,7 +85,7 @@ describe('Btc adapter', () => {
       it(params.title, () => {
         const config = JSON.parse(JSON.stringify(defaultBtcAdapterConfig))
         params.changeConfig(config);
-        (() => startBtcNode({ config })).should.throw(Error, params.error)
+        (() => BtcAdapter.create(config)).should.throw(Error, params.error)
       })
     })
   })

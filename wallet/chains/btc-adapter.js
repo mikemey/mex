@@ -11,14 +11,11 @@ const configSchema = Joi.object({
   zmq: Joi.string().required()
 })
 
-const start = (
-  config, newTranscationCb = invoice => { }, newBlockCb = invoices => { }
-) => {
+const create = config => {
   Validator.oneTimeValidation(configSchema, config)
-
   const logger = Logger('BtcNode')
   const wallet = new BitcoinClient(config.client)
-  const sock = new zmq.Subscriber()
+  let sock
 
   const createNewAddress = async () => {
     const newAddress = await wallet.getNewAddress()
@@ -26,62 +23,66 @@ const start = (
     return newAddress
   }
 
-  const listenToZMQ = async () => {
-    sock.connect(config.zmq)
-    sock.subscribe('hash')
-
-    for await (const [rawtopic, rawmsg] of sock) { process(rawtopic, rawmsg) }
-  }
-
-  const process = async (rawtopic, rawmsg) => {
-    const topic = rawtopic.toString()
-    const hashmsg = rawmsg.toString('hex')
-    if (topic === 'hashtx') { return processTransaction(hashmsg) }
-    if (topic === 'hashblock') { return processBlock(hashmsg) }
-    logger.error('ignoring topic', topic)
-  }
-
-  const processTransaction = async txhash => {
-    let tx = null
-    try {
-      tx = await wallet.getTransactionByHash(txhash)
-    } catch (err) {
-      if (err.message === `${txhash} not found`) { return /* ignore non-mempool TXs */ }
-      logger.error(err.message)
-      return
+  const startListener = (
+    { newTransactionCb = invoices => { }, newBlockCb = invoices => { } } = {}
+  ) => {
+    const listenToZMQ = async () => {
+      sock = new zmq.Subscriber()
+      sock.connect(config.zmq)
+      sock.subscribe('hash')
+      for await (const [rawtopic, rawmsg] of sock) { process(rawtopic, rawmsg) }
     }
-    logger.info('new tx:', tx.txid)
-    newTranscationCb(extractInvoices(tx))
-  }
 
-  const processBlock = async blockhash => {
-    const block = await wallet.getBlockByHash(blockhash)
-    logger.info('new block:', block.hash)
-    const confirmedInvoices = block.tx
-      .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
-      .map(invcoice => {
-        invcoice.block = block.height
-        return invcoice
-      })
-    newBlockCb(confirmedInvoices)
-  }
-
-  const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
-    if (vout.scriptPubKey.addresses) {
-      vout.scriptPubKey.addresses.forEach(address => {
-        invoices.push(
-          { invoiceId: tx.txid, address, amount: String(vout.value) }
-        )
-      })
+    const process = async (rawtopic, rawmsg) => {
+      const topic = rawtopic.toString()
+      const hashmsg = rawmsg.toString('hex')
+      if (topic === 'hashtx') { return processTransaction(hashmsg) }
+      if (topic === 'hashblock') { return processBlock(hashmsg) }
+      logger.error('ignoring topic', topic)
     }
-    return invoices
-  }, [])
 
-  const stop = () => sock.close()
+    const processTransaction = async txhash => {
+      let tx = null
+      try {
+        tx = await wallet.getTransactionByHash(txhash)
+      } catch (err) {
+        if (err.message === `${txhash} not found`) { return /* ignore non-mempool TXs */ }
+        logger.error(err.message)
+        return
+      }
+      logger.info('new tx:', tx.txid)
+      newTransactionCb(extractInvoices(tx))
+    }
 
-  listenToZMQ()
+    const processBlock = async blockhash => {
+      const block = await wallet.getBlockByHash(blockhash)
+      logger.info('new block:', block.hash)
+      const confirmedInvoices = block.tx
+        .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
+        .map(invcoice => {
+          invcoice.block = block.height
+          return invcoice
+        })
+      newBlockCb(confirmedInvoices)
+    }
 
-  return { createNewAddress, stop }
+    const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
+      if (vout.scriptPubKey.addresses) {
+        vout.scriptPubKey.addresses.forEach(address => {
+          invoices.push(
+            { invoiceId: tx.txid, address, amount: String(vout.value) }
+          )
+        })
+      }
+      return invoices
+    }, [])
+
+    listenToZMQ()
+  }
+
+  const stopListener = () => sock.close()
+
+  return { startListener, stopListener, createNewAddress }
 }
 
-module.exports = { start, symbol }
+module.exports = { create, symbol }
