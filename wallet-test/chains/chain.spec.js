@@ -7,7 +7,7 @@ describe('Chain module', () => {
     it('returns known chains', () => {
       const chain = chains.getChain(asset)
       chain.symbol.should.equal(asset)
-      chain.should.have.property('create')
+      chain.should.have.property('start')
     })
   })
 

@@ -22,7 +22,10 @@ describe('Btc node', () => {
   beforeEach(() => { testBtcNode = null })
   afterEach(() => {
     if (testBtcNode) { testBtcNode.stop() }
+    return clearMempool()
   })
+
+  const clearMempool = async () => generateBlocks(1)
 
   describe('btc node setup', () => {
     it('regtest faucet has balance', async () => {
@@ -42,13 +45,13 @@ describe('Btc node', () => {
       addressInfo.ismine.should.equal(true)
     })
 
-    it('reports invoice from new transaction', async () => {
+    it('reports invoice from new mempool transaction', async () => {
       const testAmount = '1.43256'
       let received = null
       const newTransactionCb = async invoice => { received = invoice }
       const address = await startBtcNode({ newTransactionCb }).createNewAddress()
       const expectedInvoiceId = await faucetWallet.sendToAddress(address, testAmount)
-      await pause(20)
+      await pause(30)
 
       received.invoiceId.should.equal(expectedInvoiceId)
       received.outputs.should.have.length(2)
@@ -56,25 +59,28 @@ describe('Btc node', () => {
       txoutput.amount.should.equal(testAmount)
     })
 
-    it.only('reports invoice from new block', async () => {
+    it('reports invoices from new block', async () => {
       const blockHeight = (await faucetWallet.getBlockchainInformation()).blocks
-      const testAmount = '1'
+      const testAmount = '2.222222'
+      const thirdPartyAmount = '1'
       let received = null
       const newBlockCb = async invoices => { received = invoices }
-      await startBtcNode({ newBlockCb })
+      const mexaddress = await startBtcNode({ newBlockCb }).createNewAddress()
+      const mexTxid = await faucetWallet.sendToAddress(mexaddress, testAmount)
 
       const thirdPartyAddr = await thirdPartyWallet.getNewAddress()
-      const otherTxid = await faucetWallet.sendToAddress(thirdPartyAddr, testAmount)
+      const thirdPartyTxid = await faucetWallet.sendToAddress(thirdPartyAddr, thirdPartyAmount)
       await generateBlocks(1)
-      await pause(500)
-      received.should.have.length(2)
-      const thirdPartyInvoice = received.find(invoice => invoice.invoiceId === otherTxid)
-      thirdPartyInvoice.address.should.equal(thirdPartyAddr)
-      thirdPartyInvoice.amount.should.equal(testAmount)
-      thirdPartyInvoice.block.should.equal(blockHeight + 1)
-    })
 
-    xit('reports multiple addresses from transactions + blocks', async () => { })
+      await pause(30)
+      received.should.have.length(5)
+      received.should.deep.include(
+        { invoiceId: mexTxid, address: mexaddress, amount: testAmount, block: blockHeight + 1 }
+      )
+      received.should.deep.include(
+        { invoiceId: thirdPartyTxid, address: thirdPartyAddr, amount: thirdPartyAmount, block: blockHeight + 1 }
+      )
+    })
   })
 
   describe('configuration check', () => {
@@ -87,7 +93,7 @@ describe('Btc node', () => {
       it(params.title, () => {
         const config = JSON.parse(JSON.stringify(btcNodeTestConfig))
         params.changeConfig(config);
-        (() => startBtcNode(config)).should.throw(Error, params.error)
+        (() => startBtcNode({ config })).should.throw(Error, params.error)
       })
     })
   })

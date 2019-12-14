@@ -11,9 +11,8 @@ const configSchema = Joi.object({
   zmq: Joi.string().required()
 })
 
-const start = (config,
-  newTranscationCb = (invoiceId, address, amount) => { },
-  newBlockCb = (invoiceId, address, amount) => { }
+const start = (
+  config, newTranscationCb = invoice => { }, newBlockCb = invoices => { }
 ) => {
   Validator.oneTimeValidation(configSchema, config)
 
@@ -29,58 +28,57 @@ const start = (config,
 
   const listenToZMQ = async () => {
     sock.connect(config.zmq)
-    sock.subscribe('hashtx')
-    sock.subscribe('hashblock')
+    sock.subscribe('hash')
 
-    for await (const [rawtopic, rawmsg] of sock) {
-      const topic = rawtopic.toString()
-      const hashmsg = rawmsg.toString('hex')
-      switch (topic) {
-        case 'hashtx': {
-          let tx = null
-          try {
-            tx = await wallet.getTransactionByHash(hashmsg)
-          } catch (err) {
-            logger.error('CANT FIND:', hashmsg)
-            return
-          }
-          logger.info('received invoice-id:', tx.txid)
-          newTranscationCb(tx.txid, tx.vout.reduce((allVouts, vout) => {
-            if (vout.scriptPubKey.addresses) {
-              vout.scriptPubKey.addresses.forEach(address => {
-                allVouts.push({ address, amount: String(vout.value) })
-              })
-            }
-            return allVouts
-          }, []))
-          break
-        }
-        // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-        // logger.info(JSON.stringify(tx, null, '  '))
-        // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-        case 'hashblock': {
-          // console.log({ rawmsg })
-          // console.log({ msg: rawmsg.toString() })
-          // console.log({ hexmsg: rawmsg.toString('hex') })
+    for await (const [rawtopic, rawmsg] of sock) { process(rawtopic, rawmsg) }
+  }
 
-          const block = await wallet.getBlockByHash(hashmsg)
-          // // logger.info(block.toString('hex'))
-          // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-          block.tx.forEach(tx => {
-            logger.info('invoice-id:', tx.txid)
-            tx.vout.forEach(vout => {
-              if (vout.scriptPubKey.addresses) {
-                vout.scriptPubKey.addresses.forEach(address => {
-                  logger.info(' --> out adddress:', address, ' receives:', vout.value)
-                })
-              }
-            })
-          })
-          // logger.info('||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-          break
-        } default: throw new Error(`unexpected topic ${topic}`)
-      }
+  const process = async (rawtopic, rawmsg) => {
+    const topic = rawtopic.toString()
+    const hashmsg = rawmsg.toString('hex')
+    if (topic === 'hashtx') { return processTransaction(hashmsg) }
+    if (topic === 'hashblock') { return processBlock(hashmsg) }
+    logger.error('ignoring topic', topic)
+  }
+
+  const processTransaction = async txhash => {
+    let tx = null
+    try {
+      tx = await wallet.getTransactionByHash(txhash)
+    } catch (err) {
+      if (err.message === `${txhash} not found`) { return /* ignore non-mempool TXs */ }
+      logger.error(err.message)
+      return
     }
+    logger.info('new tx:', tx.txid)
+    const outputs = tx.vout.reduce((allVouts, vout) => {
+      if (vout.scriptPubKey.addresses) {
+        vout.scriptPubKey.addresses.forEach(address => {
+          allVouts.push({ address, amount: String(vout.value) })
+        })
+      }
+      return allVouts
+    }, [])
+    newTranscationCb({ invoiceId: tx.txid, outputs })
+  }
+
+  const processBlock = async blockhash => {
+    const block = await wallet.getBlockByHash(blockhash)
+    logger.info('new block:', block.hash)
+    const invoices = []
+    block.tx.forEach(tx => {
+      const invoiceId = tx.txid
+      tx.vout.forEach(vout => {
+        if (vout.scriptPubKey.addresses) {
+          vout.scriptPubKey.addresses.forEach(address => {
+            invoices.push(
+              { invoiceId, address, amount: String(vout.value), block: block.height }
+            )
+          })
+        }
+      })
+    })
+    newBlockCb(invoices)
   }
 
   const stop = () => sock.close()
