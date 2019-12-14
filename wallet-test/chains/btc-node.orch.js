@@ -19,16 +19,21 @@ const btcClientConfig = {
   username: 'regtester',
   password: 'regtester'
 }
+const zmqConfig = 'tcp://127.0.0.1:19591'
 
 const mainWalletName = 'mex-test-wallet'
 const faucetWalletName = 'faucet'
 const thirdWalletName = 'third-party-wallet'
 
 const walletConfig = (wallet = mainWalletName) => Object.assign({ wallet }, btcClientConfig)
-const zmqConfig = 'tcp://127.0.0.1:19591'
 
 const faucetWallet = new BitcoinClient(walletConfig(faucetWalletName))
 const thirdPartyWallet = new BitcoinClient(walletConfig(thirdWalletName))
+
+const defaultBtcNodeConfig = {
+  client: walletConfig(),
+  zmq: zmqConfig
+}
 
 const btcConfigFile = {
   location: path.join(dataDir, 'bitcoin.conf'),
@@ -174,4 +179,6 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
   checkPidFile(attempts)
 })
 
-module.exports = { startNode, stopNode, faucetWallet, thirdPartyWallet, walletConfig, generateBlocks, zmqConfig }
+module.exports = {
+  startNode, stopNode, generateBlocks, faucetWallet, thirdPartyWallet, walletConfig, defaultBtcNodeConfig
+}

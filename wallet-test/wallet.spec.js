@@ -20,8 +20,6 @@ describe('Wallet service', () => {
   describe('configuration check', () => {
     const testParameters = [
       { title: 'missing btcnode configuration', changeConfig: cfg => delete cfg.btcnode, error: '"btcnode" is required' },
-      { title: 'missing btcnode.client configuration', changeConfig: cfg => delete cfg.btcnode.client, error: '"btcnode.client" is required' },
-      { title: 'missing btcnode.zmq configuration', changeConfig: cfg => delete cfg.btcnode.zmq, error: '"btcnode.zmq" is required' },
       { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' }
     ]
 

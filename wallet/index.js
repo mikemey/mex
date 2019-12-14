@@ -9,10 +9,7 @@ const { assetsMetadata } = require('../metadata')
 const { createDepositer, ADDRESS_ACT } = require('./wallet-deposit')
 
 const configSchema = Joi.object({
-  btcnode: Joi.object({
-    client: Joi.object().required(),
-    zmq: Joi.string().required()
-  }).required(),
+  btcnode: Joi.object().required(),
   db: Joi.object().min(1).required()
 }).unknown()
 
@@ -40,13 +37,13 @@ class WalletService extends WSSecureServer {
 
   start () {
     return Promise.all([
-      dbconnection.connect(this.dbConfig), super.start(), this.depositer.startListener()
+      dbconnection.connect(this.dbConfig), super.start()
     ])
   }
 
   stop () {
     return Promise.all([
-      super.stop(), dbconnection.close(), this.depositer.stopListener()
+      super.stop(), dbconnection.close()
     ])
   }
 
