@@ -51,35 +51,31 @@ const start = (
       return
     }
     logger.info('new tx:', tx.txid)
-    const outputs = tx.vout.reduce((allVouts, vout) => {
-      if (vout.scriptPubKey.addresses) {
-        vout.scriptPubKey.addresses.forEach(address => {
-          allVouts.push({ address, amount: String(vout.value) })
-        })
-      }
-      return allVouts
-    }, [])
-    newTranscationCb({ invoiceId: tx.txid, outputs })
+    newTranscationCb(extractInvoices(tx))
   }
 
   const processBlock = async blockhash => {
     const block = await wallet.getBlockByHash(blockhash)
     logger.info('new block:', block.hash)
-    const invoices = []
-    block.tx.forEach(tx => {
-      const invoiceId = tx.txid
-      tx.vout.forEach(vout => {
-        if (vout.scriptPubKey.addresses) {
-          vout.scriptPubKey.addresses.forEach(address => {
-            invoices.push(
-              { invoiceId, address, amount: String(vout.value), block: block.height }
-            )
-          })
-        }
+    const confirmedInvoices = block.tx
+      .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
+      .map(invcoice => {
+        invcoice.block = block.height
+        return invcoice
       })
-    })
-    newBlockCb(invoices)
+    newBlockCb(confirmedInvoices)
   }
+
+  const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
+    if (vout.scriptPubKey.addresses) {
+      vout.scriptPubKey.addresses.forEach(address => {
+        invoices.push(
+          { invoiceId: tx.txid, address, amount: String(vout.value) }
+        )
+      })
+    }
+    return invoices
+  }, [])
 
   const stop = () => sock.close()
 

@@ -35,8 +35,6 @@ describe('Btc node', () => {
   })
 
   describe('btw wallet operations', () => {
-    const pause = ms => new Promise((resolve, reject) => setTimeout(resolve, ms))
-
     it('get new address', async () => {
       const newAddress = await startBtcNode().createNewAddress()
 
@@ -45,41 +43,42 @@ describe('Btc node', () => {
       addressInfo.ismine.should.equal(true)
     })
 
-    it('reports invoice from new mempool transaction', async () => {
-      const testAmount = '1.43256'
-      let received = null
-      const newTransactionCb = async invoice => { received = invoice }
-      const address = await startBtcNode({ newTransactionCb }).createNewAddress()
-      const expectedInvoiceId = await faucetWallet.sendToAddress(address, testAmount)
-      await pause(30)
+    it('reports invoice from new mempool transaction', done => {
+      const intx = { invoiceId: null, address: null, amount: '1.43256' }
 
-      received.invoiceId.should.equal(expectedInvoiceId)
-      received.outputs.should.have.length(2)
-      const txoutput = received.outputs.find(out => out.address === address)
-      txoutput.amount.should.equal(testAmount)
+      const newTransactionCb = async invoices => new Promise((resolve, reject) => {
+        invoices.should.have.length(2)
+        invoices.should.deep.include(intx)
+        resolve()
+      }).then(done).catch(done);
+
+      (async () => {
+        intx.address = await startBtcNode({ newTransactionCb }).createNewAddress()
+        intx.invoiceId = await faucetWallet.sendToAddress(intx.address, intx.amount)
+      })().catch(done)
     })
 
-    it('reports invoices from new block', async () => {
-      const blockHeight = (await faucetWallet.getBlockchainInformation()).blocks
-      const testAmount = '2.222222'
-      const thirdPartyAmount = '1'
-      let received = null
-      const newBlockCb = async invoices => { received = invoices }
-      const mexaddress = await startBtcNode({ newBlockCb }).createNewAddress()
-      const mexTxid = await faucetWallet.sendToAddress(mexaddress, testAmount)
+    it('reports invoices from new block', done => {
+      const intxs = {
+        mex: { invoiceId: null, address: null, amount: '2.22222', block: null },
+        other: { invoiceId: null, address: null, amount: '1.111', block: null }
+      }
+      const newBlockCb = async invoices => new Promise((resolve, reject) => {
+        invoices.should.have.length(5)
+        invoices.should.deep.include(intxs.mex)
+        invoices.should.deep.include(intxs.other)
+        resolve()
+      }).then(done).catch(done);
 
-      const thirdPartyAddr = await thirdPartyWallet.getNewAddress()
-      const thirdPartyTxid = await faucetWallet.sendToAddress(thirdPartyAddr, thirdPartyAmount)
-      await generateBlocks(1)
+      (async () => {
+        intxs.mex.block = intxs.other.block = 1 + (await faucetWallet.getBlockchainInformation()).blocks
+        intxs.mex.address = await startBtcNode({ newBlockCb }).createNewAddress()
+        intxs.mex.invoiceId = await faucetWallet.sendToAddress(intxs.mex.address, intxs.mex.amount)
 
-      await pause(30)
-      received.should.have.length(5)
-      received.should.deep.include(
-        { invoiceId: mexTxid, address: mexaddress, amount: testAmount, block: blockHeight + 1 }
-      )
-      received.should.deep.include(
-        { invoiceId: thirdPartyTxid, address: thirdPartyAddr, amount: thirdPartyAmount, block: blockHeight + 1 }
-      )
+        intxs.other.address = await thirdPartyWallet.getNewAddress()
+        intxs.other.invoiceId = await faucetWallet.sendToAddress(intxs.other.address, intxs.other.amount)
+        await generateBlocks(1)
+      })().catch(done)
     })
   })
 
