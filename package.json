@@ -14,13 +14,15 @@
   },
   "scripts": {
     "lint": "standard",
-    "alltest": "LOG_LEVEL=none mocha 'connectors-test/**/**.spec.js' 'session-test/**/**.spec.js' 'useraccount-test/**/**.spec.js' 'wallet-test/**/**.spec.js' -r chai/register-should",
-    "single": "LOG_LEVEL=none mocha wallet-test/**/**.spec.js -r chai/register-should",
-    "~single": "nodemon -x 'npm run single -s'",
+    "connectors-test": "mocha 'connectors-test/**/**.spec.js' -r chai/register-should",
+    "session-test": "mocha 'session-test/**/**.spec.js' -r chai/register-should",
+    "useraccount-test": "mocha 'useraccount-test/**/**.spec.js' -r chai/register-should",
+    "wallet-test": "mocha 'wallet-test/**/**.spec.js' -r chai/register-should",
+    "alltest": "export LOG_LEVEL=none; npm run connectors-test -s && npm run session-test -s && npm run useraccount-test -s && npm run wallet-test -s",
+    "~single": "nodemon -x 'npm run wallet-test -s'",
     "e2e": "./browser-test/e2ehelper.sh",
     "pretest": "npm install",
-    "test": "npm run lint -s && npm run alltest -s && npm run e2e -s",
-    "~test": "nodemon -x 'npm run alltest -s'"
+    "test": "npm run lint -s && npm run alltest -s && npm run e2e -s"
   },
   "dependencies": {
     "@hapi/joi": "^16.1.8",
