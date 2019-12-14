@@ -2,13 +2,13 @@ const BitcoinClient = require('bitcoin-core')
 
 const BtcChain = require('../../wallet/chains').getChain('btc')
 
-const { startNode, stopNode, faucetWallet, thirdPartyWallet, defaultBtcNodeConfig, walletConfig, generateBlocks } = require('./btc-node.orch')
+const { startNode, stopNode, faucetWallet, thirdPartyWallet, defaultBtcAdapterConfig, walletConfig, generateBlocks } = require('./btc-node.orch')
 
-describe('Btc node', () => {
+describe('Btc adapter', () => {
   let testBtcNode
 
   const startBtcNode = ({
-    config = defaultBtcNodeConfig, newTransactionCb = () => { }, newBlockCb = () => { }
+    config = defaultBtcAdapterConfig, newTransactionCb = () => { }, newBlockCb = () => { }
   } = {}) => {
     testBtcNode = BtcChain.start(config, newTransactionCb, newBlockCb)
     return testBtcNode
@@ -87,7 +87,7 @@ describe('Btc node', () => {
 
     testParameters.forEach(params => {
       it(params.title, () => {
-        const config = JSON.parse(JSON.stringify(defaultBtcNodeConfig))
+        const config = JSON.parse(JSON.stringify(defaultBtcAdapterConfig))
         params.changeConfig(config);
         (() => startBtcNode({ config })).should.throw(Error, params.error)
       })

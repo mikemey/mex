@@ -1,5 +1,5 @@
 const chains = [
-  require('./btc-node')
+  require('./btc-adapter')
 ]
 
 const chainNotSupported = asset => { throw new Error(`chain not supported: ${asset}`) }
