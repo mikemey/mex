@@ -133,7 +133,7 @@ const refillFaucet = () => {
 }
 
 const startNode = async function () {
-  this.timeout(60000)
+  if (this.timeout) { this.timeout(60000) }
   oscheck()
   if (!fs.existsSync(btcConfigFile.location)) {
     await installBinaries()
