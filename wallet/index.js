@@ -1,22 +1,21 @@
-const BitcoinClient = require('bitcoin-core')
 const Joi = require('@hapi/joi')
 
 const { WSSecureServer } = require('../connectors')
 const { Validator, dbconnection } = require('../utils')
-
 const { assetsMetadata } = require('../metadata')
 
+const chains = require('./chains')
 const { createDepositer, ADDRESS_ACT } = require('./wallet-deposit')
 
 const configSchema = Joi.object({
-  btcnode: Joi.object().required(),
+  chains: Joi.object().required(),
   db: Joi.object().min(1).required()
 }).unknown()
 
 const addressSchema = Joi.object({
   action: Joi.string().valid(ADDRESS_ACT).required(),
   user: Joi.object().required(),
-  asset: Joi.string().valid(...Object.keys(assetsMetadata)).required()
+  symbol: Joi.string().valid(...Object.keys(assetsMetadata)).required()
 })
 const requestCheck = Validator.createCheck(addressSchema)
 
@@ -24,26 +23,26 @@ class WalletService extends WSSecureServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
     const configCopy = Object.assign({}, config)
-    delete configCopy.btcnode
+    delete configCopy.chains
     delete configCopy.db
     super(configCopy)
 
     this.dbConfig = config.db
+    this.chainsConfig = config.chains
 
-    const btcWallet = new BitcoinClient(config.btcnode.client)
-    this.depositer = createDepositer(btcWallet, config.btcnode.zmq)
+    this.depositer = createDepositer()
     this.offerTopics('address-funding')
   }
 
   start () {
     return Promise.all([
-      dbconnection.connect(this.dbConfig), super.start()
+      dbconnection.connect(this.dbConfig), super.start(), chains.createAll(this.chainsConfig)
     ])
   }
 
   stop () {
     return Promise.all([
-      super.stop(), dbconnection.close()
+      super.stop(), dbconnection.close(), chains.stopAll()
     ])
   }
 

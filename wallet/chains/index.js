@@ -4,8 +4,12 @@ const chains = [
 
 const chainNotSupported = asset => { throw new Error(`chain not supported: ${asset}`) }
 
-const getChain = asset =>
+const getAdapter = asset =>
   chains.find(chain => chain.symbol === asset) ||
   chainNotSupported(asset)
 
-module.exports = { getChain }
+const getChainAdapter = () => { }
+const createAll = allConfigs => { }
+const stopAll = () => { }
+
+module.exports = { createAll, stopAll, getChainAdapter }

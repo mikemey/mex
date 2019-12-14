@@ -3,12 +3,12 @@ const WalletService = require('../wallet')
 const { startServices, stopServices, wsClient, withJwtMessages, sessionMock } = require('./wallet.orch')
 
 describe('Wallet service', () => {
-  describe('auth check', () => {
+  describe('calls session service', () => {
     before(startServices)
     after(stopServices)
     afterEach(() => wsClient.stop())
 
-    it('calls session service', async () => {
+    it('for get address requests', async () => {
       const newAddressRequest = withJwtMessages('address').build({ symbol: 'btc' })
       const expectedMessage = withJwtMessages('verify').build({})
 
@@ -19,7 +19,7 @@ describe('Wallet service', () => {
 
   describe('configuration check', () => {
     const testParameters = [
-      { title: 'missing btcnode configuration', changeConfig: cfg => delete cfg.btcnode, error: '"btcnode" is required' },
+      { title: 'missing chains configuration', changeConfig: cfg => delete cfg.chains, error: '"chains" is required' },
       { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' }
     ]
 
@@ -27,10 +27,7 @@ describe('Wallet service', () => {
       it(params.title, () => {
         const config = {
           httpserver: { does: 'not-matter' },
-          btcnode: {
-            client: { does: 'not-matter' },
-            zmq: 'does-not-matter'
-          },
+          chains: { does: 'not-matter' },
           walletService: { does: 'not-matter' },
           db: { does: 'not-matter' }
         }
