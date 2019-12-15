@@ -74,7 +74,7 @@ describe('Real WSServer + WSClient', () => {
 
   describe('topic subscriptions', () => {
     const wsclient = createClient()
-    beforeEach(() => { wsserver.topics = {} })
+    beforeEach(() => { wsserver.topics.clear() })
     afterEach(() => {
       serverReceived.should.deep.equal([])
       return wsclient.stop()

@@ -40,7 +40,7 @@ class WSServer {
     this.listenSocken = null
     this.config = config
     this.clientSockets = []
-    this.topics = {}
+    this.topics = new Map()
     this.logger = Logger(this.constructor.name)
   }
 
@@ -159,29 +159,29 @@ class WSServer {
   offerTopics (...topics) {
     topics.forEach(topic => {
       if (isInvalid(topic)) { throw new Error(`invalid topic name [${topic}]`) }
-      this.topics[topic] = []
+      this.topics.set(topic, [])
     })
   }
 
   broadcast (topic, message) {
     if (isInvalid(topic)) { return Promise.reject(Error(`invalid topic name [${topic}]`)) }
-    if (!Object.keys(this.topics).includes(topic)) {
+    if (!this.topics.has(topic)) {
       return Promise.reject(Error(`invalid topic [${topic}]`))
     }
     this.logger.debug('broadcasting:', `<${topic}>`, message)
     const broadcastmsg = wsmessages.createBroadcastMessage(topic, message)
     const messageToClient = clientSocket => Promise.resolve(clientSocket.send(broadcastmsg))
-    return Promise.all(this.topics[topic].map(messageToClient))
+    return Promise.all(this.topics.get(topic).map(messageToClient))
   }
 
   _internalReceived (clientSocket, request) {
     if (request.action === SUBSCRIBE_ACT) {
-      if (!Object.keys(this.topics).includes(request.topic)) {
+      if (!this.topics.has(request.topic)) {
         clientSocket.logger.error('topic not available:', request.topic)
         return Promise.resolve(topicSubscriptionNOK)
       }
       clientSocket.logger.info('topic subscription:', request.topic)
-      this.topics[request.topic].push(clientSocket)
+      this.topics.get(request.topic).push(clientSocket)
       return Promise.resolve(topicSubscriptionOK)
     }
     return this.received(request)
