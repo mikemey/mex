@@ -6,6 +6,8 @@ const errors = require('./errors')
 const dbconnection = require('./dbconnection')
 const Validator = require('./validator')
 
+const units = require('./units')
+
 module.exports = {
-  Logger, LOG_LEVELS, wsmessages, errors, dbconnection, Validator, randomHash, randomString
+  Logger, LOG_LEVELS, wsmessages, errors, dbconnection, Validator, randomHash, randomString, units
 }
