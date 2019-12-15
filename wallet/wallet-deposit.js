@@ -1,65 +1,51 @@
-const zmq = require('zeromq')
-
-const { wsmessages: { withAction }, dbconnection } = require('../utils')
+const {
+  Logger,
+  wsmessages: { withAction },
+  dbconnection: { collection, ObjectId }
+} = require('../utils')
+const { getChainAdapter } = require('./chains')
 
 const ADDRESS_ACT = 'address'
 const newAddressMessages = withAction(ADDRESS_ACT)
 
-const addressesColl = dbconnection.collection('addresses')
+const addressesColl = collection('addresses')
+const invoicesColl = collection('invoices')
 
-const idFilter = id => { return { _id: dbconnection.ObjectId(id) } }
+const logger = Logger('deposits')
 
-const findUserAddresses = userId => addressesColl.findOne({ _id: dbconnection.ObjectId(userId) })
+const _idFilter = id => { return { _id: ObjectId(id) } }
+
+const findUserAddresses = userId => addressesColl.findOne(_idFilter(userId))
+
 const createUserAddress = async userId => {
-  const newEntry = { _id: dbconnection.ObjectId(userId), reserved: [] }
+  const newEntry = { _id: ObjectId(userId), assets: [] }
   await addressesColl.insertOne(newEntry)
+  logger.info('created new addresses entry for user:', userId)
   return newEntry
 }
 
-const findSymbolAddress = (userAddresses, symbol) => userAddresses.reserved
+const findSymbolAddress = (userAddresses, symbol) => userAddresses.assets
   .find(symAddress => symAddress.symbol === symbol)
-const createSymbolAddress = async (userAddresses, symbol, address) => {
+
+const createSymbolAddress = async (userAddresses, symbol) => {
+  const address = await getChainAdapter(symbol).createNewAddress()
   const newSymbolAddress = { symbol, address }
-  userAddresses.reserved.push(newSymbolAddress)
-  await addressesColl.updateOne(idFilter(userAddresses._id), {
-    $addToSet: { reserved: newSymbolAddress }
+
+  userAddresses.assets.push(newSymbolAddress)
+  await addressesColl.updateOne(_idFilter(userAddresses._id), {
+    $addToSet: { assets: newSymbolAddress }
   })
+  logger.info('created new asset address, user:', userAddresses._id, 'symbol:', symbol, 'address:', address)
   return newSymbolAddress
 }
 
-const createDepositer = (wallet, zmqUrl) => {
-  const data = { sock: null }
+const getAddress = async request => {
+  const { user: { id }, symbol } = request
+  const userAddresses = await findUserAddresses(id) || await createUserAddress(id)
+  const symbolAddress = findSymbolAddress(userAddresses, symbol) ||
+    await createSymbolAddress(userAddresses, symbol)
 
-  const getAddress = async request => {
-    const { user: { id }, symbol } = request
-    const userAddresses = await findUserAddresses(id) || await createUserAddress(id)
-    const symbolAddress = findSymbolAddress(userAddresses, symbol) ||
-      await createSymbolAddress(userAddresses, symbol, await wallet.getNewAddress())
-
-    return newAddressMessages.ok({ address: symbolAddress.address })
-  }
-
-  const startListener = () => {
-    const run = async () => {
-      data.sock = new zmq.Subscriber()
-      data.sock.connect(zmqUrl)
-      data.sock.subscribe('rawblock')
-      // let txId = null
-
-      for await (const [rawtopic, rawmsg] of data.sock) {
-        const topic = rawtopic.toString().toUpperCase()
-        console.log(` ${topic} >>>>>>>>>>>>>`)
-        console.log(rawmsg.toString('hex', 0, 80))
-      }
-    }
-    run()
-  }
-
-  const stopListener = () => {
-    if (data.sock) { data.sock.close() }
-  }
-
-  return { getAddress, startListener, stopListener }
+  return newAddressMessages.ok({ address: symbolAddress.address })
 }
 
-module.exports = { createDepositer, ADDRESS_ACT }
+module.exports = { getAddress, ADDRESS_ACT }

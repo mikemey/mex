@@ -5,7 +5,7 @@ const { Validator, dbconnection } = require('../utils')
 const { assetsMetadata } = require('../metadata')
 
 const chains = require('./chains')
-const { createDepositer, ADDRESS_ACT } = require('./wallet-deposit')
+const { getAddress, ADDRESS_ACT } = require('./wallet-deposit')
 
 const configSchema = Joi.object({
   chains: Joi.object().required(),
@@ -30,7 +30,6 @@ class WalletService extends WSSecureServer {
     this.dbConfig = config.db
     this.chainsConfig = config.chains
 
-    this.depositer = createDepositer()
     this.offerTopics('address-funding')
   }
 
@@ -49,7 +48,7 @@ class WalletService extends WSSecureServer {
   async secureReceived (request) {
     requestCheck(request)
     switch (request.action) {
-      case ADDRESS_ACT: return this.depositer.getAddress(request)
+      case ADDRESS_ACT: return getAddress(request)
       default: throw new Error(`unexpected action [${require.action}]`)
     }
   }
