@@ -1,14 +1,15 @@
 
-const { units: { Satoshi }, dbconnection: { collection, connect } } = require('../utils')
+const { units: { Satoshi }, dbconnection } = require('../utils')
 const { TestDataSetup: { dropTestDatabase, dbConfig } } = require('../test-tools')
 
 describe('Satoshi object', () => {
-  const testcollection = collection('satoshitest')
+  const testcollection = dbconnection.collection('satoshitest')
 
   before(async () => {
-    await connect(dbConfig)
+    await dbconnection.connect(dbConfig)
     await dropTestDatabase()
   })
+  after(dbconnection.close)
 
   it('create from string', () => {
     const strValue = '999999999999999999'
@@ -45,6 +46,11 @@ describe('Satoshi object', () => {
 
   it('fromString number > 18 digits not allowed', () => {
     (() => Satoshi.fromString('1000000000000000000')).should.throw(Error, 'value exceeds 18 digits: 1000000000000000000')
+  })
+
+  it('constructor requires 2 args', () => {
+    (() => new Satoshi('9.9')).should.throw(Error, 'Statoshi constructor requires 2 arguments (lowBits, highBits)');
+    (() => new Satoshi()).should.throw(Error, 'Statoshi constructor requires 2 arguments (lowBits, highBits)')
   })
 
   it('fromString only allow whole number', () => {

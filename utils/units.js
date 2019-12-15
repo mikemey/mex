@@ -17,6 +17,7 @@ const checkDigits = strValue => {
 
 class Satoshi extends Long {
   constructor (low, high) {
+    if (low === undefined || high === undefined) { throw new Error('Statoshi constructor requires 2 arguments (lowBits, highBits)') }
     super(low, high)
     checkMax(this.toString())
     checkMin(this)
