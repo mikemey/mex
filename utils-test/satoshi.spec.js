@@ -47,6 +47,14 @@ describe('Satoshi object', () => {
     (() => Satoshi.fromString('1000000000000000000')).should.throw(Error, 'value exceeds 18 digits: 1000000000000000000')
   })
 
+  it('fromString only allow whole number', () => {
+    (() => Satoshi.fromString('1.1')).should.throw(Error, 'only digits allowed: 1.1')
+  })
+
+  it('fromString only allows digits', () => {
+    (() => Satoshi.fromString('1,1')).should.throw(Error, 'only digits allowed: 1,1')
+  })
+
   it('constructor negative numbers not allowed', () => {
     (() => new Satoshi(-1, -1)).should.throw(Error, 'negative value not allowed: -1')
   })

@@ -3,12 +3,16 @@ const Long = require('mongodb').Long
 const BTCFRACTIONCOUNT = 8
 const SATOSHI_MIN = Long.fromInt(0)
 
-const checkMax = str => {
-  if ((str.length > 18)) { throw new Error(`value exceeds 18 digits: ${str}`) }
+const checkMax = strValue => {
+  if (strValue.length > 18) { throw new Error(`value exceeds 18 digits: ${strValue}`) }
 }
 
 const checkMin = longValue => {
   if (longValue.lessThan(SATOSHI_MIN)) { throw new Error(`negative value not allowed: ${longValue.toString()}`) }
+}
+
+const checkDigits = strValue => {
+  if (!/^\d+$/.test(strValue)) { throw new Error(`only digits allowed: ${strValue}`) }
 }
 
 class Satoshi extends Long {
@@ -24,6 +28,7 @@ class Satoshi extends Long {
     checkMax(value)
     const lval = Long.fromString(value)
     checkMin(lval)
+    checkDigits(value)
     return new Satoshi(lval.low_, lval.high_)
   }
 
