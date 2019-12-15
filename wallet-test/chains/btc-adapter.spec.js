@@ -4,7 +4,7 @@ const BtcAdapter = require('../../wallet/chains/btc-adapter')
 
 const { startNode, stopNode, faucetWallet, thirdPartyWallet, defaultBtcAdapterConfig, walletConfig, generateBlocks } = require('./btc-node.orch')
 
-describe.only('Btc adapter', () => {
+describe('Btc adapter', () => {
   const btcAdapter = BtcAdapter.create(defaultBtcAdapterConfig)
 
   before(startNode)
@@ -72,6 +72,14 @@ describe.only('Btc adapter', () => {
         intxs.other.invoiceId = await faucetWallet.sendToAddress(intxs.other.address, intxs.other.amount)
         await generateBlocks(1)
       })().catch(done)
+    })
+
+    it('consecutive calls to stopListener are no-ops', () => {
+      btcAdapter.stopListener()
+      btcAdapter.stopListener()
+      btcAdapter.startListener()
+      btcAdapter.stopListener()
+      btcAdapter.stopListener()
     })
   })
 

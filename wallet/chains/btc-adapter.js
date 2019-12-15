@@ -80,7 +80,7 @@ const create = config => {
     listenToZMQ()
   }
 
-  const stopListener = () => sock.close()
+  const stopListener = () => sock && sock.close()
 
   return { startListener, stopListener, createNewAddress }
 }
