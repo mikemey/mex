@@ -1,15 +1,21 @@
 const Long = require('mongodb').Long
 
-const BTCFRACTIONCOUNT = 8
+const BTC_FRACTION_COUNT = 8
+const FROM_STRING_MAX_LEN = 18
+const FROM_NUMBER_MAX_LEN = 999999999999999
 const SATOSHI_MIN = Long.fromInt(0)
 
 const checkMax = strValue => {
-  if (strValue.length > 18) { throw new Error(`value exceeds 18 digits: ${strValue}`) }
+  if (strValue.length > FROM_STRING_MAX_LEN) {
+    throw new Error(`value exceeds 18 digits: ${strValue}`)
+  }
 }
 
 const checkMin = longValue => {
-  if (longValue.lessThan(SATOSHI_MIN)) { throw new Error(`negative value not allowed: ${longValue.toString()}`) }
+  if (longValue.lessThan(SATOSHI_MIN)) { return negativeValueError(longValue) }
 }
+
+const negativeValueError = num => { throw new Error(`negative value not allowed: ${num.toString()}`) }
 
 const checkDigits = strValue => {
   if (!/^\d+$/.test(strValue)) { throw new Error(`only digits allowed: ${strValue}`) }
@@ -24,7 +30,17 @@ class Satoshi extends Long {
   }
 
   static fromInt () { throw new Error('not supported, use "fromString"') }
-  static fromNumber () { throw new Error('not supported, use "fromString"') }
+
+  static fromNumber (num) {
+    if (num < 0) { return negativeValueError(num) }
+    if (num % 1 !== 0) { throw new Error(`only whole numbers: ${num}`) }
+    if (num > FROM_NUMBER_MAX_LEN) {
+      throw new Error(`value exceeds 15 digits (when converting from number): ${num}`)
+    }
+    // return this.fromString(`000${num}`)
+    return super.fromNumber(num)
+  }
+
   static fromString (value) {
     checkMax(value)
     const lval = Long.fromString(value)
@@ -38,9 +54,9 @@ class Satoshi extends Long {
   toBigInt () { return BigInt(this.toString()) }
 
   toBtc () {
-    const amt = this.toString().padStart(BTCFRACTIONCOUNT + 1, '0')
-    const whole = amt.slice(0, -BTCFRACTIONCOUNT)
-    const fraction = amt.slice(-BTCFRACTIONCOUNT)
+    const value = this.toString().padStart(BTC_FRACTION_COUNT + 1, '0')
+    const whole = value.slice(0, -BTC_FRACTION_COUNT)
+    const fraction = value.slice(-BTC_FRACTION_COUNT)
     return `${whole}.${fraction}`
   }
 }

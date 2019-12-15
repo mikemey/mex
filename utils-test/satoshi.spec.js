@@ -2,7 +2,7 @@
 const { units: { Satoshi }, dbconnection } = require('../utils')
 const { TestDataSetup: { dropTestDatabase, dbConfig } } = require('../test-tools')
 
-describe('Satoshi object', () => {
+describe('Satoshi', () => {
   const testcollection = dbconnection.collection('satoshitest')
 
   before(async () => {
@@ -15,6 +15,11 @@ describe('Satoshi object', () => {
     const strValue = '999999999999999999'
     const sat = Satoshi.fromString(strValue)
     sat.toString().should.equal(strValue)
+  })
+
+  it('create from number', () => {
+    const value = Satoshi.fromNumber(1234)
+    value.toString().should.equal('1234')
   })
 
   it('create with constructor', () => {
@@ -48,6 +53,10 @@ describe('Satoshi object', () => {
     (() => Satoshi.fromString('1000000000000000000')).should.throw(Error, 'value exceeds 18 digits: 1000000000000000000')
   })
 
+  it('fromNumber number > 15 digits not allowed', () => {
+    (() => Satoshi.fromNumber(1234567890123456)).should.throw(Error, 'value exceeds 15 digits (when converting from number): 1234567890123456')
+  })
+
   it('constructor requires 2 args', () => {
     (() => new Satoshi('9.9')).should.throw(Error, 'Statoshi constructor requires 2 arguments (lowBits, highBits)');
     (() => new Satoshi()).should.throw(Error, 'Statoshi constructor requires 2 arguments (lowBits, highBits)')
@@ -61,6 +70,10 @@ describe('Satoshi object', () => {
     (() => Satoshi.fromString('1,1')).should.throw(Error, 'only digits allowed: 1,1')
   })
 
+  it('fromNumber only allow whole number', () => {
+    (() => Satoshi.fromNumber(1.1)).should.throw(Error, 'only whole numbers: 1.1')
+  })
+
   it('constructor negative numbers not allowed', () => {
     (() => new Satoshi(-1, -1)).should.throw(Error, 'negative value not allowed: -1')
   })
@@ -69,12 +82,12 @@ describe('Satoshi object', () => {
     (() => Satoshi.fromString('-1')).should.throw(Error, 'negative value not allowed: -1')
   })
 
-  it('fromInt not allowed', () => {
-    (() => Satoshi.fromInt(1234)).should.throw(Error, 'not supported, use "fromString"')
+  it('fromNumber negative numbers not allowed', () => {
+    (() => Satoshi.fromNumber(-1)).should.throw(Error, 'negative value not allowed: -1')
   })
 
-  it('fromNumber not allowed', () => {
-    (() => Satoshi.fromNumber(1234)).should.throw(Error, 'not supported, use "fromString"')
+  it('fromInt not allowed', () => {
+    (() => Satoshi.fromInt(1234)).should.throw(Error, 'not supported, use "fromString"')
   })
 
   it('can store and retrieve from DB', async () => {
