@@ -11,8 +11,8 @@ const configSchema = Joi.object({
   zmq: Joi.string().required()
 })
 
-const newInvoice = (invoiceId, address, amount, block = null) => {
-  return { invoiceId, address, amount, block }
+const newInvoice = (invoiceId, address, amount, blockheight = null) => {
+  return { invoiceId, address, amount, blockheight }
 }
 
 const create = config => {
@@ -66,7 +66,7 @@ const create = config => {
       const blockInvoices = block.tx
         .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
         .map(invcoice => {
-          invcoice.block = block.height
+          invcoice.blockheight = block.height
           return invcoice
         })
       logger.info('new block height:', block.height, 'hash:', blockhash)

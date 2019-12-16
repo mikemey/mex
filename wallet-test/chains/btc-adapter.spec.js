@@ -50,7 +50,7 @@ describe('Btc adapter', () => {
       (async () => {
         const address = await btcAdapter.createNewAddress()
         const amount = Satoshi.fromBtcValue('2.22222')
-        const expectedInvoice = { invoiceId: undefined, address, amount, block: null }
+        const expectedInvoice = { invoiceId: undefined, address, amount, blockheight: null }
 
         btcAdapter.startListener(expectReceivedInvoices(2, [expectedInvoice], done))
         expectedInvoice.invoiceId = await faucetWallet.sendToAddress(address, amount.toBtc())
@@ -64,13 +64,13 @@ describe('Btc adapter', () => {
         const myAddress = await btcAdapter.createNewAddress()
         const myAmount = Satoshi.fromBtcValue('2.22222')
         const myInvoiceId = await faucetWallet.sendToAddress(myAddress, myAmount.toBtc())
-        const myexpectedInvoice = { invoiceId: myInvoiceId, address: myAddress, amount: myAmount, block: nextBlockHeight }
+        const myexpectedInvoice = { invoiceId: myInvoiceId, address: myAddress, amount: myAmount, blockheight: nextBlockHeight }
 
         const otherAddress = await thirdPartyWallet.getNewAddress()
         const otherAmount = Satoshi.fromBtcValue('1.111')
         const otherInvoiceId = await faucetWallet.sendToAddress(otherAddress, otherAmount.toBtc())
         const expectedOtherInvoice = {
-          invoiceId: otherInvoiceId, address: otherAddress, amount: otherAmount, block: nextBlockHeight
+          invoiceId: otherInvoiceId, address: otherAddress, amount: otherAmount, blockheight: nextBlockHeight
         }
 
         const expectedInvoices = [myexpectedInvoice, expectedOtherInvoice]
