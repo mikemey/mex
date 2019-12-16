@@ -11,21 +11,23 @@ const configSchema = Joi.object({
   zmq: Joi.string().required()
 })
 
+const newInvoice = (invoiceId, address, amount, block = null) => {
+  return { invoiceId, address, amount, block }
+}
+
 const create = config => {
   Validator.oneTimeValidation(configSchema, config)
-  const logger = Logger('BtcNode')
+  const logger = Logger('btc adapter')
   const wallet = new BitcoinClient(config.client)
   let sock
 
   const createNewAddress = async () => {
     const newAddress = await wallet.getNewAddress()
-    logger.info('generated new address', newAddress)
+    logger.info('generated new btc address', newAddress)
     return newAddress
   }
 
-  const startListener = (
-    { newTransactionCb = invoices => { }, newBlockCb = invoices => { } } = {}
-  ) => {
+  const startListener = invoicesCallback => {
     const listenToZMQ = async () => {
       sock = new zmq.Subscriber()
       sock.connect(config.zmq)
@@ -36,9 +38,14 @@ const create = config => {
     const process = async (rawtopic, rawmsg) => {
       const topic = rawtopic.toString()
       const hashmsg = rawmsg.toString('hex')
-      if (topic === 'hashtx') { return processTransaction(hashmsg) }
-      if (topic === 'hashblock') { return processBlock(hashmsg) }
-      logger.error('ignoring topic', topic)
+
+      switch (topic) {
+        case 'hashtx': return processTransaction(hashmsg)
+        case 'hashblock': return processBlock(hashmsg)
+        default: {
+          logger.error('ignoring topic', topic)
+        }
+      }
     }
 
     const processTransaction = async txhash => {
@@ -51,27 +58,25 @@ const create = config => {
         return
       }
       logger.info('new tx:', tx.txid)
-      newTransactionCb(extractInvoices(tx))
+      invoicesCallback(extractInvoices(tx))
     }
 
     const processBlock = async blockhash => {
       const block = await wallet.getBlockByHash(blockhash)
-      logger.info('new block:', block.hash)
-      const confirmedInvoices = block.tx
+      const blockInvoices = block.tx
         .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
         .map(invcoice => {
           invcoice.block = block.height
           return invcoice
         })
-      newBlockCb(confirmedInvoices)
+      logger.info('new block height:', block.height, 'hash:', blockhash)
+      invoicesCallback(blockInvoices)
     }
 
     const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
       if (vout.scriptPubKey.addresses) {
         vout.scriptPubKey.addresses.forEach(address => {
-          invoices.push(
-            { invoiceId: tx.txid, address, amount: Satoshi.fromBtcValue(vout.value) }
-          )
+          invoices.push(newInvoice(tx.txid, address, Satoshi.fromBtcValue(vout.value)))
         })
       }
       return invoices
