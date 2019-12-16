@@ -19,7 +19,10 @@ const create = config => {
   Validator.oneTimeValidation(configSchema, config)
   const logger = Logger('btc adapter')
   const wallet = new BitcoinClient(config.client)
-  let sock
+  const data = {
+    sock: null,
+    currentBlockHeight: null
+  }
 
   const createNewAddress = async () => {
     const newAddress = await wallet.getNewAddress()
@@ -29,10 +32,12 @@ const create = config => {
 
   const startListener = invoicesCallback => {
     const listenToZMQ = async () => {
-      sock = new zmq.Subscriber()
-      sock.connect(config.zmq)
-      sock.subscribe('hash')
-      for await (const [rawtopic, rawmsg] of sock) { process(rawtopic, rawmsg) }
+      data.currentBlockHeight = (await wallet.getBlockchainInformation()).blocks
+
+      data.sock = new zmq.Subscriber()
+      data.sock.connect(config.zmq)
+      data.sock.subscribe('hash')
+      for await (const [rawtopic, rawmsg] of data.sock) { process(rawtopic, rawmsg) }
     }
 
     const process = async (rawtopic, rawmsg) => {
@@ -58,19 +63,20 @@ const create = config => {
         return
       }
       logger.info('new tx:', tx.txid)
-      invoicesCallback(extractInvoices(tx))
+      callbackWith(extractInvoices(tx))
     }
 
     const processBlock = async blockhash => {
       const block = await wallet.getBlockByHash(blockhash)
+      data.currentBlockHeight = block.height
       const blockInvoices = block.tx
         .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
         .map(invcoice => {
           invcoice.blockheight = block.height
           return invcoice
         })
-      logger.info('new block height:', block.height, 'hash:', blockhash)
-      invoicesCallback(blockInvoices)
+      logger.info('new block height:', data.currentBlockHeight, 'hash:', blockhash)
+      callbackWith(blockInvoices)
     }
 
     const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
@@ -82,10 +88,14 @@ const create = config => {
       return invoices
     }, [])
 
+    const callbackWith = invoices => invoicesCallback && invoicesCallback({
+      blockheight: data.currentBlockHeight, invoices
+    })
+
     listenToZMQ()
   }
 
-  const stopListener = () => sock && sock.close()
+  const stopListener = () => data.sock && data.sock.close()
 
   return { startListener, stopListener, createNewAddress }
 }
