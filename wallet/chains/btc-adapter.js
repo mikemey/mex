@@ -62,7 +62,7 @@ const create = config => {
         logger.error(err.message)
         return
       }
-      logger.info('new tx:', tx.txid)
+      logger.debug('new tx:', tx.txid)
       callbackWith(extractInvoices(tx))
     }
 

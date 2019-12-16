@@ -1,11 +1,9 @@
-const BitcoinClient = require('bitcoin-core')
-
 const BtcAdapter = require('../../wallet/chains/btc-adapter')
 
 const {
   startNode, stopNode,
-  faucetWallet, thirdPartyWallet, generateBlocks,
-  defaultBtcAdapterConfig, walletConfig
+  mainWallet, faucetWallet, thirdPartyWallet,
+  generateBlocks, defaultBtcAdapterConfig
 } = require('./btc-node.orch')
 
 const { units: { Satoshi } } = require('../../utils')
@@ -26,9 +24,9 @@ describe('Btc adapter', () => {
   })
 
   describe('btw wallet operations', () => {
-    afterEach(() => {
-      btcAdapter.stopListener()
-      return clearMempool()
+    afterEach(async () => {
+      await btcAdapter.stopListener()
+      await clearMempool()
     })
 
     const expectReceivedInvoices = (blockheight, expectCount, expectInvoices, done) => async invoiceRes =>
@@ -43,7 +41,6 @@ describe('Btc adapter', () => {
       btcAdapter.startListener()
       const newAddress = await btcAdapter.createNewAddress()
 
-      const mainWallet = new BitcoinClient(walletConfig())
       const addressInfo = await mainWallet.getAddressInfo(newAddress)
       addressInfo.ismine.should.equal(true)
     })
@@ -82,7 +79,7 @@ describe('Btc adapter', () => {
       })().catch(done)
     })
 
-    it('consecutive calls to stopListener are no-ops', () => {
+    it.only('consecutive calls to stopListener are no-ops', () => {
       btcAdapter.stopListener()
       btcAdapter.stopListener()
       btcAdapter.startListener()

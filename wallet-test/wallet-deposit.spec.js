@@ -1,14 +1,16 @@
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../test-tools')
 const {
   wsmessages: { OK_STATUS, ERROR_STATUS, withAction },
-  dbconnection: { collection, ObjectId }
+  dbconnection: { collection, ObjectId },
+  units: { Satoshi }
 } = require('../utils')
 
 const {
-  startServices, stopServices, wsClient, withJwtMessages, sessionMock
+  startServices, stopServices, wsClient, withJwtMessages, sessionMock,
+  btcnodeOrch: { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks }
 } = require('./wallet.orch')
 
-describe.only('Wallet depositer', () => {
+describe('Wallet depositer', () => {
   const addressColl = collection('addresses')
 
   const addressMsgs = withJwtMessages('address')
@@ -16,7 +18,10 @@ describe.only('Wallet depositer', () => {
 
   before(startServices)
   after(stopServices)
-  beforeEach(dropTestDatabase)
+  beforeEach(async () => {
+    await generateBlocks(1)
+    await dropTestDatabase()
+  })
   afterEach(() => wsClient.stop())
 
   describe('requesting address', () => {
@@ -36,51 +41,74 @@ describe.only('Wallet depositer', () => {
       addressResponse.status.should.equal(OK_STATUS)
       addressResponse.action.should.equal('address')
 
-      const storedAddresses = await addressColl.findOne({ _id: ObjectId(testUserId) })
-      storedAddresses.assets.should.deep.equal([
-        { symbol: 'btc', address: addressResponse.address }
+      const storedAddress = await addressColl.find({ _id: ObjectId(testUserId) }).toArray()
+      storedAddress.should.deep.equal([
+        { _id: ObjectId(testUserId), symbol: 'btc', address: addressResponse.address }
       ])
     })
 
-    it('returns existing address for existing user', async () => {
+    it('returns existing address for registered user', async () => {
       const address = 'testing-address'
-      await addressColl.insertOne({
-        _id: ObjectId(registeredUser.id),
-        assets: [{ symbol: 'btc', address }]
-      })
+      await addressColl.insertOne(
+        { _id: ObjectId(registeredUser.id), symbol: 'btc', address }
+      )
       const addressResponse = await wsClient.send(regUserAddressReq())
       addressResponse.status.should.equal(OK_STATUS)
       addressResponse.address.should.equal(address)
     })
 
-    // it('broadcasts address received funding', async () => {
-    //   const receivedBroadcast = []
-    //   let broadcastCount = 0
-    //   const subscribeRes = await wsClient.subscribe('address-funding', (topic, message) => {
-    //     broadcastCount += 1
-    //     topic.should.equal('address-funding')
-    //     receivedBroadcast.push(message)
-    //   })
-    //   subscribeRes.status.should.equal(OK_STATUS)
+    it('broadcast unconfirmed + confirmed invoices from own user', done => {
+      (async () => {
+        const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
+        const amount = Satoshi.fromBtcValue('0.12345')
+        const expectedResponse = {
+          blockheight: currentBlockHeight,
+          invoices: [
+            {
+              _id: registeredUser.id,
+              symbol: 'btc',
+              invoiceId: undefined,
+              amount: amount.toString(),
+              blockheight: null
+            }
+          ]
+        }
+        const userAddressRes = await wsClient.send(regUserAddressReq())
 
-    //   const res = await wsClient.send(regUserAddressReq())
-    //   console.log('address RESPONSE:')
-    //   console.log(res)
-    //   const address = res.address
-    //   const firstTxAmount = '1.23'
-    //   await sendAndConfirmTx(address, firstTxAmount)
-    //   await pause(1500)
-    //   broadcastCount.should.equal(1)
-    //   receivedBroadcast.should.deep.equal([{ address, amount: firstTxAmount }])
+        let expectConfirmedTxs = false
+        const subscribeRes = await wsClient.subscribe('deposits', (topic, message) => {
+          topic.should.equal('deposits')
+          if (expectConfirmedTxs) {
+            expectedResponse.blockheight = expectedResponse.invoices[0].blockheight = currentBlockHeight + 1
+            message.should.deep.equal(expectedResponse)
+            done()
+          } else {
+            message.should.deep.equal(expectedResponse)
+            expectConfirmedTxs = true
+          }
+        })
+        subscribeRes.status.should.equal(OK_STATUS)
 
-    //   const secondTxAmount = '0.23'
-    //   await sendAndConfirmTx(address, secondTxAmount)
-    //   broadcastCount.should.equal(2)
-    //   receivedBroadcast.should.deep.equal([
-    //     { address, amount: firstTxAmount },
-    //     { address, amount: secondTxAmount }
-    //   ])
-    // }, 30000)
+        await addOtherTransactions()
+        expectedResponse.invoices[0].invoiceId =
+          await faucetWallet.sendToAddress(userAddressRes.address, amount.toBtc())
+        await generateBlocks(1)
+      })().catch(done)
+    }).timeout(5000)
+
+    const addOtherTransactions = () => Promise.all([
+      [faucetWallet, thirdPartyWallet, '1.1'],
+      [thirdPartyWallet, faucetWallet, '0.3'],
+      [faucetWallet, mainWallet, '1.3'],
+      [mainWallet, faucetWallet, '0.3'],
+      [thirdPartyWallet, mainWallet, '0.5'],
+      [mainWallet, thirdPartyWallet, '0.5']
+    ].map(async ([sender, receiver, btcs], ix) => {
+      const addr = await receiver.getNewAddress()
+      await sender.sendToAddress(addr, btcs)
+    }))
+
+    xit('returns confirmed + unconfirmed invoices from own user', async () => { })
   })
 
   describe('client errors', () => {
@@ -102,4 +130,6 @@ describe.only('Wallet depositer', () => {
     it('unkown asset', () => expectNewAddressError(req => { req.asset = 'ukn' }))
     it('additional request parameters', () => expectNewAddressError(req => { req.additional = 'param' }))
   })
+
+  xdescribe('ensure collection indices')
 })

@@ -63,5 +63,5 @@ beforeEach(() => {
 afterEach(() => { sessionMock.errorCheck() })
 
 module.exports = {
-  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock
+  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, btcnodeOrch
 }

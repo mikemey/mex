@@ -25,7 +25,7 @@ const createAll = allConfigs => {
 
 const getChainAdapter = symbol => {
   if (!data.chainAdapters) { throw new Error('chain adapters not created') }
-  if (!data.availableSymbols.includes(symbol)) { throw new Error(`chain not supported: ${symbol}x`) }
+  if (!data.availableSymbols.includes(symbol)) { throw new Error(`chain not supported: ${symbol}`) }
   return data.chainAdapters.get(symbol)
 }
 
@@ -36,4 +36,8 @@ const stopAll = () => {
   data.chainAdapters = null
 }
 
-module.exports = { createAll, stopAll, getChainAdapter }
+const startAllListener = invoicesCallback => {
+  data.chainAdapters.forEach(chain => chain.startListener(invoicesCallback))
+}
+
+module.exports = { createAll, stopAll, getChainAdapter, startAllListener }

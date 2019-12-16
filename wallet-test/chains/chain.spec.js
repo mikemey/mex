@@ -1,7 +1,7 @@
 const chains = require('../../wallet/chains')
 const btcnodeOrch = require('../chains/btc-node.orch')
 
-describe('Chain module', () => {
+describe('Chains module', () => {
   const chainsConfig = { btcnode: btcnodeOrch.defaultBtcAdapterConfig }
 
   describe('getChainAdapter', () => {
@@ -23,13 +23,13 @@ describe('Chain module', () => {
 
   describe('usage error', () => {
     it('throws error when adapters not created', () => {
-      (() => chains.getChainAdapter('whateva')).should.throw(Error, 'chain adapters not created')
+      (() => chains.getChainAdapter('whateva')).should.throw(Error, /^chain adapters not created$/)
     })
 
     it('throws error for unknown assets', () => {
       chains.createAll(chainsConfig)
       const unknownAsset = 'unknown';
-      (() => chains.getChainAdapter(unknownAsset)).should.throw(Error, 'chain not supported: ' + unknownAsset)
+      (() => chains.getChainAdapter(unknownAsset)).should.throw(Error, RegExp(`^chain not supported: ${unknownAsset}$`))
     })
   })
 

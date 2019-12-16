@@ -20,18 +20,18 @@ const btcClientConfig = {
   password: 'regtester'
 }
 const zmqConfig = 'tcp://127.0.0.1:19591'
+const walletConfig = wallet => Object.assign({ wallet }, btcClientConfig)
 
 const mainWalletName = 'mex-test-wallet'
 const faucetWalletName = 'faucet'
 const thirdWalletName = 'third-party-wallet'
 
-const walletConfig = (wallet = mainWalletName) => Object.assign({ wallet }, btcClientConfig)
-
+const mainWallet = new BitcoinClient(walletConfig(mainWalletName))
 const faucetWallet = new BitcoinClient(walletConfig(faucetWalletName))
 const thirdPartyWallet = new BitcoinClient(walletConfig(thirdWalletName))
 
 const defaultBtcAdapterConfig = {
-  client: walletConfig(),
+  client: walletConfig(mainWalletName),
   zmq: zmqConfig
 }
 
@@ -179,5 +179,5 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
 })
 
 module.exports = {
-  startNode, stopNode, generateBlocks, faucetWallet, thirdPartyWallet, walletConfig, defaultBtcAdapterConfig
+  startNode, stopNode, generateBlocks, mainWallet, faucetWallet, thirdPartyWallet, defaultBtcAdapterConfig
 }

@@ -5,7 +5,9 @@ const { Validator, dbconnection } = require('../utils')
 const { assetsMetadata } = require('../metadata')
 
 const chains = require('./chains')
-const { getAddress, ADDRESS_ACT } = require('./wallet-deposit')
+const Deposits = require('./wallet-deposit')
+
+const DEPOSITS_TOPIC = 'deposits'
 
 const configSchema = Joi.object({
   chains: Joi.object().required(),
@@ -13,7 +15,7 @@ const configSchema = Joi.object({
 }).unknown()
 
 const addressSchema = Joi.object({
-  action: Joi.string().valid(ADDRESS_ACT).required(),
+  action: Joi.string().valid(Deposits.ADDRESS_ACT).required(),
   user: Joi.object().required(),
   symbol: Joi.string().valid(...Object.keys(assetsMetadata)).required()
 })
@@ -30,12 +32,15 @@ class WalletService extends WSSecureServer {
     this.dbConfig = config.db
     this.chainsConfig = config.chains
 
-    this.offerTopics('address-funding')
+    this.offerTopics(DEPOSITS_TOPIC)
   }
 
   start () {
     return Promise.all([
-      dbconnection.connect(this.dbConfig), super.start(), chains.createAll(this.chainsConfig)
+      dbconnection.connect(this.dbConfig),
+      super.start(),
+      chains.createAll(this.chainsConfig),
+      Deposits.startListening(deposits => this.broadcast(DEPOSITS_TOPIC, deposits))
     ])
   }
 
@@ -48,7 +53,7 @@ class WalletService extends WSSecureServer {
   async secureReceived (request) {
     requestCheck(request)
     switch (request.action) {
-      case ADDRESS_ACT: return getAddress(request)
+      case Deposits.ADDRESS_ACT: return Deposits.getAddress(request)
       default: throw new Error(`unexpected action [${require.action}]`)
     }
   }
