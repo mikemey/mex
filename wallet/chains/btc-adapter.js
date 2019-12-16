@@ -34,10 +34,15 @@ const create = config => {
     const listenToZMQ = async () => {
       data.currentBlockHeight = (await wallet.getBlockchainInformation()).blocks
 
+      logger.debug('connect zmq socket...')
       data.sock = new zmq.Subscriber()
       data.sock.connect(config.zmq)
-      data.sock.subscribe('hash')
-      for await (const [rawtopic, rawmsg] of data.sock) { process(rawtopic, rawmsg) }
+      data.sock.subscribe('hash');
+      (async () => {
+        for await (const [rawtopic, rawmsg] of data.sock) {
+          process(rawtopic, rawmsg)
+        }
+      })()
     }
 
     const process = async (rawtopic, rawmsg) => {
@@ -92,10 +97,16 @@ const create = config => {
       blockheight: data.currentBlockHeight, invoices
     })
 
-    listenToZMQ()
+    return listenToZMQ()
   }
 
-  const stopListener = () => data.sock && data.sock.close()
+  const stopListener = () => {
+    if (data.sock !== null) {
+      logger.debug('closing zmq socket')
+      data.sock.close()
+      data.sock = null
+    }
+  }
 
   return { startListener, stopListener, createNewAddress }
 }

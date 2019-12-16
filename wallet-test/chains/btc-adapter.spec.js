@@ -79,10 +79,9 @@ describe('Btc adapter', () => {
       })().catch(done)
     })
 
-    it.only('consecutive calls to stopListener are no-ops', () => {
+    it('consecutive calls to stopListener are no-ops', async () => {
       btcAdapter.stopListener()
-      btcAdapter.stopListener()
-      btcAdapter.startListener()
+      await btcAdapter.startListener()
       btcAdapter.stopListener()
       btcAdapter.stopListener()
     })
