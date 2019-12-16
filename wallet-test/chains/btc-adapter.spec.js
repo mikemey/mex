@@ -2,7 +2,13 @@ const BitcoinClient = require('bitcoin-core')
 
 const BtcAdapter = require('../../wallet/chains/btc-adapter')
 
-const { startNode, stopNode, faucetWallet, thirdPartyWallet, defaultBtcAdapterConfig, walletConfig, generateBlocks } = require('./btc-node.orch')
+const {
+  startNode, stopNode,
+  faucetWallet, thirdPartyWallet, generateBlocks,
+  defaultBtcAdapterConfig, walletConfig
+} = require('./btc-node.orch')
+
+const { units: { Satoshi } } = require('../../utils')
 
 describe('Btc adapter', () => {
   const btcAdapter = BtcAdapter.create(defaultBtcAdapterConfig)
@@ -35,7 +41,7 @@ describe('Btc adapter', () => {
     })
 
     it('reports invoice from new mempool transaction', done => {
-      const intx = { invoiceId: null, address: null, amount: '1.43256' }
+      const intx = { invoiceId: null, address: null, amount: Satoshi.fromString('143256000') }
 
       const newTransactionCb = async invoices => new Promise((resolve, reject) => {
         invoices.should.have.length(2)
@@ -46,30 +52,30 @@ describe('Btc adapter', () => {
       (async () => {
         btcAdapter.startListener({ newTransactionCb })
         intx.address = await btcAdapter.createNewAddress()
-        intx.invoiceId = await faucetWallet.sendToAddress(intx.address, intx.amount)
+        intx.invoiceId = await faucetWallet.sendToAddress(intx.address, intx.amount.toBtc())
       })().catch(done)
     })
 
     it('reports invoices from new block', done => {
-      const intxs = {
-        mex: { invoiceId: null, address: null, amount: '2.22222', block: null },
-        other: { invoiceId: null, address: null, amount: '1.111', block: null }
+      const expTxs = {
+        mex: { invoiceId: null, address: null, amount: Satoshi.fromBtcValue('2.22222'), block: null },
+        other: { invoiceId: null, address: null, amount: Satoshi.fromBtcValue('1.111'), block: null }
       }
       const newBlockCb = async invoices => new Promise((resolve, reject) => {
         invoices.should.have.length(5)
-        invoices.should.deep.include(intxs.mex)
-        invoices.should.deep.include(intxs.other)
+        invoices.should.deep.include(expTxs.mex)
+        invoices.should.deep.include(expTxs.other)
         resolve()
       }).then(done).catch(done);
 
       (async () => {
-        intxs.mex.block = intxs.other.block = 1 + (await faucetWallet.getBlockchainInformation()).blocks
+        expTxs.mex.block = expTxs.other.block = 1 + (await faucetWallet.getBlockchainInformation()).blocks
         btcAdapter.startListener({ newBlockCb })
-        intxs.mex.address = await btcAdapter.createNewAddress()
-        intxs.mex.invoiceId = await faucetWallet.sendToAddress(intxs.mex.address, intxs.mex.amount)
+        expTxs.mex.address = await btcAdapter.createNewAddress()
+        expTxs.mex.invoiceId = await faucetWallet.sendToAddress(expTxs.mex.address, expTxs.mex.amount.toBtc())
 
-        intxs.other.address = await thirdPartyWallet.getNewAddress()
-        intxs.other.invoiceId = await faucetWallet.sendToAddress(intxs.other.address, intxs.other.amount)
+        expTxs.other.address = await thirdPartyWallet.getNewAddress()
+        expTxs.other.invoiceId = await faucetWallet.sendToAddress(expTxs.other.address, expTxs.other.amount.toBtc())
         await generateBlocks(1)
       })().catch(done)
     })
