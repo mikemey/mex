@@ -19,7 +19,7 @@ if [[ -z ${action} ]]; then
 fi
 
 e2e_output="$test_dir/tmp.out.e2e"
-server_bin="node $test_dir/orchestrator.e2e.js"
+server_bin="node $test_dir/orchestrator.e2e.js start"
 cypress_bin="npx cypress ${cypress_cmd}"
 
 server_startup_retries=10
@@ -29,7 +29,7 @@ exit_code=0
 sed_any_group="\(.*\)"
 sed_number_group="\([0-9]*\)"
 server_baseurl_re="^baseurl=${sed_any_group}$"
-server_pid_re="^pid=${sed_number_group}$"
+server_pid_re="^.*pid=${sed_number_group}$"
 
 function print_usage () {
   echo -e "\n usage: $(basename -- $0) [ start | stop | run | open ]"
@@ -79,7 +79,11 @@ function stop_e2e_infrastructure () {
     error_message "session log file not found: $e2e_output"
     return
   fi
-  kill "$(extract_from_output "$server_pid_re")" && echo "server stopped."
+  all_pids=($(extract_from_output "$server_pid_re"))
+  for pid in ${all_pids[@]}; do
+    echo "stopping process: $pid"
+    kill ${pid}
+  done
   echo "e2e infrastructure stopped."
 
   errors=`grep "Error" ${e2e_output}`
@@ -111,11 +115,9 @@ function start_server () {
 function wait_for_server () {
   sleep 1
   server_baseUrl=$(extract_from_output "$server_baseurl_re")
-  pid=$(extract_from_output "${server_pid_re}")
-  check_is_number "$pid" "server not started! got:\n$pid"
   [[ ${exit_code} -ne 0 ]] && return
 
-  printf "waiting for pid [${pid}] at ${server_baseUrl} "
+  printf "waiting for server hosting ${server_baseUrl} "
   while [[ ${server_startup_retries} > 0 && `curl -s -o /dev/null -w "%{http_code}" ${server_baseUrl}` == "000" ]]; do
     sleep 0.2
     printf "$server_startup_retries "
