@@ -6,7 +6,7 @@ describe('Balance page', () => {
 
   before(() => cy.task('seedTestData'))
 
-  it('for authenticated users', () => cy.loginRegisteredUser()
+  it('no balance for new user', () => cy.loginRegisteredUser()
     .then(() => {
       balancepage.visit()
       balancepage.assetBalance('btc').should('have.text', '0.00000000')
