@@ -60,21 +60,21 @@ class WSClient {
   _openWebsocket (resolve, reject) {
     this.logger.info('connecting to:', this.wsconfig.url)
 
-    const saveEnding = (endCb, logFunc, ...args) => {
+    const saveEnding = (endCb, ...args) => {
       this._clearListeners()
-      logFunc(...args)
+      this.logger.debug(...args)
       endCb()
     }
 
     const connectTimeout = this._createTimeout(
-      err => saveEnding(() => reject(err), this.logger.error),
+      err => saveEnding(() => reject(err), 'connecting timed out'),
       'connecting timed out'
     )
 
     this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
     this.ws.prependOnceListener('open', () => {
       connectTimeout.cancel()
-      saveEnding(resolve, this.logger.debug, 'connection established')
+      saveEnding(resolve, 'connection established')
     })
 
     this.ws.addListener('message', raw => {
@@ -87,7 +87,7 @@ class WSClient {
     const closedown = error => {
       connectTimeout.cancel()
       const rejectOriginError = () => reject(error)
-      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), this.logger.error, 'connection error:', error)
+      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), 'connection error:', error)
     }
     this.ws.prependOnceListener('close', closedown)
     this.ws.prependOnceListener('error', closedown)
