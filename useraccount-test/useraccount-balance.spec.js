@@ -1,4 +1,7 @@
-const { dbconnection: { ObjectId, Long, collection } } = require('../utils')
+const {
+  dbconnection: { ObjectId, Long, collection },
+  wsmessages: { withAction, error }
+} = require('../utils')
 
 const orchestrator = require('./useraccount.orch')
 const { TestDataSetup: { seedTestData, dropTestDatabase } } = require('../test-tools')
@@ -13,6 +16,7 @@ describe('UserAccount balance', () => {
     ({ useragent, walletMock } = await orchestrator.start({ authenticatedAgent: true }))
   })
   after(() => orchestrator.stop())
+  beforeEach(() => walletMock.reset())
 
   describe('balance overview page', () => {
     it('user without balance-record', async () => {
@@ -44,29 +48,36 @@ describe('UserAccount balance', () => {
   })
 
   describe('deposit', async () => {
-    const addressMessages = orchestrator.withJwtMessages('address')
+    const actionBuilder = withAction('address')
+    const getAddressReq = symbol => orchestrator.withJwtMessages(actionBuilder.build({ symbol }))
+    const getAddressResOk = address => actionBuilder.ok({ address })
+    const getAddressResError = error('test')
+
     const depositPath = slug => `/balance/deposit${slug}`
 
     it('request address from wallet service', async () => {
-      const addressReq = addressMessages.build({ symbol: 'btc' })
-      const addressRes = addressMessages.build({ address: 'abcdef' })
-
-      walletMock.addMockFor(addressReq, addressRes)
+      const addressReq = getAddressReq('btc')
+      const address = 'abccdef'
+      walletMock.addMockFor(getAddressReq('btc'), getAddressResOk(address))
       const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
       res.status.should.equal(200)
       res.html.pageTitle().should.equal('mex btc deposits')
-      res.html.$('[data-address="btc"]').text().should.equal('abcdef')
+      res.html.$('[data-address="btc"]').text().should.equal(address)
 
       walletMock.assertReceived(addressReq)
     })
-    const invalidDepositPaths = [depositPath(''), depositPath('/'), depositPath('/unknown')]
 
-    invalidDepositPaths.forEach(path => {
-      xit(`redirects to /balances when request to ${path}`, async () => {
-        const res = orchestrator.withHtml(await useragent.get(path))
-        res.status.should.equal(200)
-        res.html.pageTitle().should.equal('mex balance')
-      })
+    it('request address fails', async () => {
+      walletMock.addMockFor(getAddressReq('btc'), getAddressResError)
+      const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
+      res.status.should.equal(200)
+      res.html.pageTitle().should.equal('mex balances')
+    })
+
+    it('redirects to /balances for unknown symbol', async () => {
+      const res = orchestrator.withHtml(await useragent.get(depositPath('/unknown')))
+      res.status.should.equal(200)
+      res.html.pageTitle().should.equal('mex balances')
     })
 
     xit('show existing deposits', () => {

@@ -4,6 +4,8 @@ chai.use(require('chai-string'))
 const orchestrator = require('./useraccount.orch')
 const UserAccountService = require('../useraccount')
 
+const { wsmessages: { withAction } } = require('../utils')
+
 describe('UserAccountService', () => {
   let useragent
 
@@ -50,10 +52,11 @@ describe('UserAccountService', () => {
       unavailableRes.html.pageTitle().should.equal('mex unavailable')
       unavailableRes.html.$('#message').text().should.equal('wallet service unavailable, sorry!')
 
-      const addressMessages = orchestrator.withJwtMessages('address')
-      const addressReq = addressMessages.build({ symbol: 'btc' })
-      const addressRes = addressMessages.build({ address: '1234' })
-      walletMock.addMockFor(addressReq, addressRes)
+      const actionBuilder = withAction('address')
+      const getAddressReq = orchestrator.withJwtMessages(actionBuilder.build({ symbol: 'btc' }))
+      const getAddressResOk = actionBuilder.ok({ address: '1234' })
+
+      walletMock.addMockFor(getAddressReq, getAddressResOk)
       await walletMock.start()
       const depositRes = orchestrator.withHtml(await useragent.get('/balance/deposit/btc'))
       depositRes.html.pageTitle().should.equal('mex btc deposits')

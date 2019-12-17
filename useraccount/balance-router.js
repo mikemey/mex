@@ -2,7 +2,7 @@ const express = require('express')
 
 const { assetsMetadata } = require('../metadata')
 const {
-  Logger, wsmessages: { withAction }, dbconnection: { Long, mg }
+  Logger, wsmessages: { withAction, OK_STATUS }, dbconnection: { Long, mg }
 } = require('../utils')
 
 const asset = mg.Schema({
@@ -20,6 +20,7 @@ const BALANCE_VIEW = 'balance'
 
 const uiFractions = 8
 
+const availableSymbols = Object.keys(assetsMetadata)
 const balanceDefaults = Object.keys(assetsMetadata)
   .map(key => { return { symbol: key, amount: Long('0') } })
 
@@ -62,9 +63,16 @@ class BalanceRouter {
     })
 
     router.get('/balance/deposit/:symbol', async (req, res) => {
-      const addReq = addressMessages.build({ symbol: req.params.symbol, jwt: req.session.jwt })
+      const symbol = req.params.symbol
+      if (!availableSymbols.includes(symbol)) {
+        return res.redirect(303, '../')
+      }
+      const addReq = addressMessages.build({ symbol, jwt: req.session.jwt })
       return this.walletClient.send(addReq)
-        .then(addressRes => res.render('deposit', { address: addressRes.address, symbol: req.params.symbol }))
+        .then(addressRes => addressRes.status === OK_STATUS
+          ? res.render('deposit', { address: addressRes.address, symbol })
+          : res.redirect(303, '../')
+        )
         .catch(err => {
           this.logger.error('wallet service error:', err.message)
           res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
