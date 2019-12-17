@@ -61,10 +61,14 @@ class BalanceRouter {
       })
     })
 
-    router.get('/balance/address/:symbol', async (req, res) => {
-      const addReq = addressMessages.build({ symbol: req.params.symbol })
-      const addressRes = await this.walletClient.send(addReq)
-      res.json({ address: addressRes.address }).end()
+    router.get('/balance/deposit/:symbol', async (req, res) => {
+      const addReq = addressMessages.build({ symbol: req.params.symbol, jwt: req.session.jwt })
+      return this.walletClient.send(addReq)
+        .then(addressRes => res.render('deposit', { address: addressRes.address, symbol: req.params.symbol }))
+        .catch(err => {
+          this.logger.error('wallet service error:', err.message)
+          res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
+        })
     })
 
     return router

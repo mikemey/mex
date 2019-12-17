@@ -36,15 +36,27 @@ describe('UserAccountService', () => {
       const unavailableRes = orchestrator.withHtml(await useragent.get('/index'))
       unavailableRes.should.have.status(200)
       unavailableRes.html.pageTitle().should.equal('mex unavailable')
-      unavailableRes.html.$('#message').text().should.equal('service unavailable, sorry!')
+      unavailableRes.html.$('#message').text().should.equal('session service unavailable, sorry!')
 
       await sessionMock.start()
       const indexRes = orchestrator.withHtml(await useragent.get('/balance'))
       indexRes.html.pageTitle().should.equal('mex balances')
     })
 
-    xit('wallet-service down', async () => {
+    it('wallet-service down', async () => {
       await walletMock.stop()
+      const unavailableRes = orchestrator.withHtml(await useragent.get('/balance/deposit/btc'))
+      unavailableRes.should.have.status(200)
+      unavailableRes.html.pageTitle().should.equal('mex unavailable')
+      unavailableRes.html.$('#message').text().should.equal('wallet service unavailable, sorry!')
+
+      const addressMessages = orchestrator.withJwtMessages('address')
+      const addressReq = addressMessages.build({ symbol: 'btc' })
+      const addressRes = addressMessages.build({ address: '1234' })
+      walletMock.addMockFor(addressReq, addressRes)
+      await walletMock.start()
+      const depositRes = orchestrator.withHtml(await useragent.get('/balance/deposit/btc'))
+      depositRes.html.pageTitle().should.equal('mex btc deposits')
     })
   })
 

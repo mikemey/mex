@@ -18,9 +18,9 @@
     "session-test": "mocha 'session-test/**/**.spec.js' -r chai/register-should",
     "useraccount-test": "mocha 'useraccount-test/**/**.spec.js' -r chai/register-should",
     "utils-test": "mocha 'utils-test/**/**.spec.js' -r chai/register-should",
-    "wallet-test": " mocha 'wallet-test/**/**.spec.js' -r chai/register-should",
+    "wallet-test": "mocha 'wallet-test/**/**.spec.js' -r chai/register-should",
     "module_tests": "LOG_LEVEL=none ./run_module_tests.sh",
-    "~single": "nodemon -x 'npm run wallet-test -s'",
+    "~single": "nodemon -x 'npm run useraccount-test -s'",
     "e2e": "./browser-test/e2ehelper.sh",
     "pretest": "npm install",
     "test": "npm run lint -s && npm run module_tests -s && npm run e2e -s"

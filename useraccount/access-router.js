@@ -80,7 +80,7 @@ class AccessRouter {
           })
           .catch(err => {
             this.logger.error('session service error:', err.message)
-            errorResponse(res, SERVICE_UNAVAILABLE, 'service unavailable, sorry!')
+            errorResponse(res, SERVICE_UNAVAILABLE, 'session service unavailable, sorry!')
           })
       } else {
         redirectToLogin(res)

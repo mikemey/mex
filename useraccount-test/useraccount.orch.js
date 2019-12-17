@@ -60,6 +60,12 @@ sessionMock.softReset = () => {
   }
 }
 
+const withJwtMessages = (action, jwt = testJwt) => {
+  const baseAction = withAction(action)
+  const build = obj => baseAction.build(Object.assign({ jwt }, obj))
+  return { build }
+}
+
 const start = ({ startSessionMock = true, startWalletMock = true, authenticatedAgent = false } = {}) => Promise
   .all([
     startSessionMock ? sessionMock.start() : Promise.resolve(),
@@ -106,4 +112,4 @@ const withHtml = res => {
   return res
 }
 
-module.exports = { start, stop, createAgent, withHtml, testUserId, httpserverConfig }
+module.exports = { start, stop, createAgent, withHtml, testUserId, httpserverConfig, withJwtMessages }

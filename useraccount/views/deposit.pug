@@ -1,0 +1,24 @@
+extends layout.pug
+block variables
+  - var page_title = `${symbol} deposits`
+
+block content
+  h2 #{symbol.toUpperCase()} Deposits
+  #deposit-address(data-address=symbol)=address
+ 
+  table(style="border: 1px solid black;")
+    thead
+      tr
+        th Date
+        th Amount
+        th Confirmations
+        th Invoice ID
+    tbody
+      //- each asset in assets
+      //-   tr
+      //-     td #{asset.hrname}
+      //-     td(data-balance=asset.symbol) #{asset.hramount}
+      //-     td
+      //-       button(data-deposit=asset.symbol) Deposit
+      //-     td
+      //-       button(data-withdraw=asset.symbol disabled) Withdraw
