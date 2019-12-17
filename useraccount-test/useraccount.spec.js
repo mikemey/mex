@@ -8,7 +8,9 @@ describe('UserAccountService', () => {
   let useragent
 
   describe('uses configuration', () => {
-    before(async () => ({ useragent } = await orchestrator.start({ startSessionMock: false })))
+    before(async () => ({ useragent } = await orchestrator.start(
+      { startSessionMock: false, startWalletMock: false }
+    )))
     after(() => orchestrator.stop())
 
     it('version', () => useragent.get('/version')
@@ -22,6 +24,30 @@ describe('UserAccountService', () => {
     })
   })
 
+  describe('backend services going down', () => {
+    let walletMock, sessionMock
+
+    before(async () => ({ useragent, sessionMock, walletMock } =
+      await orchestrator.start({ authenticatedAgent: true })))
+    after(() => orchestrator.stop())
+
+    it('session-service down', async () => {
+      await sessionMock.stop()
+      const unavailableRes = orchestrator.withHtml(await useragent.get('/index'))
+      unavailableRes.should.have.status(200)
+      unavailableRes.html.pageTitle().should.equal('mex unavailable')
+      unavailableRes.html.$('#message').text().should.equal('service unavailable, sorry!')
+
+      await sessionMock.start()
+      const indexRes = orchestrator.withHtml(await useragent.get('/balance'))
+      indexRes.html.pageTitle().should.equal('mex balances')
+    })
+
+    xit('wallet-service down', async () => {
+      await walletMock.stop()
+    })
+  })
+
   describe('user access', () => {
     before(async () => ({ useragent } = await orchestrator.start()))
     after(() => orchestrator.stop())
@@ -30,7 +56,7 @@ describe('UserAccountService', () => {
       .then(res => {
         res.should.have.status(303)
         const redirectLocation = res.header.location
-        redirectLocation.should.match(/.*login\?flag=auth$/)
+        redirectLocation.should.match(/.*\/login\?flag=auth$/)
         return useragent.get(redirectLocation)
       })
       .then(orchestrator.withHtml)
@@ -40,7 +66,7 @@ describe('UserAccountService', () => {
       })
     )
 
-    const publicEndpoints = ['/version', '/login', '/register']
+    const publicEndpoints = ['/version', '/login', '/register', '/unavailable']
     publicEndpoints.forEach(freePath => {
       it(`${freePath} is available without authorization`, () => useragent.get(freePath).redirects(false)
         .then(res => {

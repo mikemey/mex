@@ -24,6 +24,7 @@ const loginSchema = Joi.object({
 
 const LOGIN = 'login'
 const REGISTER = 'register'
+const SERVICE_UNAVAILABLE = 'unavailable'
 
 const registerMessages = withAction(REGISTER)
 const loginMessages = withAction(LOGIN)
@@ -42,11 +43,12 @@ class AccessRouter {
     this.logger = Logger(this.constructor.name)
     this.loginPath = `${this.pathPrefix}/${LOGIN}`
     this.registerPath = `${this.pathPrefix}/${REGISTER}`
+    this.unavailablePath = `${this.pathPrefix}/${SERVICE_UNAVAILABLE}`
     this.homePath = `${this.pathPrefix}/index`
   }
 
   createAuthenticationCheck () {
-    const unprotectedPaths = [this.loginPath, this.registerPath, `${this.pathPrefix}/version`]
+    const unprotectedPaths = [this.loginPath, this.registerPath, this.unavailablePath, `${this.pathPrefix}/version`]
     const verifyMessages = withAction('verify')
 
     const redirectToLogin = (res, flag = 'auth') => {
@@ -63,17 +65,26 @@ class AccessRouter {
               case OK_STATUS: {
                 req.user = result.user
                 res.locals.user = result.user
-                return next()
+                next()
+                break
               }
-              case NOK_STATUS: return redirectToLogin(res)
+              case NOK_STATUS: {
+                redirectToLogin(res)
+                break
+              }
               default: {
                 this.logger.error('session service verification error:', result.message)
-                return redirectToLogin(res, 'unavailable')
+                redirectToLogin(res, 'unavailable')
               }
             }
           })
+          .catch(err => {
+            this.logger.error('session service error:', err.message)
+            errorResponse(res, SERVICE_UNAVAILABLE, 'service unavailable, sorry!')
+          })
+      } else {
+        redirectToLogin(res)
       }
-      return redirectToLogin(res)
     }
   }
 
@@ -84,7 +95,12 @@ class AccessRouter {
     }
 
     const router = express.Router()
+    router.get(`/${SERVICE_UNAVAILABLE}`, (_, res) => res.render(SERVICE_UNAVAILABLE))
     router.get(`/${REGISTER}`, (_, res) => res.render(REGISTER))
+    router.get(`/${LOGIN}`, (req, res) => {
+      const flag = req.query.flag
+      res.render(LOGIN, { flag })
+    })
 
     router.post(`/${REGISTER}`, (req, res) => {
       const email = req.body.email
@@ -107,11 +123,6 @@ class AccessRouter {
           }
         })
         .catch(err => serviceUnavailable(res, REGISTER, err.message, email))
-    })
-
-    router.get(`/${LOGIN}`, (req, res) => {
-      const flag = req.query.flag
-      res.render(LOGIN, { flag })
     })
 
     router.post(`/${LOGIN}`, (req, res) => {
