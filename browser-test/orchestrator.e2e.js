@@ -30,6 +30,7 @@ const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
 const sessionProcess = {
   command: 'sessionProcess',
   logname: ' session',
+  process: null,
   service: null,
   createService: () => new SessionService(sessionServiceConfig)
 }
@@ -38,6 +39,7 @@ const sessionProcess = {
 const userAccountProcess = {
   command: 'userAccountProcess',
   logname: 'user-acc',
+  process: null,
   service: null,
   createService: () => new UserAccountService({
     httpserver: useraccountConfig,
@@ -55,11 +57,11 @@ const serviceLogger = logname => data => data.toString()
 
 const startAll = () => allProcessDefinitions.forEach(processdef => {
   try {
-    const process = childProcess.spawn(
+    processdef.process = childProcess.spawn(
       'node', ['orchestrator.e2e.js', processdef.command],
       { cwd: __dirname, detached: true }
     )
-    process.stdout.on('data', serviceLogger(processdef.logname))
+    processdef.process.stdout.on('data', serviceLogger(processdef.logname))
   } catch (err) {
     console.log('Error starting process:', processdef.logname, err)
     stopAll()
@@ -83,6 +85,11 @@ const stopAll = () => allProcessDefinitions.forEach(async processdef => {
       console.log('stopping service', processdef.logname)
       await processdef.service.stop()
       processdef.service = null
+    }
+    if (processdef.process) {
+      console.log('stopping process', processdef.logname)
+      await processdef.process.kill()
+      processdef.process = null
     }
   } catch (err) {
     console.log('shutdown Error:', processdef.logname, err)
