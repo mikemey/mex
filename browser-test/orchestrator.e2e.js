@@ -2,7 +2,7 @@ const childProcess = require('child_process')
 
 const UserAccountService = require('../useraccount')
 const SessionService = require('../session')
-const { TestDataSetup: { dbConfig } } = require('../test-tools')
+const { TestDataSetup: { dbConfig, seedTestData } } = require('../test-tools')
 
 const sessionAuthToken = 'ZTJlLXRlc3QtdG9rZW4K'
 const sessionServiceConfig = {
@@ -98,7 +98,8 @@ process.on('SIGINT', stopAll);
   console.log(`pid=${process.pid}`)
   if (command === 'start') {
     console.log(`baseurl=http://localhost:${useraccountConfig.port}${useraccountConfig.path}`)
-    return startAll()
+    startAll()
+    return seedTestData()
   }
 
   const processdef = allProcessDefinitions.find(def => def.command.toLowerCase() === command)
