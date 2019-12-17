@@ -8,8 +8,9 @@ const {
 } = require('../utils')
 
 const configSchema = Joi.object({
+  wsserver: Joi.object().required(),
   sessionService: Joi.object().required()
-}).unknown()
+})
 
 const jwtSchema = Joi.object({
   jwt: Validator.jwt()
@@ -26,9 +27,7 @@ const userUnavailable = error('session-service user unavailable')
 class WSSecureServer extends WSServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
-    const configCopy = Object.assign({}, config)
-    delete configCopy.sessionService
-    super(configCopy)
+    super(config.wsserver)
 
     const sessionClientCategory = `${this.constructor.name} SessionClient`
     this.sessionClient = new WSClient(config.sessionService, sessionClientCategory)

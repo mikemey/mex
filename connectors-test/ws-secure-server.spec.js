@@ -11,9 +11,7 @@ describe('WSSecureServer', () => {
   }
 
   const wsSecureServerConfig = {
-    port: 12033,
-    path: '/jwt-checker',
-    authorizedTokens: [wsSecureServerToken],
+    wsserver: { port: 12033, path: '/jwt-checker', authorizedTokens: [wsSecureServerToken] },
     sessionService: {
       url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
       authToken: sessionMockToken,
@@ -22,7 +20,7 @@ describe('WSSecureServer', () => {
   }
 
   const userClientConfig = {
-    url: `ws://localhost:${wsSecureServerConfig.port}${wsSecureServerConfig.path}`,
+    url: `ws://localhost:${wsSecureServerConfig.wsserver.port}${wsSecureServerConfig.wsserver.path}`,
     authToken: wsSecureServerToken,
     timeout: 200
   }
@@ -122,6 +120,15 @@ describe('WSSecureServer', () => {
   })
 
   describe('fatal implementation errors', () => {
+    const expectError = (update = () => { }, expectedMessage) => {
+      const errorConfig = Object.assign({}, wsSecureServerConfig)
+      update(errorConfig);
+      (() => new WSSecureServer(errorConfig)).should.throw(Error, expectedMessage)
+    }
+
+    it('configuration missing "wsserver" parameter', () =>
+      expectError(config => { delete config.wsserver }, '"wsserver" is required'))
+
     it('configuration missing "sessionService" parameter', () => {
       const errorConfig = Object.assign({}, wsSecureServerConfig)
       delete errorConfig.sessionService
