@@ -14,17 +14,14 @@ describe('Wallet depositer', () => {
   const addressColl = collection('addresses')
 
   const addressMsgs = withJwtMessages('address')
-  const regUserAddressReq = () => addressMsgs.build({ symbol: 'btc' })
+  const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })
 
   before(startServices)
   after(stopServices)
-  beforeEach(async () => {
-    await generateBlocks(1)
-    await dropTestDatabase()
-  })
-  afterEach(() => wsClient.stop())
 
   describe('requesting address', () => {
+    beforeEach(dropTestDatabase)
+
     it('generate new address for new user', async () => {
       const testUserId = '5def654c9ad3f153493e3bbb'
       const testJwt = 'bla-bla-bla-bla-bla-bla'
@@ -57,7 +54,20 @@ describe('Wallet depositer', () => {
       addressResponse.address.should.equal(address)
     })
 
-    it('broadcast unconfirmed + confirmed invoices from own user', done => {
+    it('returns error for unknown asset', async () => {
+      const addressResponse = await wsClient.send(regUserAddressReq('unknown'))
+      addressResponse.status.should.equal(ERROR_STATUS)
+      addressResponse.should.not.have.property('address')
+    })
+  })
+
+  describe('broadcasts', () => {
+    beforeEach(async () => {
+      await generateBlocks(1)
+      await dropTestDatabase()
+    })
+
+    it('unconfirmed + confirmed invoices from own user', done => {
       (async () => {
         const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
         const amount = Satoshi.fromBtcValue('0.12345')
@@ -107,8 +117,6 @@ describe('Wallet depositer', () => {
       const addr = await receiver.getNewAddress()
       await sender.sendToAddress(addr, btcs)
     }))
-
-    xit('returns confirmed + unconfirmed invoices from own user', async () => { })
   })
 
   describe('client errors', () => {
@@ -131,5 +139,8 @@ describe('Wallet depositer', () => {
     it('additional request parameters', () => expectNewAddressError(req => { req.additional = 'param' }))
   })
 
-  xdescribe('ensure collection indices')
+  describe('future tests', () => {
+    xit('ensure collection indices', async () => { })
+    xit('returns confirmed + unconfirmed invoices from own user', async () => { })
+  })
 })

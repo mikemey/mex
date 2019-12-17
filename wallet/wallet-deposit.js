@@ -14,6 +14,7 @@ const invoicesColl = collection('invoices')
 const logger = Logger('deposits')
 
 const getAddress = async request => {
+  logger.debug('receivet getAddress request:', request)
   const { user: { id }, symbol } = request
   const userAddress = await findUserAddresses(id, symbol) || await createUserAddress(id, symbol)
   logger.info('respond with address:', userAddress.address)
