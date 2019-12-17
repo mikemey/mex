@@ -86,8 +86,7 @@ class WSClient {
 
     const closedown = error => {
       connectTimeout.cancel()
-      const rejectOriginError = () => reject(error)
-      saveEnding(() => this._stopSync(rejectOriginError, rejectOriginError), 'connection error:', error)
+      saveEnding(() => reject(error), 'connection error:', error)
     }
     this.ws.prependOnceListener('close', closedown)
     this.ws.prependOnceListener('error', closedown)
@@ -107,15 +106,25 @@ class WSClient {
 
       const state = this.ws === null ? WebSocket.CLOSED : this.ws.readyState
       switch (state) {
-        case WebSocket.CLOSED: return openAndSendMessage()
-        case WebSocket.CLOSING: return waitfor(WebSocket.CLOSED, openAndSendMessage)
-        case WebSocket.CONNECTING: return waitfor(WebSocket.OPEN, sendMessage)
+        case WebSocket.CLOSED: {
+          this.logger.debug('socket closed, openAndSendMessage')
+          return openAndSendMessage()
+        }
+        case WebSocket.CLOSING: {
+          this.logger.debug('socket closing, waitfor(WebSocket.CLOSED, openAndSendMessage)')
+          return waitfor(WebSocket.CLOSED, openAndSendMessage)
+        }
+        case WebSocket.CONNECTING: {
+          this.logger.debug('socket connecting, waitfor(WebSocket.OPEN, sendMessage)')
+          return waitfor(WebSocket.OPEN, sendMessage)
+        }
         case WebSocket.OPEN: return sendMessage()
         default: return reject(Error(`unexpected WebSocket state [${this.ws.readyState}]`))
       }
     }).catch(err => {
       this.logger.error('processing error:', err.message, err)
       const sendError = err instanceof TimeoutError ? err : new Error('disconnected')
+      this._stopSync()
       throw sendError
     })
   }
@@ -175,52 +184,27 @@ class WSClient {
   }
 
   _stopSync (resolve = () => { }, reject = () => { }) {
-    this.logger.debug('stopping...')
-    if (this.ws === null) return resolve()
-
-    const waitfor = Waiter(this.ws, reject)
-    const finalise = () => {
-      this.logger.info('stopped')
-      this._reset(resolve)
-    }
-    const closeSocket = () => this._closeWebsocket(finalise)
-
-    const state = this.ws.readyState
-    switch (state) {
-      case WebSocket.CLOSED: return finalise()
-      case WebSocket.CLOSING: return waitfor(WebSocket.CLOSED, finalise)
-      case WebSocket.CONNECTING: return waitfor(WebSocket.OPEN, closeSocket)
-      case WebSocket.OPEN: return closeSocket()
-      default: return reject(Error(`unexpected WebSocket state [${this.ws.readyState}]`))
-    }
-  }
-
-  _closeWebsocket (resolve) {
     this.logger.debug('closing connection...')
-    const saveEnding = (logFunc, message) => {
-      this._clearListeners()
-      logFunc(message)
-      resolve()
+    if (this.ws === null) return resolve()
+    try {
+      this.ws.close()
+      this.logger.info('stopped')
+    } catch (err) {
+      this.logger.error('error stopping:', err.message)
+      reject(err)
     }
-    const closeTimeout = this._createTimeout(err => saveEnding(this.logger.error, err.message), 'closing timed out')
-
-    const cleanup = (logFunc, message) => err => {
-      closeTimeout.cancel()
-      if (err) { message = `${message} ${err}` }
-      saveEnding(logFunc, message)
-    }
-    this.ws.prependOnceListener('close', cleanup(this.logger.debug, 'closed'))
-    this.ws.prependOnceListener('error', cleanup(this.logger.error, 'error closing:'))
-    this.ws.prependOnceListener('unexpected-response', cleanup(this.logger.error, 'unexpected-response'))
-    this.ws.close()
+    this._reset(resolve)
   }
 
   _createTimeout (reject, message) {
+    this.logger.debug('creating timeout:', message)
     const timeout = setTimeout(() => {
+      this.logger.debug('timed out:', message)
       reject(new TimeoutError(message))
     }, this.wsconfig.timeout)
 
     const cancel = () => {
+      this.logger.debug('cancel time:', message)
       clearTimeout(timeout)
     }
     return { cancel }
