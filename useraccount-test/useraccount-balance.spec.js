@@ -72,12 +72,14 @@ describe('UserAccount balance', () => {
       const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
       res.status.should.equal(200)
       res.html.pageTitle().should.equal('mex balances')
+      res.html.$('#message').text().should.equal('wallet service error')
     })
 
     it('redirects to /balances for unknown symbol', async () => {
       const res = orchestrator.withHtml(await useragent.get(depositPath('/unknown')))
       res.status.should.equal(200)
       res.html.pageTitle().should.equal('mex balances')
+      res.html.$('#message').text().should.equal('asset not supported: unknown')
     })
 
     xit('show existing deposits', () => {

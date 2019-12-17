@@ -16,7 +16,7 @@
     "lint": "standard",
     "connectors-test": "mocha 'connectors-test/**/**.spec.js' -r chai/register-should",
     "session-test": "mocha 'session-test/**/**.spec.js' -r chai/register-should",
-    "useraccount-test": "LOG_LEVEL=http mocha 'useraccount-test/**/**.spec.js' -r chai/register-should",
+    "useraccount-test": "mocha 'useraccount-test/**/**.spec.js' -r chai/register-should",
     "utils-test": "mocha 'utils-test/**/**.spec.js' -r chai/register-should",
     "wallet-test": "mocha 'wallet-test/**/**.spec.js' -r chai/register-should",
     "module_tests": "LOG_LEVEL=none ./run_module_tests.sh",

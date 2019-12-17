@@ -1,4 +1,5 @@
 const express = require('express')
+const querystring = require('querystring')
 
 const { assetsMetadata } = require('../metadata')
 const {
@@ -58,20 +59,25 @@ class BalanceRouter {
           asset.hramount = asHRAmount(asset.amount, symdata)
           return asset
         })
-        res.render(BALANCE_VIEW, { assets })
+
+        const viewData = { assets }
+        if (req.query.message) {
+          viewData.message = req.query.message
+        }
+        res.render(BALANCE_VIEW, viewData)
       })
     })
 
     router.get('/balance/deposit/:symbol', async (req, res) => {
       const symbol = req.params.symbol
       if (!availableSymbols.includes(symbol)) {
-        return res.redirect(303, '../')
+        return res.redirect(303, '../' + '?' + querystring.stringify({ message: `asset not supported: ${symbol}` }))
       }
       const addReq = addressMessages.build({ symbol, jwt: req.session.jwt })
       return this.walletClient.send(addReq)
         .then(addressRes => addressRes.status === OK_STATUS
           ? res.render('deposit', { address: addressRes.address, symbol })
-          : res.redirect(303, '../')
+          : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
         )
         .catch(err => {
           this.logger.error('wallet service error:', err.message)
