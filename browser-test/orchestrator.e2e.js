@@ -30,7 +30,6 @@ const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
 const sessionProcess = {
   command: 'sessionProcess',
   logname: ' session',
-  process: null,
   service: null,
   createService: () => new SessionService(sessionServiceConfig)
 }
@@ -39,7 +38,6 @@ const sessionProcess = {
 const userAccountProcess = {
   command: 'userAccountProcess',
   logname: 'user-acc',
-  process: null,
   service: null,
   createService: () => new UserAccountService({
     httpserver: useraccountConfig,
@@ -55,23 +53,22 @@ const serviceLogger = logname => data => data.toString()
   .filter(line => line.trim().length > 0)
   .forEach(line => { console.log(`[${logname}]`, line) })
 
-const startAll = () => {
-  allProcessDefinitions.forEach(processdef => {
-    try {
-      processdef.process = childProcess.spawn(
-        'node', ['orchestrator.e2e.js', processdef.command],
-        { cwd: __dirname, detached: true }
-      )
-      processdef.process.stdout.on('data', serviceLogger(processdef.logname))
-    } catch (err) {
-      console.log('Error starting process:', processdef.logname, err)
-      stopAll()
-    }
-  })
-}
+const startAll = () => allProcessDefinitions.forEach(processdef => {
+  try {
+    const process = childProcess.spawn(
+      'node', ['orchestrator.e2e.js', processdef.command],
+      { cwd: __dirname, detached: true }
+    )
+    process.stdout.on('data', serviceLogger(processdef.logname))
+  } catch (err) {
+    console.log('Error starting process:', processdef.logname, err)
+    stopAll()
+  }
+})
 
 const startService = processdef => {
   try {
+    console.log('starting:', processdef.logname)
     processdef.service = processdef.createService()
     processdef.service.start()
   } catch (err) {
@@ -83,12 +80,9 @@ const startService = processdef => {
 const stopAll = () => allProcessDefinitions.forEach(async processdef => {
   try {
     if (processdef.service) {
+      console.log('stopping service', processdef.logname)
       await processdef.service.stop()
       processdef.service = null
-    }
-    if (processdef.process) {
-      processdef.process.kill()
-      processdef.process = null
     }
   } catch (err) {
     console.log('shutdown Error:', processdef.logname, err)
@@ -101,16 +95,13 @@ process.on('SIGINT', stopAll);
 
 (() => {
   const command = process.argv.splice(2)[0].toLowerCase()
-  console.log(`received command: ${command}`)
   console.log(`pid=${process.pid}`)
   if (command === 'start') {
     console.log(`baseurl=http://localhost:${useraccountConfig.port}${useraccountConfig.path}`)
-    console.log('starting all services...')
     return startAll()
   }
-  const processdef =
-    allProcessDefinitions.find(def => def.command.toLowerCase() === command)
 
+  const processdef = allProcessDefinitions.find(def => def.command.toLowerCase() === command)
   if (processdef) {
     startService(processdef)
   } else {
