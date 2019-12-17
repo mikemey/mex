@@ -40,7 +40,7 @@ describe('Websocket client', () => {
     it('authToken too short', () => withKey({ authToken: '1234567890123456789' }, '"authToken" too short'))
     it('timeout required', () => deleteKey('timeout', '"timeout" is required'))
     it('timeout minimum', () => withKey({ timeout: 19 }, '"timeout" must be larger than or equal to 20'))
-    it('timeout maximum', () => withKey({ timeout: 2001 }, '"timeout" must be less than or equal to 2000'))
+    it('timeout maximum', () => withKey({ timeout: 60001 }, '"timeout" must be less than or equal to 60000'))
     it('timeout not a number', () => withKey({ timeout: '123x' }, '"timeout" must be a number'))
   })
 

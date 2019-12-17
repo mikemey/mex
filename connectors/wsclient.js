@@ -6,7 +6,7 @@ const { Logger, Validator, wsmessages } = require('../utils')
 const configSchema = Joi.object({
   url: Joi.string().uri().required(),
   authToken: Validator.secretToken('authToken'),
-  timeout: Joi.number().min(20).max(2000).required()
+  timeout: Joi.number().min(20).max(60000).required()
 })
 
 const WS_WAIT_RETRIES = 5
