@@ -28,7 +28,7 @@ const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
 }
 
 const sessionProcess = {
-  command: 'sessionProcess',
+  command: 'session',
   logname: ' session',
   process: null,
   service: null,
@@ -37,7 +37,7 @@ const sessionProcess = {
 // const createWalletService = () => new WalletService(walletServiceConfig)
 
 const userAccountProcess = {
-  command: 'userAccountProcess',
+  command: 'user',
   logname: 'user-acc',
   process: null,
   service: null,
