@@ -37,6 +37,8 @@ describe('Wallet depositer', () => {
 
       addressResponse.status.should.equal(OK_STATUS)
       addressResponse.action.should.equal('address')
+      const addressInfo = await mainWallet.getAddressInfo(addressResponse.address)
+      addressInfo.should.have.property('ismine', true)
 
       const storedAddress = await addressColl.find({ _id: ObjectId(testUserId) }).toArray()
       storedAddress.should.deep.equal([
