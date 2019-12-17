@@ -9,10 +9,9 @@ const sessionAuthToken = 'bW9jay1zZXNzaW9uLXRva2VuCg=='
 const walletAuthToken = 'd2FsbGV0LXNlcnZpY2UtdG9rZW4K'
 const sessionMockConfig = { path: '/wallet-sessionmock', port: 12600, authorizedTokens: [sessionAuthToken] }
 
+const wsserverConfig = { port: 12043, path: '/wallet-test', authorizedTokens: [walletAuthToken] }
 const walletServiceConfig = {
-  port: 12043,
-  path: '/wallet-test',
-  authorizedTokens: [walletAuthToken],
+  wsserver: wsserverConfig,
   sessionService: {
     url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
     authToken: sessionAuthToken,
@@ -25,7 +24,7 @@ const walletServiceConfig = {
 }
 
 const wsClientConfig = {
-  url: `ws://localhost:${walletServiceConfig.port}${walletServiceConfig.path}`,
+  url: `ws://localhost:${wsserverConfig.port}${wsserverConfig.path}`,
   authToken: walletAuthToken,
   timeout: 500
 }
@@ -63,5 +62,5 @@ beforeEach(() => {
 afterEach(() => { sessionMock.errorCheck() })
 
 module.exports = {
-  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, btcnodeOrch
+  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, btcnodeOrch, walletServiceConfig
 }

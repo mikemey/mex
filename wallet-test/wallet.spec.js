@@ -1,6 +1,6 @@
 const WalletService = require('../wallet')
 
-const { startServices, stopServices, wsClient, withJwtMessages, sessionMock } = require('./wallet.orch')
+const { startServices, stopServices, wsClient, withJwtMessages, sessionMock, walletServiceConfig } = require('./wallet.orch')
 
 describe('Wallet service', () => {
   describe('calls session service', () => {
@@ -25,12 +25,7 @@ describe('Wallet service', () => {
 
     testParameters.forEach(params => {
       it(params.title, () => {
-        const config = {
-          httpserver: { does: 'not-matter' },
-          chains: { does: 'not-matter' },
-          walletService: { does: 'not-matter' },
-          db: { does: 'not-matter' }
-        }
+        const config = Object.assign({}, walletServiceConfig)
         params.changeConfig(config);
         (() => new WalletService(config)).should.throw(Error, params.error)
       })

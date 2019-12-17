@@ -1,30 +1,35 @@
 const childProcess = require('child_process')
 
-const UserAccountService = require('../useraccount')
 const SessionService = require('../session')
+const UserAccountService = require('../useraccount')
+const WalletService = require('../wallet')
+
 const { TestDataSetup: { dbConfig, seedTestData } } = require('../test-tools')
 
-const sessionAuthToken = 'ZTJlLXRlc3QtdG9rZW4K'
 const sessionServiceConfig = {
   jwtkey: 'c3VyZSB0aGlzIGlzIGEgcHJvZCBrZXkK',
-  wsserver: { path: '/session', port: 13043, authorizedTokens: [sessionAuthToken] },
+  wsserver: { path: '/session', port: 13043, authorizedTokens: ['ZTJlLXRlc3QtdG9rZW4K'] },
   db: dbConfig
-}
-
-const walletAuthToken = 'c291bmQgb2YgZGEgcG9saWNlCg=='
-const walletServiceConfig = {
-  port: 13044, path: '/wallet', authorizedTokens: [walletAuthToken]
-}
-
-const useraccountConfig = {
-  secret: 'ZTJlLXRlc3Qtc2VjcmV0Cg==',
-  version: '0.0.1',
-  path: '/uac',
-  port: 13500
 }
 
 const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
   return { url: `ws://localhost:${port}${path}`, authToken, timeout: 2000 }
+}
+
+const walletServiceConfig = {
+  wsserver: { port: 13044, path: '/wallet', authorizedTokens: ['c291bmQgb2YgZGEgcG9saWNlCg=='] },
+  sessionService: createClientConfig(sessionServiceConfig.wsserver),
+  chains: {
+    btcnode: btcnodeOrch.defaultBtcAdapterConfig
+  },
+  db: dbConfig
+}
+
+const userAccountServiceConfig = {
+  httpserver: { secret: 'ZTJlLXRlc3Qtc2VjcmV0Cg==', version: '0.0.1', path: '/uac', port: 13500 },
+  sessionService: createClientConfig(sessionServiceConfig.wsserver),
+  walletService: createClientConfig(walletServiceConfig.wsserver),
+  db: dbConfig
 }
 
 const sessionProcess = {
@@ -34,22 +39,24 @@ const sessionProcess = {
   service: null,
   createService: () => new SessionService(sessionServiceConfig)
 }
-// const createWalletService = () => new WalletService(walletServiceConfig)
 
 const userAccountProcess = {
   command: 'user',
   logname: 'user-acc',
   process: null,
   service: null,
-  createService: () => new UserAccountService({
-    httpserver: useraccountConfig,
-    sessionService: createClientConfig(sessionServiceConfig.wsserver),
-    walletService: createClientConfig(walletServiceConfig),
-    db: dbConfig
-  })
+  createService: () => new UserAccountService(userAccountServiceConfig)
 }
 
-const allProcessDefinitions = [sessionProcess, userAccountProcess]
+const walletProcess = {
+  command: 'wallet',
+  logname: ' wallet',
+  process: null,
+  service: null,
+  createService: () => new WalletService(walletServiceConfig)
+}
+
+const allProcessDefinitions = [sessionProcess, userAccountProcess, walletProcess]
 const serviceLogger = logname => data => data.toString()
   .split(/(\r?\n)/g)
   .filter(line => line.trim().length > 0)
@@ -104,7 +111,8 @@ process.on('SIGINT', stopAll);
   const command = process.argv.splice(2)[0].toLowerCase()
   console.log(`pid=${process.pid}`)
   if (command === 'start') {
-    console.log(`baseurl=http://localhost:${useraccountConfig.port}${useraccountConfig.path}`)
+    const { port, path } = userAccountServiceConfig.httpserver
+    console.log(`baseurl=http://localhost:${port}${path}`)
     startAll()
     return seedTestData()
   }
