@@ -73,8 +73,11 @@ describe('Real WSServer + WSClient', () => {
   })
 
   describe('topic subscriptions', () => {
-    const wsclient = createClient()
-    beforeEach(() => { wsserver.topics.clear() })
+    let wsclient
+    beforeEach(() => {
+      wsserver.topicSubscriptions.clear()
+      wsclient = createClient()
+    })
     afterEach(() => {
       serverReceived.should.deep.equal([])
       return wsclient.stop()
@@ -94,6 +97,29 @@ describe('Real WSServer + WSClient', () => {
       await pause(10)
       received.topic.should.equal('t2')
       received.message.should.deep.equal(testMessage)
+    })
+
+    it('mulitple subscribed/unsubscribed clients', async () => {
+      const topic1 = 't1'
+      const topic2 = 't2'
+      wsserver.offerTopics(topic1, topic2)
+      const received = { topic1: { count: 0 }, topic2: { count: 0 } }
+      const incrementCountOf = obj => _ => { obj.count = obj.count + 1 }
+      await wsclient.subscribe(topic1, incrementCountOf(received.topic1))
+      await wsclient.subscribe(topic2, incrementCountOf(received.topic2))
+      await wsclient.subscribe(topic2, incrementCountOf(received.topic2))
+      await wsclient.subscribe(topic2, incrementCountOf(received.topic2))
+
+      await wsserver.broadcast(topic1, { m: 1 })
+      await wsserver.broadcast(topic2, { m: 1 })
+      await wsclient.unsubscribe(topic1)
+
+      await wsserver.broadcast(topic1, { m: 1 })
+      await wsserver.broadcast(topic2, { m: 1 })
+
+      await pause(15)
+      received.topic1.count.should.equal(1)
+      received.topic2.count.should.equal(2)
     })
 
     it('allows broadcast without subscriptions', async () => {

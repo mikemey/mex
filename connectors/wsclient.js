@@ -37,6 +37,7 @@ class TimeoutError extends Error {
 }
 
 const topicSubscription = topic => wsmessages.withAction('subscribe').build({ topic })
+const topicUnsubscribe = topic => wsmessages.withAction('unsubscribe').build({ topic })
 
 class WSClient {
   constructor (config, logCategory) {
@@ -140,6 +141,10 @@ class WSClient {
       resolve(subscriptionResponse)
     }
     return this._internalSend(topicSubscription(topic), addTopicCallback)
+  }
+
+  unsubscribe (topic) {
+    return this._internalSend(topicUnsubscribe(topic))
   }
 
   _requestResponse (request, resolve, reject) {

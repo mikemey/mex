@@ -27,9 +27,13 @@ const ClientSocket = (ws, logger) => {
 }
 
 const SUBSCRIBE_ACT = 'subscribe'
+const UNSUBSCRIBE_ACT = 'unsubscribe'
+
 const submsgs = wsmessages.withAction(SUBSCRIBE_ACT)
 const topicSubscriptionOK = submsgs.ok()
 const topicSubscriptionNOK = submsgs.nok()
+
+const unsubscribeOK = wsmessages.withAction(UNSUBSCRIBE_ACT).ok()
 
 const isInvalid = topic => topic.includes('{')
 
@@ -40,7 +44,7 @@ class WSServer {
     this.listenSocken = null
     this.config = config
     this.clientSockets = []
-    this.topics = new Map()
+    this.topicSubscriptions = new Map()
     this.logger = Logger(this.constructor.name)
   }
 
@@ -159,30 +163,46 @@ class WSServer {
   offerTopics (...topics) {
     topics.forEach(topic => {
       if (isInvalid(topic)) { throw new Error(`invalid topic name [${topic}]`) }
-      this.topics.set(topic, [])
+      this.topicSubscriptions.set(topic, [])
     })
   }
 
   broadcast (topic, message) {
     if (isInvalid(topic)) { return Promise.reject(Error(`invalid topic name [${topic}]`)) }
-    if (!this.topics.has(topic)) {
+    const subscriber = this.topicSubscriptions.get(topic)
+    if (!subscriber) {
       return Promise.reject(Error(`invalid topic [${topic}]`))
     }
-    this.logger.debug('broadcasting:', `<${topic}>`, message)
+    this.logger.debug('broadcasting:', `<${topic}>`, message, ', clients:', subscriber.length)
     const broadcastmsg = wsmessages.createBroadcastMessage(topic, message)
     const messageToClient = clientSocket => Promise.resolve(clientSocket.send(broadcastmsg))
-    return Promise.all(this.topics.get(topic).map(messageToClient))
+    return Promise.all(subscriber.map(messageToClient))
   }
 
   _internalReceived (clientSocket, request) {
     if (request.action === SUBSCRIBE_ACT) {
-      if (!this.topics.has(request.topic)) {
+      const subscriber = this.topicSubscriptions.get(request.topic)
+      if (!subscriber) {
         clientSocket.logger.error('topic not available:', request.topic)
         return Promise.resolve(topicSubscriptionNOK)
       }
-      clientSocket.logger.info('topic subscription:', request.topic)
-      this.topics.get(request.topic).push(clientSocket)
+      const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
+      if (clientIx < 0) {
+        subscriber.push(clientSocket)
+        clientSocket.logger.info('topic:', request.topic, ', subscriptions:', subscriber.length)
+      }
       return Promise.resolve(topicSubscriptionOK)
+    }
+    if (request.action === UNSUBSCRIBE_ACT) {
+      const subscriber = this.topicSubscriptions.get(request.topic)
+      if (subscriber) {
+        const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
+        if (clientIx >= 0) {
+          subscriber.splice(clientIx, 1)
+          clientSocket.logger.info('topic:', request.topic, ', subscriptions:', subscriber.length)
+        }
+      }
+      return Promise.resolve(unsubscribeOK)
     }
     return this.received(request)
   }
