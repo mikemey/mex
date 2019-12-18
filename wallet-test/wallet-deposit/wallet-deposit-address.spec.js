@@ -34,19 +34,22 @@ describe('Wallet depositer - general/address', () => {
       const addressInfo = await mainWallet.getAddressInfo(addressResponse.address)
       addressInfo.should.have.property('ismine', true)
 
-      const storedAddress = await addressColl.find({ _id: ObjectId(testUserId) }).toArray()
+      const recordId = { userId: ObjectId(testUserId), symbol: 'btc' }
+      const storedAddress = await addressColl.find({ _id: recordId }).toArray()
       storedAddress.should.deep.equal([
-        { _id: ObjectId(testUserId), symbol: 'btc', address: addressResponse.address }
-        // { _id: { u: ObjectId(testUserId), symbol: 'btc' }, address: addressResponse.address }
+        { _id: recordId, address: addressResponse.address }
       ])
     })
 
     it('returns existing address for registered user', async () => {
       const address = 'testing-address'
-      await addressColl.insertOne(
-        { _id: ObjectId(registeredUser.id), symbol: 'btc', address }
-      )
-      const addressResponse = await wsClient.send(regUserAddressReq())
+      const wrong = 'wrong-testing-address'
+      await addressColl.insertMany([
+        { _id: { userId: ObjectId(registeredUser.id), symbol: 'btc' }, wrong },
+        { _id: { userId: ObjectId(registeredUser.id), symbol: 'eth' }, address },
+        { _id: { userId: 'other-id', symbol: 'eth' }, wrong }
+      ])
+      const addressResponse = await wsClient.send(regUserAddressReq('eth'))
       addressResponse.status.should.equal(OK_STATUS)
       addressResponse.address.should.equal(address)
     })

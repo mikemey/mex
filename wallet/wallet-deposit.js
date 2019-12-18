@@ -8,6 +8,7 @@ const {
 const { getChainAdapter, startAllListener } = require('./chains')
 
 const ADDRESS_ACT = 'address'
+const INVOICES_ACT = 'invoices'
 const newAddressMessages = withAction(ADDRESS_ACT)
 
 const addressesColl = collection('addresses')
@@ -24,12 +25,12 @@ const getAddress = async request => {
 }
 
 const findUserAddresses = (userId, symbol) => addressesColl.findOne({
-  _id: ObjectId(userId), symbol
+  _id: { userId: ObjectId(userId), symbol }
 })
 
 const createUserAddress = async (userId, symbol) => {
   const address = await getChainAdapter(symbol).createNewAddress()
-  const newEntry = { _id: ObjectId(userId), symbol, address }
+  const newEntry = { _id: { userId: ObjectId(userId), symbol }, address }
   await addressesColl.insertOne(newEntry)
   logger.info('created new address, user:', userId, 'symbol:', symbol, 'address:', address)
   return newEntry
@@ -65,15 +66,18 @@ const startListening = listenerCallback => {
 }
 
 const addBulkOperation = (bulkops, invoice, userAddress) => {
+  const { userId, symbol } = userAddress._id
+  const recordId = { userId, symbol, invoiceId: invoice.invoiceId }
+
   const dbInvcoice = {
-    _id: { userId: ObjectId(userAddress._id), symbol: userAddress.symbol, invoiceId: invoice.invoiceId },
+    _id: recordId,
     date: utc().toISOString(),
     amount: invoice.amount,
     blockheight: invoice.blockheight
   }
   if (invoice.blockheight) {
     bulkops
-      .find({ _id: dbInvcoice._id })
+      .find({ _id: recordId })
       .upsert()
       .update({ $set: { date: dbInvcoice.date, amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
   } else {
@@ -82,4 +86,4 @@ const addBulkOperation = (bulkops, invoice, userAddress) => {
   return dbInvcoice
 }
 
-module.exports = { ADDRESS_ACT, getAddress, startListening }
+module.exports = { ADDRESS_ACT, INVOICES_ACT, getAddress, startListening }

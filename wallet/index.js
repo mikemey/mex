@@ -15,7 +15,7 @@ const configSchema = Joi.object({
 }).unknown()
 
 const addressSchema = Joi.object({
-  action: Joi.string().valid(Deposits.ADDRESS_ACT).required(),
+  action: Joi.string().valid(Deposits.ADDRESS_ACT, Deposits.INVOICES_ACT).required(),
   user: Joi.object().required(),
   symbol: Joi.string().valid(...Object.keys(assetsMetadata)).required()
 })
