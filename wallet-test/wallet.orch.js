@@ -46,21 +46,24 @@ const stopServices = () => Promise.all([
 const verifyMessages = withAction('verify')
 const testJwt = '12345678909876543210'
 const verifyReq = verifyMessages.build({ jwt: testJwt })
-const verifyRes = verifyMessages.ok({ user: { id: registeredUser.id, email: registeredUser.email } })
 
-const withJwtMessages = (action, jwt = testJwt) => {
+const withJwtMessages = action => {
   const baseAction = withAction(action)
-  const build = obj => baseAction.build(Object.assign({ jwt }, obj))
+  const build = obj => baseAction.build(Object.assign({ jwt: testJwt }, obj))
   return { build }
 }
 
 beforeEach(() => {
   sessionMock.reset()
-  sessionMock.addMockFor(verifyReq, verifyRes)
+  setSessionMockUser()
 })
+
+const setSessionMockUser = (
+  user = { id: registeredUser.id, email: registeredUser.email }
+) => sessionMock.addMockFor(verifyReq, verifyMessages.ok({ user }))
 
 afterEach(() => { sessionMock.errorCheck() })
 
 module.exports = {
-  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, btcnodeOrch, walletServiceConfig
+  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, setSessionMockUser, btcnodeOrch, walletServiceConfig
 }

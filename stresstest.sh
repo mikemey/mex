@@ -8,7 +8,7 @@ while [[ $run_exit -eq 0 ]]; do
   logmsg="[$(date '+%Y-%m-%d %H:%M:%S')] ${id}> Run # ${count}"
   printf '%s ... ' "${logmsg}"
 
-  output="$(script -q /dev/null npm run alltest -s)"
+  output="$(script -q /dev/null npm run wallet-test -s)"
   run_exit="${?}"
   if [[ ${run_exit} -eq 0 ]]; then
     printf 'ok\n'

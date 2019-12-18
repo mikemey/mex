@@ -80,7 +80,7 @@ const create = config => {
           invcoice.blockheight = block.height
           return invcoice
         })
-      logger.info('new block height:', data.currentBlockHeight, 'hash:', blockhash)
+      logger.info('new block height:', data.currentBlockHeight, 'hash:', blockhash, '# txs:', blockInvoices.length)
       callbackWith(blockInvoices)
     }
 

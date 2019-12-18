@@ -1,3 +1,5 @@
+const utc = require('moment').utc
+
 const {
   Logger,
   wsmessages: { withAction },
@@ -37,29 +39,20 @@ const startListening = listenerCallback => {
   logger.info('start listening to chains')
   startAllListener(async event => {
     logger.debug('new invoices event, received:', event.invoices.length)
+
     const $orClause = event.invoices.map(invoice => { return { address: invoice.address } })
     const userAddresses = await addressesColl.find({ $or: $orClause }).toArray()
+    logger.debug('relevant addresses:', userAddresses.length)
 
     const invOps = invoicesColl.initializeOrderedBulkOp()
-    const invoices = userAddresses.map(userAddress => {
-      const eventInvoice = event.invoices.find(inv => inv.address === userAddress.address)
-      const dbInvcoice = {
-        _id: ObjectId(userAddress._id),
-        symbol: userAddress.symbol,
-        invoiceId: eventInvoice.invoiceId,
-        amount: eventInvoice.amount,
-        blockheight: eventInvoice.blockheight
-      }
-      if (eventInvoice.blockheight) {
-        invOps
-          .find({ _id: dbInvcoice._id, symbol: dbInvcoice.symbol, invoiceId: dbInvcoice.invoiceId })
-          .upsert()
-          .update({ $set: { amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
-      } else {
-        invOps.insert(dbInvcoice)
-      }
-      return dbInvcoice
-    })
+
+    const invoices = userAddresses.reduce((allInvoices, userAddress) => {
+      const eventInvoices = event.invoices.filter(inv => inv.address === userAddress.address)
+      const dbInvoices = eventInvoices.map(invoice => addBulkOperation(invOps, invoice, userAddress))
+      allInvoices.push(...dbInvoices)
+      return allInvoices
+    }, [])
+
     if (invoices.length > 0) {
       logger.debug('trying to store invcoices, count:', invoices.length)
       const result = await invOps.execute()
@@ -69,6 +62,24 @@ const startListening = listenerCallback => {
       logger.debug('no relevant invoices in event')
     }
   })
+}
+
+const addBulkOperation = (bulkops, invoice, userAddress) => {
+  const dbInvcoice = {
+    _id: { userId: ObjectId(userAddress._id), symbol: userAddress.symbol, invoiceId: invoice.invoiceId },
+    date: utc().toISOString(),
+    amount: invoice.amount,
+    blockheight: invoice.blockheight
+  }
+  if (invoice.blockheight) {
+    bulkops
+      .find({ _id: dbInvcoice._id })
+      .upsert()
+      .update({ $set: { amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
+  } else {
+    bulkops.insert(dbInvcoice)
+  }
+  return dbInvcoice
 }
 
 module.exports = { ADDRESS_ACT, getAddress, startListening }
