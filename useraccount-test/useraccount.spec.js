@@ -33,6 +33,13 @@ describe('UserAccountService', () => {
       await orchestrator.start({ authenticatedAgent: true })))
     after(() => orchestrator.stop())
 
+    it('unavailable page shows default message', async () => {
+      const unavailableRes = orchestrator.withHtml(await useragent.get('/unavailable'))
+      unavailableRes.should.have.status(200)
+      unavailableRes.html.pageTitle().should.equal('mex unavailable')
+      unavailableRes.html.$('#message').text().should.equal('service unavailable, sorry!')
+    })
+
     it('session-service down', async () => {
       await sessionMock.stop()
       const unavailableRes = orchestrator.withHtml(await useragent.get('/index'))
