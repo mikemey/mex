@@ -17,6 +17,6 @@ block content
           td #{asset.hrname}
           td(data-balance=asset.symbol) #{asset.hramount}
           td
-            button(data-deposit=asset.symbol) Deposit
+            a(data-deposit=asset.symbol href=asset.hrefDeposit) Deposit
           td
-            button(data-withdraw=asset.symbol disabled) Withdraw
+            a(data-withdraw=asset.symbol href=asset.hrefWithdraw) Withdraw

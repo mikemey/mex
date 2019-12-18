@@ -34,6 +34,10 @@ const asHRAmount = (amount, symdata) => {
 
 const addressMessages = withAction('address')
 
+const depositPath = slug => `balance/deposit/${slug}`
+const withdrawPath = slug => `balance/withdraw/${slug}`
+const rootOf = path => `/${path}`
+
 class BalanceRouter {
   constructor (walletClient) {
     this.walletClient = walletClient
@@ -57,6 +61,8 @@ class BalanceRouter {
           const symdata = assetsMetadata[asset.symbol]
           asset.hrname = symdata.hrname
           asset.hramount = asHRAmount(asset.amount, symdata)
+          asset.hrefDeposit = depositPath(asset.symbol)
+          asset.hrefWithdraw = withdrawPath(asset.symbol)
           return asset
         })
 
@@ -68,7 +74,7 @@ class BalanceRouter {
       })
     })
 
-    router.get('/balance/deposit/:symbol', async (req, res) => {
+    router.get(rootOf(depositPath(':symbol')), async (req, res) => {
       const symbol = req.params.symbol
       if (!availableSymbols.includes(symbol)) {
         return res.redirect(303, '../' + '?' + querystring.stringify({ message: `asset not supported: ${symbol}` }))
