@@ -72,7 +72,7 @@ describe('Wallet depositer - broadcast', () => {
         await faucetWallet.sendToAddress(userAddressRes.address, amount.toBtc())
       await generateBlocks(1)
     })().catch(done)
-  }).timeout(5000)
+  }).timeout(10000)
 
   it('unconfirmed + confirmed multiple invoices from own user', done => {
     (async () => {
@@ -122,7 +122,7 @@ describe('Wallet depositer - broadcast', () => {
 
       await generateBlocks(1)
     })().catch(done)
-  }).timeout(5000)
+  }).timeout(10000)
 
   const checkDateAndRemove = (expected, message) => {
     message.invoices.forEach(invoice => {
