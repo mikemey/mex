@@ -54,7 +54,7 @@ const startListening = listenerCallback => {
     }, [])
 
     if (invoices.length > 0) {
-      logger.debug('trying to store invcoices, count:', invoices.length)
+      logger.debug('storing invcoices:', invoices.length)
       const result = await invOps.execute()
       logger.info('stored invoices event, created:', result.nInserted, 'updated:', result.nModified)
       listenerCallback({ blockheight: event.blockheight, invoices })
@@ -75,7 +75,7 @@ const addBulkOperation = (bulkops, invoice, userAddress) => {
     bulkops
       .find({ _id: dbInvcoice._id })
       .upsert()
-      .update({ $set: { amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
+      .update({ $set: { date: dbInvcoice.date, amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
   } else {
     bulkops.insert(dbInvcoice)
   }

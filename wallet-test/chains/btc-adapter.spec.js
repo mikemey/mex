@@ -14,8 +14,6 @@ describe('Btc adapter', () => {
   before(startNode)
   after(stopNode)
 
-  const clearMempool = async () => generateBlocks(1)
-
   describe('btc node setup', () => {
     it('regtest faucet has balance', async () => {
       const balance = await faucetWallet.getBalance()
@@ -24,12 +22,12 @@ describe('Btc adapter', () => {
   })
 
   describe('btw wallet operations', () => {
-    afterEach(async () => {
-      await btcAdapter.stopListener()
-      await clearMempool()
+    afterEach(() => {
+      btcAdapter.stopListener()
+      return generateBlocks(1)
     })
 
-    const expectReceivedInvoices = (blockheight, expectCount, expectInvoices, done) => async invoiceRes =>
+    const expectReceivedInvoices = (blockheight, expectCount, expectInvoices, done) => invoiceRes =>
       new Promise((resolve, reject) => {
         invoiceRes.blockheight.should.equal(blockheight)
         invoiceRes.invoices.should.have.length(expectCount)

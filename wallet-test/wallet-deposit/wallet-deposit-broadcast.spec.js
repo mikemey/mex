@@ -22,8 +22,8 @@ describe('Wallet depositer - broadcast', () => {
   after(stopServices)
 
   beforeEach(async () => {
-    await generateBlocks(1)
     await dropTestDatabase()
+    await generateBlocks(1)
   })
 
   const createInvoice = (amount, blockheight = null) => {
@@ -68,29 +68,31 @@ describe('Wallet depositer - broadcast', () => {
       await addOtherTransactions()
 
       const userAddressRes = await wsClient.send(regUserAddressReq())
-      confirmedTx.in.invoiceId = unconfirmedTx.invoiceId =
+      confirmedTx._id.invoiceId = unconfirmedTx._id.invoiceId =
         await faucetWallet.sendToAddress(userAddressRes.address, amount.toBtc())
       await generateBlocks(1)
     })().catch(done)
   }).timeout(5000)
 
-  it.only('unconfirmed + confirmed multiple invoices from own user', done => {
+  it('unconfirmed + confirmed multiple invoices from own user', done => {
     (async () => {
       const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
+      const nextBlockHeight = currentBlockHeight + 1
       const amount1 = Satoshi.fromBtcValue('0.12345')
       const amount2 = Satoshi.fromBtcValue('9.8765')
 
       const unconfirmedTx1 = createInvoice(amount1)
       const unconfirmedTx2 = createInvoice(amount2)
 
-      const confirmedTx1 = createInvoice(amount1, currentBlockHeight + 1)
-      const confirmedTx2 = createInvoice(amount2, currentBlockHeight + 1)
+      const confirmedTx1 = createInvoice(amount1, nextBlockHeight)
+      const confirmedTx2 = createInvoice(amount2, nextBlockHeight)
 
       let callbackCount = 0
       await wsClient.subscribe('deposits', (topic, message) => {
         topic.should.equal('deposits')
         callbackCount += 1
         const isFirstTxFirst = message.invoices[0]._id.invoiceId === confirmedTx1._id.invoiceId
+
         if (callbackCount < 3) {
           const expectedInvoices = {
             blockheight: currentBlockHeight,
@@ -100,7 +102,7 @@ describe('Wallet depositer - broadcast', () => {
           message.should.deep.equal(expectedInvoices)
         } else {
           const expectedBlockInvoices = {
-            blockheight: currentBlockHeight + 1,
+            blockheight: nextBlockHeight,
             invoices: isFirstTxFirst ? [confirmedTx1, confirmedTx2] : [confirmedTx2, confirmedTx1]
           }
           checkDateAndRemove(expectedBlockInvoices, message)
@@ -113,10 +115,10 @@ describe('Wallet depositer - broadcast', () => {
       unconfirmedTx1._id.invoiceId = confirmedTx1._id.invoiceId =
         await faucetWallet.sendToAddress(userAddressRes.address, amount1.toBtc())
 
-       await addOtherTransactions()
+      await addOtherTransactions()
       unconfirmedTx2._id.invoiceId = confirmedTx2._id.invoiceId =
         await faucetWallet.sendToAddress(userAddressRes.address, amount2.toBtc())
-       await addOtherTransactions()
+      await addOtherTransactions()
 
       await generateBlocks(1)
     })().catch(done)

@@ -7,7 +7,7 @@ const download = require('download')
 const BitcoinClient = require('bitcoin-core')
 
 const { Logger } = require('../../utils')
-const logger = Logger('btc node orchetrator')
+const logger = Logger('btc node orchestrator')
 
 const btcversion = '0.19.0.1'
 const dataDir = path.join(__dirname, '.regtest')
