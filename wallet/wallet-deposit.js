@@ -10,11 +10,14 @@ const { getChainAdapter, startAllListener } = require('./chains')
 const ADDRESS_ACT = 'address'
 const INVOICES_ACT = 'invoices'
 const newAddressMessages = withAction(ADDRESS_ACT)
+const invoicesMessages = withAction(INVOICES_ACT)
 
 const addressesColl = collection('addresses')
 const invoicesColl = collection('invoices')
 
 const logger = Logger('deposits')
+
+const dbAddressId = (userId, symbol) => { return { userId: ObjectId(userId), symbol } }
 
 const getAddress = async request => {
   logger.debug('receivet getAddress request:', request)
@@ -24,16 +27,23 @@ const getAddress = async request => {
   return newAddressMessages.ok({ address: userAddress.address })
 }
 
-const findUserAddresses = (userId, symbol) => addressesColl.findOne({
-  _id: { userId: ObjectId(userId), symbol }
-})
+const findUserAddresses = (userId, symbol) => addressesColl
+  .findOne({ _id: dbAddressId(userId, symbol) })
 
 const createUserAddress = async (userId, symbol) => {
   const address = await getChainAdapter(symbol).createNewAddress()
-  const newEntry = { _id: { userId: ObjectId(userId), symbol }, address }
+  const newEntry = { _id: dbAddressId(userId, symbol), address }
   await addressesColl.insertOne(newEntry)
   logger.info('created new address, user:', userId, 'symbol:', symbol, 'address:', address)
   return newEntry
+}
+
+const getInvoices = async request => {
+  const { user: { id }, symbol } = request
+  logger.debug('searching invoices for:', id, 'symbol:', symbol)
+  const invoices = await invoicesColl.find({ '_id.userId': id, '_id.symbol': symbol }).toArray()
+  logger.debug('found invoices:', invoices.length)
+  return { status: 'ok', action: 'invoices', invoices }
 }
 
 const startListening = listenerCallback => {
@@ -86,4 +96,4 @@ const addBulkOperation = (bulkops, invoice, userAddress) => {
   return dbInvcoice
 }
 
-module.exports = { ADDRESS_ACT, INVOICES_ACT, getAddress, startListening }
+module.exports = { ADDRESS_ACT, INVOICES_ACT, getAddress, getInvoices, startListening }

@@ -1,66 +1,73 @@
-const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../test-tools')
+const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
   wsmessages: { OK_STATUS, ERROR_STATUS, withAction },
   dbconnection: { collection, ObjectId },
   units: { Satoshi }
-} = require('../utils')
+} = require('../../utils')
 
 const {
   startServices, stopServices, wsClient, withJwtMessages, sessionMock,
-  btcnodeOrch: { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks }
-} = require('./wallet.orch')
+  btcnodeOrch: { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks },
+  setSessionMockUser
+} = require('../wallet.orch')
 
-xdescribe('Wallet depositer - invoice', () => {
-  const addressColl = collection('addresses')
+describe('Wallet depositer - invoice', () => {
+  const invoicesColl = collection('invoices')
 
-  const addressMsgs = withJwtMessages('address')
-  const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })
+  const invoicesMsgs = withJwtMessages('invoices')
+  const getInvoiceReq = (symbol = 'btc') => invoicesMsgs.build({ symbol })
 
   before(startServices)
   after(stopServices)
 
-  describe('requesting address', () => {
-    beforeEach(dropTestDatabase)
+  beforeEach(dropTestDatabase)
 
-    it('generate new address for new user', async () => {
-      const testUserId = '5def654c9ad3f153493e3bbb'
-      const testJwt = 'bla-bla-bla-bla-bla-bla'
+  it('no invoices for new user', async () => {
+    const testUserId = '5def654c9ad3f153493e3bbb'
+    sessionMock.reset()
+    setSessionMockUser({ id: testUserId })
+    const invoicesResponse = await wsClient.send(getInvoiceReq())
 
-      const verifyMessages = withAction('verify')
-      const verifyReq = verifyMessages.build({ jwt: testJwt })
-      const verifyRes = verifyMessages.ok({ user: { id: testUserId } })
-      sessionMock.reset()
-      sessionMock.addMockFor(verifyReq, verifyRes)
-
-      const addressReq = withJwtMessages('address', testJwt).build({ symbol: 'btc' })
-      const addressResponse = await wsClient.send(addressReq)
-
-      addressResponse.status.should.equal(OK_STATUS)
-      addressResponse.action.should.equal('address')
-      const addressInfo = await mainWallet.getAddressInfo(addressResponse.address)
-      addressInfo.should.have.property('ismine', true)
-
-      const storedAddress = await addressColl.find({ _id: ObjectId(testUserId) }).toArray()
-      storedAddress.should.deep.equal([
-        { _id: ObjectId(testUserId), symbol: 'btc', address: addressResponse.address }
-      ])
-    })
-
-    it('returns existing address for registered user', async () => {
-      const address = 'testing-address'
-      await addressColl.insertOne(
-        { _id: ObjectId(registeredUser.id), symbol: 'btc', address }
-      )
-      const addressResponse = await wsClient.send(regUserAddressReq())
-      addressResponse.status.should.equal(OK_STATUS)
-      addressResponse.address.should.equal(address)
-    })
-
-    it('returns error for unknown asset', async () => {
-      const addressResponse = await wsClient.send(regUserAddressReq('unknown'))
-      addressResponse.status.should.equal(ERROR_STATUS)
-      addressResponse.should.not.have.property('address')
-    })
+    invoicesResponse.status.should.equal(OK_STATUS)
+    invoicesResponse.action.should.equal('invoices')
+    invoicesResponse.invoices.should.deep.equal([])
   })
-  xit('returns confirmed + unconfirmed invoices from own user', async () => { })
+
+  it('invoices for existing user', async () => {
+    const secondUserId = 'second'
+    const thirdUserId = 'third'
+    const invoice = (invoiceId, { userId = registeredUser.id, symbol = 'eth' } = {}) => {
+      return {
+        _id: { userId, symbol, invoiceId },
+        invoiceData: 'not relevant'
+      }
+    }
+    const dbInvoices = [
+      invoice(1),
+      invoice(2, { userId: secondUserId }),
+      invoice(3, { symbol: 'other' }),
+      invoice(4)
+    ]
+    await invoicesColl.insertMany(dbInvoices)
+
+    const expectInvoices = async (userId, ...invoices) => {
+      sessionMock.reset()
+      setSessionMockUser({ id: userId })
+
+      const invoicesResponse = await wsClient.send(getInvoiceReq('eth'))
+      invoicesResponse.should.deep.equal(
+        { status: OK_STATUS, action: 'invoices', invoices }
+      )
+    }
+
+    await expectInvoices(registeredUser.id, invoice(1), invoice(4))
+    await expectInvoices(secondUserId, invoice(2, { userId: secondUserId }))
+    await expectInvoices(thirdUserId)
+  })
+
+  it('returns error for unknown asset', async () => {
+    const invcResponse = await wsClient.send(getInvoiceReq('unknown'))
+    invcResponse.status.should.equal(ERROR_STATUS)
+    invcResponse.should.not.have.property('invoices')
+  })
 })

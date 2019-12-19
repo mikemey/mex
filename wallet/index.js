@@ -54,7 +54,8 @@ class WalletService extends WSSecureServer {
     requestCheck(request)
     switch (request.action) {
       case Deposits.ADDRESS_ACT: return Deposits.getAddress(request)
-      default: throw new Error(`unexpected action [${require.action}]`)
+      case Deposits.INVOICES_ACT: return Deposits.getInvoices(request)
+      default: throw new Error(`unexpected action [${request.action}]`)
     }
   }
 }
