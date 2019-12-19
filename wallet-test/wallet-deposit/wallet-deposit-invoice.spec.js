@@ -1,13 +1,11 @@
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
-  wsmessages: { OK_STATUS, ERROR_STATUS, withAction },
-  dbconnection: { collection, ObjectId },
-  units: { Satoshi }
+  wsmessages: { OK_STATUS, ERROR_STATUS },
+  dbconnection: { collection }
 } = require('../../utils')
 
 const {
   startServices, stopServices, wsClient, withJwtMessages, sessionMock,
-  btcnodeOrch: { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks },
   setSessionMockUser
 } = require('../wallet.orch')
 

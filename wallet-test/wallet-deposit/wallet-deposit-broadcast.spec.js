@@ -2,19 +2,16 @@ const moment = require('moment')
 
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
-  wsmessages: { OK_STATUS, ERROR_STATUS, withAction },
-  dbconnection: { collection, ObjectId },
+  wsmessages: { OK_STATUS },
   units: { Satoshi }
 } = require('../../utils')
 
 const {
-  startServices, stopServices, wsClient, withJwtMessages, sessionMock,
+  startServices, stopServices, wsClient, withJwtMessages,
   btcnodeOrch: { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks }
 } = require('../wallet.orch')
 
 describe('Wallet depositer - broadcast', () => {
-  const addressColl = collection('addresses')
-
   const addressMsgs = withJwtMessages('address')
   const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })
 
