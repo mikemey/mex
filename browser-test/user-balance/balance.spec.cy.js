@@ -10,7 +10,7 @@ describe('Balance page', () => {
     .then(() => {
       balancepage.visit()
       balancepage.assetBalance('btc').should('have.text', '0.00000000')
-      balancepage.assetBalance('eth').should('have.text', '0.00000000')
+      balancepage.assetBalance('eth').should('have.text', '0.000000')
     })
   )
 })

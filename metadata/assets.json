@@ -1,10 +1,18 @@
 {
   "btc": {
     "hrname": "Bitcoin",
-    "fractions": 8
+    "fractions": 8,
+    "links": {
+      "block": "https://live.blockcypher.com/btc/block/<<blockheight>>/",
+      "tx": "https://live.blockcypher.com/btc/tx/<<txid>>/"
+    }
   },
   "eth": {
     "hrname": "Ethereum",
-    "fractions": 18
+    "fractions": 6,
+    "links": {
+      "block": "https://www.etherchain.org/block/<<blockheight>>",
+      "tx": "https://www.etherchain.org/tx/<<txid>>"
+    }
   }
 }

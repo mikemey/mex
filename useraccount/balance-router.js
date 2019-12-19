@@ -1,5 +1,6 @@
 const express = require('express')
 const querystring = require('querystring')
+const moment = require('moment')
 
 const { assetsMetadata } = require('../metadata')
 const {
@@ -19,20 +20,39 @@ const Balances = mg.model('balances', BalancesSchema)
 
 const BALANCE_VIEW = 'balance'
 
-const uiFractions = 8
-
+const getAssetMetadata = symbol => assetsMetadata[symbol]
 const availableSymbols = Object.keys(assetsMetadata)
 const balanceDefaults = Object.keys(assetsMetadata)
   .map(key => { return { symbol: key, amount: Long('0') } })
 
-const asHRAmount = (amount, symdata) => {
-  const amt = amount.toString().padStart(symdata.fractions + 1, '0')
-  const whole = amt.slice(0, -symdata.fractions)
-  const fraction = amt.slice(-symdata.fractions, amt.length - symdata.fractions + uiFractions)
+const asHRAmount = (amount, symbol) => {
+  const assetFractions = getAssetMetadata(symbol).fractions
+  const amt = amount.toString().padStart(assetFractions + 1, '0')
+  const whole = amt.slice(0, -assetFractions)
+  const fraction = amt.slice(-assetFractions, amt.length)
   return `${whole}.${fraction}`
 }
 
+const blockHrefFrom = (blockheight, symbol) =>
+  getAssetMetadata(symbol).links.block.replace('<<blockheight>>', blockheight)
+const invoiceHrefFrom = (invoiceId, symbol) =>
+  getAssetMetadata(symbol).links.tx.replace('<<txid>>', invoiceId)
+
+const asHRInvoices = (invoices, symbol) => invoices.map(inv => {
+  return {
+    id: inv._id.invoiceId,
+    href: invoiceHrefFrom(inv._id.invoiceId, symbol),
+    hrdate: moment(inv.date).format('LLLL'),
+    hramount: asHRAmount(inv.amount, symbol),
+    block: {
+      id: inv.blockheight,
+      href: blockHrefFrom(inv.blockheight, symbol)
+    }
+  }
+})
+
 const addressMessages = withAction('address')
+const invoicesMessages = withAction('invoices')
 
 const depositPath = slug => `balance/deposit/${slug}`
 const withdrawPath = slug => `balance/withdraw/${slug}`
@@ -58,9 +78,8 @@ class BalanceRouter {
           )
 
         const assets = balance.map(asset => {
-          const symdata = assetsMetadata[asset.symbol]
-          asset.hrname = symdata.hrname
-          asset.hramount = asHRAmount(asset.amount, symdata)
+          asset.hrname = getAssetMetadata(asset.symbol).hrname
+          asset.hramount = asHRAmount(asset.amount, asset.symbol)
           asset.hrefDeposit = depositPath(asset.symbol)
           asset.hrefWithdraw = withdrawPath(asset.symbol)
           return asset
@@ -79,16 +98,22 @@ class BalanceRouter {
       if (!availableSymbols.includes(symbol)) {
         return res.redirect(303, '../' + '?' + querystring.stringify({ message: `asset not supported: ${symbol}` }))
       }
-      const addReq = addressMessages.build({ symbol, jwt: req.session.jwt })
-      return this.walletClient.send(addReq)
-        .then(addressRes => addressRes.status === OK_STATUS
-          ? res.render('deposit', { address: addressRes.address, symbol })
-          : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
-        )
-        .catch(err => {
-          this.logger.error('wallet service error:', err.message)
-          res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
+      const addressReq = addressMessages.build({ symbol, jwt: req.session.jwt })
+      const invoicesReq = invoicesMessages.build({ symbol, jwt: req.session.jwt })
+      this.logger.info('requesting deposit data, userId:', req.user.id)
+      return Promise.all([
+        this.walletClient.send(addressReq), this.walletClient.send(invoicesReq)
+      ]).then(([addressRes, invoicesRes]) => addressRes.status === OK_STATUS && invoicesRes.status === OK_STATUS
+        ? res.render('deposit', {
+          address: addressRes.address,
+          symbol,
+          invoices: asHRInvoices(invoicesRes.invoices, symbol)
         })
+        : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
+      ).catch(err => {
+        this.logger.error('wallet service error:', err)
+        res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
+      })
     })
 
     return router

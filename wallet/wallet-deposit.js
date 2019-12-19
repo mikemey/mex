@@ -43,7 +43,7 @@ const getInvoices = async request => {
   logger.debug('searching invoices for:', id, 'symbol:', symbol)
   const invoices = await invoicesColl.find({ '_id.userId': id, '_id.symbol': symbol }).toArray()
   logger.debug('found invoices:', invoices.length)
-  return { status: 'ok', action: 'invoices', invoices }
+  return invoicesMessages.ok({ invoices })
 }
 
 const startListening = listenerCallback => {

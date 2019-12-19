@@ -62,8 +62,12 @@ describe('UserAccountService', () => {
       const actionBuilder = withAction('address')
       const getAddressReq = orchestrator.withJwtMessages(actionBuilder.build({ symbol: 'btc' }))
       const getAddressResOk = actionBuilder.ok({ address: '1234' })
+      const invoiceBuilder = withAction('invoices')
+      const getInvoiceReq = orchestrator.withJwtMessages(invoiceBuilder.build({ symbol: 'btc' }))
+      const getInvoiceResOk = invoiceBuilder.ok({ invoices: [] })
 
       walletMock.addMockFor(getAddressReq, getAddressResOk)
+      walletMock.addMockFor(getInvoiceReq, getInvoiceResOk)
       await walletMock.start()
       const depositRes = orchestrator.withHtml(await useragent.get('/balance/deposit/btc'))
       depositRes.html.pageTitle().should.equal('mex btc deposits')

@@ -37,9 +37,12 @@ describe('Wallet depositer - invoice', () => {
     const invoice = (invoiceId, { userId = registeredUser.id, symbol = 'eth' } = {}) => {
       return {
         _id: { userId, symbol, invoiceId },
-        invoiceData: 'not relevant'
+        date: '2019-12-19T13:59:55.163Z',
+        amount: '12345000',
+        blockheight: 1965
       }
     }
+
     const dbInvoices = [
       invoice(1),
       invoice(2, { userId: secondUserId }),

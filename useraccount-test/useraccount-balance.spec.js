@@ -1,6 +1,9 @@
+const moment = require('moment')
+
 const {
-  dbconnection: { ObjectId, Long, collection },
-  wsmessages: { withAction, error }
+  dbconnection: { ObjectId, collection },
+  wsmessages: { withAction, error },
+  units: { Satoshi }
 } = require('../utils')
 
 const orchestrator = require('./useraccount.orch')
@@ -23,18 +26,20 @@ describe('UserAccount balance', () => {
       const res = orchestrator.withHtml(await useragent.get('/balance'))
       res.html.pageTitle().should.equal('mex balances')
       res.html.$('[data-balance="btc"]').text().should.equal('0.00000000')
-      res.html.$('[data-balance="eth"]').text().should.equal('0.00000000')
+      res.html.$('[data-balance="eth"]').text().should.equal('0.000000')
     })
 
     it('existing user with balance', async () => {
       await balanceColl.insertOne({
         _id: ObjectId(orchestrator.testUserId),
-        assets: [{ symbol: 'btc', amount: Long.fromString('9223372036854775807') }]
+        assets: [
+          { symbol: 'btc', amount: Satoshi.fromString('922337203685477587') }
+        ]
       })
       const res = orchestrator.withHtml(await useragent.get('/balance'))
       res.html.pageTitle().should.equal('mex balances')
-      res.html.$('[data-balance="btc"]').text().should.equal('92233720368.54775807')
-      res.html.$('[data-balance="eth"]').text().should.equal('0.00000000')
+      res.html.$('[data-balance="btc"]').text().should.equal('9223372036.85477587')
+      res.html.$('[data-balance="eth"]').text().should.equal('0.000000')
     })
 
     it('deposit/withdraw links', async () => {
@@ -57,28 +62,95 @@ describe('UserAccount balance', () => {
     })
   })
 
-  describe('deposit', async () => {
-    const actionBuilder = withAction('address')
-    const getAddressReq = symbol => orchestrator.withJwtMessages(actionBuilder.build({ symbol }))
-    const getAddressResOk = address => actionBuilder.ok({ address })
-    const getAddressResError = error('test')
+  describe('deposits', async () => {
+    const addressBuilder = withAction('address')
+    const invoicesBuilder = withAction('invoices')
+    const getAddressReq = (symbol = 'eth') => orchestrator.withJwtMessages(addressBuilder.build({ symbol }))
+    const getAddressResOk = address => addressBuilder.ok({ address })
+    const errorRes = error('test')
+    const getInvoicesReq = (symbol = 'eth') => orchestrator.withJwtMessages(invoicesBuilder.build({ symbol }))
+    const getInvoicesResOk = invoices => addressBuilder.ok({ invoices })
 
     const depositPath = slug => `/balance/deposit${slug}`
 
-    it('request address from wallet service', async () => {
-      const addressReq = getAddressReq('btc')
-      const address = 'abccdef'
-      walletMock.addMockFor(getAddressReq('btc'), getAddressResOk(address))
-      const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
-      res.status.should.equal(200)
-      res.html.pageTitle().should.equal('mex btc deposits')
-      res.html.$('[data-address="btc"]').text().should.equal(address)
+    const daysPast = days => moment.utc().subtract(days, 'd')
+    const createInvoice = (invoiceId, past, amount, blockheight) => {
+      return {
+        _id: { invoiceId },
+        date: daysPast(past).toISOString(),
+        amount,
+        blockheight
+      }
+    }
 
-      walletMock.assertReceived(addressReq)
+    it('request address + deposit history from wallet service', async () => {
+      const address = 'abccdef'
+      const invoices = [
+        createInvoice('inv-id-1', 1, '123', 2),
+        createInvoice('inv-id-2', 2, '345', 3),
+        createInvoice('inv-id-3', 3, '678000000', 4),
+        createInvoice('inv-id-4', 10, '93100000', 5)
+      ]
+      const hrInvoiceAmounts = ['0.000123', '0.000345', '678.000000', '93.100000']
+
+      const createExpectInvoiceRow = ({ _id: { invoiceId }, date, amount, blockheight }, ix) => {
+        const hrDate = moment(date).format('LLLL')
+        const hrAmount = hrInvoiceAmounts[ix]
+        const hrBlock = String(blockheight)
+        return [hrDate, hrAmount, hrBlock, invoiceId]
+      }
+      const createExpectInvoiceLink = ({ _id: { invoiceId }, blockheight }) => {
+        return {
+          block: `https://www.etherchain.org/block/${blockheight}`,
+          tx: `https://www.etherchain.org/tx/${invoiceId}`
+        }
+      }
+      const expectedInvoiceRows = invoices.map(createExpectInvoiceRow)
+      const expectedInvoiceLinks = invoices.map(createExpectInvoiceLink)
+
+      walletMock.addMockFor(getAddressReq(), getAddressResOk(address))
+      walletMock.addMockFor(getInvoicesReq(), getInvoicesResOk(invoices))
+      const res = orchestrator.withHtml(await useragent.get(depositPath('/eth')))
+      res.status.should.equal(200)
+      res.html.pageTitle().should.equal('mex eth deposits')
+
+      const $ = res.html.$
+      $('[data-address="eth"]').text().should.equal(address)
+
+      const extractColsFromRow = trElmt => $(trElmt).children('td')
+        .map((_, td) => $(td).text())
+        .get()
+
+      const uiInvoices = $('tbody tr')
+        .map((_, el) => [extractColsFromRow(el)]) // <-- jquery's .map automatically flattens nested arrays, wtf?!
+        .get()
+      const uiLinks = $('tbody tr').map((_, tr) => {
+        const extractHrefFromCol = num => $(tr).find(`td:nth-child(${num}) a`).attr('href')
+        const block = extractHrefFromCol(3)
+        const tx = extractHrefFromCol(4)
+        return { block, tx }
+      }).get()
+
+      uiInvoices.should.deep.equal(expectedInvoiceRows)
+      uiLinks.should.deep.equal(expectedInvoiceLinks)
+
+      walletMock.assertReceived(getAddressReq(), getInvoicesReq())
     })
 
-    it('request address fails', async () => {
-      walletMock.addMockFor(getAddressReq('btc'), getAddressResError)
+    it('request address request fails', async () => {
+      walletMock.addMockFor(getAddressReq('btc'), errorRes)
+      walletMock.addMockFor(getInvoicesReq('btc'), getInvoicesResOk([]))
+
+      const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
+      res.status.should.equal(200)
+      res.html.pageTitle().should.equal('mex balances')
+      res.html.$('#message').text().should.equal('wallet service error')
+    })
+
+    it('request deposit history request fails', async () => {
+      walletMock.addMockFor(getAddressReq('btc'), getAddressResOk('abc'))
+      walletMock.addMockFor(getInvoicesReq('btc'), errorRes)
+
       const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
       res.status.should.equal(200)
       res.html.pageTitle().should.equal('mex balances')
@@ -90,10 +162,6 @@ describe('UserAccount balance', () => {
       res.status.should.equal(200)
       res.html.pageTitle().should.equal('mex balances')
       res.html.$('#message').text().should.equal('asset not supported: unknown')
-    })
-
-    xit('show existing deposits', () => {
-      // throw new Error('implement me')
     })
   })
 })
