@@ -35,6 +35,12 @@ describe('Registration', () => {
     regpage.errorMsg().contains(/^duplicate name.*/)
   })
 
+  it('password + confirmation mismatch', () => {
+    regpage.register('hello@you.com', 'zyxwvuts', 'abcdefgh').registerButton().click()
+    regpage.assertPageActive()
+    regpage.errorMsg().contains('password and confirmation not matching')
+  })
+
   it('password too short, keeps email in field', () => {
     const email = 'password.too@short.com'
     regpage.register(email, '1234567').registerButton().click()
