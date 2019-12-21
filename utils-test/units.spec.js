@@ -3,7 +3,7 @@ const { UnitType } = require('number-unit')
 const { units: { amountFrom, baseAmountFrom }, dbconnection } = require('../utils')
 const { TestDataSetup: { dropTestDatabase, dbConfig } } = require('../test-tools')
 
-describe.only('Units conversion', () => {
+describe('Units conversion', () => {
   const testUnitsOverride = {
     btc: {
       fractions: 8,

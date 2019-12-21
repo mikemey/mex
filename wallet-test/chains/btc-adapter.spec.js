@@ -6,7 +6,7 @@ const {
   generateBlocks, defaultBtcAdapterConfig
 } = require('./btc-node.orch')
 
-const { units: { Satoshi } } = require('../../utils')
+const { units: { amountFrom } } = require('../../utils')
 
 describe('Btc adapter', () => {
   const btcAdapter = BtcAdapter.create(defaultBtcAdapterConfig)
@@ -21,7 +21,7 @@ describe('Btc adapter', () => {
     })
   })
 
-  describe('btw wallet operations', () => {
+  describe('btc wallet operations', () => {
     afterEach(() => {
       btcAdapter.stopListener()
       return generateBlocks(1)
@@ -47,11 +47,11 @@ describe('Btc adapter', () => {
       (async () => {
         const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
         const address = await btcAdapter.createNewAddress()
-        const amount = Satoshi.fromBtcValue('2.22222')
-        const expectedInvoice = { invoiceId: undefined, address, amount, blockheight: null }
+        const amount = amountFrom('2.22222', 'btc')
+        const expectedInvoice = { invoiceId: undefined, address, amount: amount.toBaseUnit(), blockheight: null }
 
         btcAdapter.startListener(expectReceivedInvoices(currentBlockHeight, 2, [expectedInvoice], done))
-        expectedInvoice.invoiceId = await faucetWallet.sendToAddress(address, amount.toBtc())
+        expectedInvoice.invoiceId = await faucetWallet.sendToAddress(address, amount.toDefaultUnit())
       })().catch(done)
     })
 
@@ -60,15 +60,15 @@ describe('Btc adapter', () => {
         const nextBlockHeight = 1 + (await faucetWallet.getBlockchainInformation()).blocks
 
         const myAddress = await btcAdapter.createNewAddress()
-        const myAmount = Satoshi.fromBtcValue('2.22222')
-        const myInvoiceId = await faucetWallet.sendToAddress(myAddress, myAmount.toBtc())
-        const myexpectedInvoice = { invoiceId: myInvoiceId, address: myAddress, amount: myAmount, blockheight: nextBlockHeight }
+        const myAmount = amountFrom('2.22222', 'btc')
+        const myInvoiceId = await faucetWallet.sendToAddress(myAddress, myAmount.toDefaultUnit())
+        const myexpectedInvoice = { invoiceId: myInvoiceId, address: myAddress, amount: myAmount.toBaseUnit(), blockheight: nextBlockHeight }
 
         const otherAddress = await thirdPartyWallet.getNewAddress()
-        const otherAmount = Satoshi.fromBtcValue('1.111')
-        const otherInvoiceId = await faucetWallet.sendToAddress(otherAddress, otherAmount.toBtc())
+        const otherAmount = amountFrom('1.111', 'btc')
+        const otherInvoiceId = await faucetWallet.sendToAddress(otherAddress, otherAmount.toDefaultUnit())
         const expectedOtherInvoice = {
-          invoiceId: otherInvoiceId, address: otherAddress, amount: otherAmount, blockheight: nextBlockHeight
+          invoiceId: otherInvoiceId, address: otherAddress, amount: otherAmount.toBaseUnit(), blockheight: nextBlockHeight
         }
 
         const expectedInvoices = [myexpectedInvoice, expectedOtherInvoice]

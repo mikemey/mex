@@ -2,8 +2,7 @@ const moment = require('moment')
 
 const {
   dbconnection: { ObjectId, collection },
-  wsmessages: { withAction, error },
-  units: { Satoshi }
+  wsmessages: { withAction, error }
 } = require('../utils')
 
 const orchestrator = require('./useraccount.orch')
@@ -33,7 +32,7 @@ describe('UserAccount balance', () => {
       await balanceColl.insertOne({
         _id: ObjectId(orchestrator.testUserId),
         assets: [
-          { symbol: 'btc', amount: Satoshi.fromString('922337203685477587') }
+          { symbol: 'btc', amount: '922337203685477587' }
         ]
       })
       const res = orchestrator.withHtml(await useragent.get('/balance'))

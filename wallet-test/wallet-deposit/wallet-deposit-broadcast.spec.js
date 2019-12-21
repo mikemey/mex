@@ -3,7 +3,7 @@ const moment = require('moment')
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
   wsmessages: { OK_STATUS },
-  units: { Satoshi }
+  units: { amountFrom }
 } = require('../../utils')
 
 const {
@@ -27,7 +27,7 @@ describe('Wallet depositer - broadcast', () => {
     return {
       _id: { userId: registeredUser.id, symbol: 'btc', invoiceId: undefined },
       date: 'new Date() field - removed during test',
-      amount: amount.toString(),
+      amount: amount.toBaseUnit(),
       blockheight
     }
   }
@@ -35,7 +35,7 @@ describe('Wallet depositer - broadcast', () => {
   it('unconfirmed + confirmed single invoice from own user', done => {
     (async () => {
       const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
-      const amount = Satoshi.fromBtcValue('0.12345')
+      const amount = amountFrom('0.12345', 'btc')
       const unconfirmedTx = createInvoice(amount)
       const expectedUnconfirmedResponse = {
         blockheight: currentBlockHeight,
@@ -66,7 +66,7 @@ describe('Wallet depositer - broadcast', () => {
 
       const userAddressRes = await wsClient.send(regUserAddressReq())
       confirmedTx._id.invoiceId = unconfirmedTx._id.invoiceId =
-        await faucetWallet.sendToAddress(userAddressRes.address, amount.toBtc())
+        await faucetWallet.sendToAddress(userAddressRes.address, amount.toDefaultUnit())
       await generateBlocks(1)
     })().catch(done)
   }).timeout(10000)
@@ -75,8 +75,8 @@ describe('Wallet depositer - broadcast', () => {
     (async () => {
       const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
       const nextBlockHeight = currentBlockHeight + 1
-      const amount1 = Satoshi.fromBtcValue('0.12345')
-      const amount2 = Satoshi.fromBtcValue('9.8765')
+      const amount1 = amountFrom('0.12345', 'btc')
+      const amount2 = amountFrom('9.8765', 'btc')
 
       const unconfirmedTx1 = createInvoice(amount1)
       const unconfirmedTx2 = createInvoice(amount2)
@@ -110,11 +110,11 @@ describe('Wallet depositer - broadcast', () => {
 
       const userAddressRes = await wsClient.send(regUserAddressReq())
       unconfirmedTx1._id.invoiceId = confirmedTx1._id.invoiceId =
-        await faucetWallet.sendToAddress(userAddressRes.address, amount1.toBtc())
+        await faucetWallet.sendToAddress(userAddressRes.address, amount1.toDefaultUnit())
 
       await addOtherTransactions()
       unconfirmedTx2._id.invoiceId = confirmedTx2._id.invoiceId =
-        await faucetWallet.sendToAddress(userAddressRes.address, amount2.toBtc())
+        await faucetWallet.sendToAddress(userAddressRes.address, amount2.toDefaultUnit())
       await addOtherTransactions()
 
       await generateBlocks(1)
