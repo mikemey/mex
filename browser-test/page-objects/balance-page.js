@@ -6,6 +6,8 @@ class BalancePage extends ATestPage {
   }
 
   assetBalance (symbol) { return cy.get(`td[data-balance="${symbol}"]`) }
+
+  depositButton (symbol) { return cy.get(`a[data-deposit="${symbol}"]`) }
 }
 
 module.exports = BalancePage

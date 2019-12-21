@@ -2,7 +2,8 @@ const childProcess = require('child_process')
 
 const SessionService = require('../session')
 const UserAccountService = require('../useraccount')
-// const WalletService = require('../wallet')
+const WalletService = require('../wallet')
+const ChainsOrch = require('../wallet-test/chains.orch')
 
 const { TestDataSetup: { dbConfig, seedTestData } } = require('../test-tools')
 
@@ -20,7 +21,7 @@ const walletServiceConfig = {
   wsserver: { port: 13044, path: '/wallet', authorizedTokens: ['c291bmQgb2YgZGEgcG9saWNlCg=='] },
   sessionService: createClientConfig(sessionServiceConfig.wsserver),
   chains: {
-    // btcnode: btcnodeOrch.defaultBtcAdapterConfig
+    btcnode: ChainsOrch.getChainOrch('btc').defaultBtcAdapterConfig
   },
   db: dbConfig
 }
@@ -48,16 +49,37 @@ const userAccountProcess = {
   createService: () => new UserAccountService(userAccountServiceConfig)
 }
 
-// const walletProcess = {
-//   command: 'wallets',
-//   logname: ' wallets',
-//   process: null,
-//   service: null,
-//   createService: () => new WalletService(walletServiceConfig)
-// }
+const walletProcess = {
+  command: 'wallets',
+  logname: ' wallets',
+  process: null,
+  service: null,
+  createService: () => new WalletService(walletServiceConfig)
+}
 
-const PROCESS_DEFINITIONS = [sessionProcess, userAccountProcess]
-// const PROCESS_DEFINITIONS = [sessionProcess, userAccountProcess, walletProcess]
+const chainNodesProcess = (() => {
+  let keepAliveTimeout
+  return {
+    command: 'chains',
+    logname: '  chains',
+    process: null,
+    service: null,
+    createService: () => ChainsOrch,
+    start: async svc => {
+      await svc.startNodes()
+      const keepAlive = () => {
+        keepAliveTimeout = setTimeout(keepAlive, 300)
+      }
+      keepAlive()
+    },
+    stop: async svc => {
+      clearTimeout(keepAliveTimeout)
+      await svc.stopNodes()
+    }
+  }
+})()
+
+const PROCESS_DEFINITIONS = [chainNodesProcess, sessionProcess, userAccountProcess, walletProcess]
 
 const serviceLogger = logname => data => data.toString()
   .split(/(\r?\n)/g)
@@ -77,11 +99,13 @@ const startAll = () => PROCESS_DEFINITIONS.forEach(processdef => {
   }
 })
 
-const startService = processdef => {
+const startService = async processdef => {
   try {
     console.log('starting:', processdef.logname)
     processdef.service = processdef.createService()
-    processdef.service.start()
+    await processdef.start
+      ? processdef.start(processdef.service)
+      : processdef.service.start()
   } catch (err) {
     console.log('Error starting service:', processdef.logname, err)
     stopAll()
@@ -92,7 +116,10 @@ const stopAll = () => PROCESS_DEFINITIONS.forEach(async processdef => {
   try {
     if (processdef.service) {
       console.log('stopping service', processdef.logname)
-      await processdef.service.stop()
+      await processdef.stop
+        ? processdef.stop(processdef.service)
+        : processdef.service.stop()
+
       processdef.service = null
     }
     if (processdef.process) {
@@ -118,11 +145,12 @@ process.on('SIGINT', stopAll);
     startAll()
     return seedTestData()
   }
+  if (command === 'start') {
+    return stopAll()
+  }
 
   const processdef = PROCESS_DEFINITIONS.find(def => def.command.toLowerCase() === command)
-  if (processdef) {
-    startService(processdef)
-  } else {
-    console.log(`Error unknown command: ${command}`)
-  }
+  return processdef
+    ? startService(processdef)
+    : console.log(`Error unknown command: ${command}`)
 })()
