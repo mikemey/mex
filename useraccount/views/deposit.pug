@@ -19,7 +19,10 @@ block content
         tr(data-invoice=invoice.id)
           td #{invoice.hrdate}
           td #{invoice.hramount}
-          td
-            a(href=invoice.block.href)= invoice.block.id
+          if invoice.block.href
+            td
+              a(href=invoice.block.href)= invoice.block.id
+          else
+            td #{invoice.block.id}
           td
             a(href=invoice.href)= invoice.id

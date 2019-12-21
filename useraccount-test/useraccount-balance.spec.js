@@ -82,7 +82,7 @@ describe('UserAccount balance', () => {
       }
     }
 
-    it('request address + deposit history from wallet service', async () => {
+    it.only('request address + deposit history from wallet service', async () => {
       const address = 'abccdef'
       const invoices = [
         createInvoice('inv-id-1', 3, '123', 120),
@@ -97,10 +97,11 @@ describe('UserAccount balance', () => {
         return [hrDate, hrAmount, hrBlock, invoiceId]
       }
       const createExpectInvoiceLink = ({ _id: { invoiceId }, blockheight }) => {
-        return {
-          block: `https://www.etherchain.org/block/${blockheight}`,
-          tx: `https://www.etherchain.org/tx/${invoiceId}`
-        }
+        const block = blockheight
+          ? `https://www.etherchain.org/block/${blockheight}`
+          : 'unconfirmed'
+        const tx = `https://www.etherchain.org/tx/${invoiceId}`
+        return { block, tx }
       }
 
       const expectedInvoiceRows = [
@@ -135,7 +136,7 @@ describe('UserAccount balance', () => {
         .get()
       const uiLinks = $('tbody tr').map((_, tr) => {
         const extractHrefFromCol = num => $(tr).find(`td:nth-child(${num}) a`).attr('href')
-        const block = extractHrefFromCol(3)
+        const block = extractHrefFromCol(3) || 'unconfirmed'
         const tx = extractHrefFromCol(4)
         return { block, tx }
       }).get()

@@ -47,10 +47,9 @@ const asHRInvoices = (invoices, symbol) => invoices
       href: invoiceHrefFrom(inv._id.invoiceId, symbol),
       hrdate: moment.utc(inv.date).format('LLLL'),
       hramount: asHRAmount(inv.amount, symbol),
-      block: {
-        id: inv.blockheight || unconfirmedLabel,
-        href: blockHrefFrom(inv.blockheight, symbol)
-      }
+      block: inv.blockheight
+        ? { id: inv.blockheight, href: blockHrefFrom(inv.blockheight, symbol) }
+        : { id: unconfirmedLabel }
     }
   })
   .sort((a, b) => getInvoiceOrdinal(b) - getInvoiceOrdinal(a))
