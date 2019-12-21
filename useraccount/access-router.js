@@ -57,6 +57,7 @@ class AccessRouter {
     }
 
     return (req, res, next) => {
+      res.locals.pathPrefix = this.pathPrefix
       if (unprotectedPaths.includes(req.path)) { return next() }
       if (req.session && req.session.jwt) {
         return this.sessionClient.send(verifyMessages.build({ jwt: req.session.jwt }))

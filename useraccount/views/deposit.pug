@@ -3,8 +3,9 @@ block variables
   - var page_title = `${symbol} deposits`
 
 block content
-  h2 #{symbol.toUpperCase()} Deposits
-  #deposit-address(data-address=symbol)=address
+  h2= `${symbol.toUpperCase()} Deposits`
+  div= `${symbol.toUpperCase()} deposit address: `
+    span(data-address=symbol)= address
 
   table(style="border: 1px solid black;")
     thead
@@ -19,6 +20,6 @@ block content
           td #{invoice.hrdate}
           td #{invoice.hramount}
           td
-            a(href=invoice.block.href)=invoice.block.id
+            a(href=invoice.block.href)= invoice.block.id
           td
-            a(href=invoice.href)=invoice.id
+            a(href=invoice.href)= invoice.id

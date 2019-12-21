@@ -9,16 +9,16 @@ html(lang="en")
       if user
         ul
           li
-            a(href='index') Home
+            a(href=`${pathPrefix}/index`) Home
           li
-            a(href='balance') Balances
+            a(href=`${pathPrefix}/balance`) Balances
           li #{user.email}
       else
         ul
           li
-            a(href='login') Login
+            a(href=`${pathPrefix}/login`) Login
           li
-            a(href='register') Register
+            a(href=`${pathPrefix}/register`) Register
 
     block content
     block foot

@@ -54,9 +54,9 @@ const asHRInvoices = (invoices, symbol) => invoices.map(inv => {
 const addressMessages = withAction('address')
 const invoicesMessages = withAction('invoices')
 
-const depositPath = slug => `balance/deposit/${slug}`
-const withdrawPath = slug => `balance/withdraw/${slug}`
-const rootOf = path => `/${path}`
+const depositPath = slug => `./balance/deposit/${slug}`
+const withdrawPath = slug => `./balance/withdraw/${slug}`
+const depositRoot = path => depositPath(path).substring(1)
 
 class BalanceRouter {
   constructor (walletClient) {
@@ -93,7 +93,7 @@ class BalanceRouter {
       })
     })
 
-    router.get(rootOf(depositPath(':symbol')), async (req, res) => {
+    router.get(depositRoot(':symbol'), async (req, res) => {
       const symbol = req.params.symbol
       if (!availableSymbols.includes(symbol)) {
         return res.redirect(303, '../' + '?' + querystring.stringify({ message: `asset not supported: ${symbol}` }))
