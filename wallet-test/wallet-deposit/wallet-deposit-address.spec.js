@@ -6,12 +6,13 @@ const {
 
 const {
   startServices, stopServices, wsClient, withJwtMessages, sessionMock,
-  btcnodeOrch: { mainWallet },
-  setSessionMockUser
+  setSessionMockUser,
+  chainsOrch: { getChainOrch }
 } = require('../wallet.orch')
 
 describe('Wallet depositer - general/address', () => {
   const addressColl = collection('addresses')
+  const { mainWallet } = getChainOrch('btc')
 
   const addressMsgs = withJwtMessages('address')
   const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })

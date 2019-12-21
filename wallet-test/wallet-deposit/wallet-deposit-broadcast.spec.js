@@ -8,10 +8,12 @@ const {
 
 const {
   startServices, stopServices, wsClient, withJwtMessages,
-  btcnodeOrch: { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks }
+  chainsOrch: { getChainOrch }
 } = require('../wallet.orch')
 
 describe('Wallet depositer - broadcast', () => {
+  const { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks } = getChainOrch('btc')
+
   const addressMsgs = withJwtMessages('address')
   const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })
 

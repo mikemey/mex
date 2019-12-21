@@ -3,7 +3,7 @@ const { WSClient } = require('../connectors')
 const { wsmessages: { withAction } } = require('../utils')
 
 const { WSServerMock, TestDataSetup: { dbConfig, registeredUser } } = require('../test-tools')
-const btcnodeOrch = require('./chains/btc-node.orch')
+const chainsOrch = require('./chains.orch')
 
 const sessionAuthToken = 'bW9jay1zZXNzaW9uLXRva2VuCg=='
 const walletAuthToken = 'd2FsbGV0LXNlcnZpY2UtdG9rZW4K'
@@ -18,7 +18,7 @@ const walletServiceConfig = {
     timeout: 40
   },
   chains: {
-    btcnode: btcnodeOrch.defaultBtcAdapterConfig
+    btcnode: chainsOrch.getChainOrch('btc').defaultBtcAdapterConfig
   },
   db: dbConfig
 }
@@ -35,12 +35,12 @@ const wsClient = new WSClient(wsClientConfig, 'wallet-test-client')
 
 const startServices = async function () {
   this.timeout(60000)
-  await btcnodeOrch.startNode()
+  await chainsOrch.startNodes()
   await Promise.all([sessionMock.start(), walletService.start()])
 }
 
 const stopServices = () => Promise.all([
-  walletService.stop(), sessionMock.stop(), btcnodeOrch.stopNode()
+  walletService.stop(), sessionMock.stop(), chainsOrch.stopNodes()
 ])
 
 const verifyMessages = withAction('verify')
@@ -65,5 +65,13 @@ const setSessionMockUser = (
 afterEach(() => { sessionMock.errorCheck() })
 
 module.exports = {
-  startServices, stopServices, walletService, wsClient, withJwtMessages, sessionMock, setSessionMockUser, btcnodeOrch, walletServiceConfig
+  startServices,
+  stopServices,
+  walletService,
+  wsClient,
+  withJwtMessages,
+  sessionMock,
+  setSessionMockUser,
+  walletServiceConfig,
+  chainsOrch
 }
