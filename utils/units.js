@@ -8,10 +8,6 @@ const unitDefinitions = Object.keys(assetsMetadata).reduce((units, symbol) => {
 }, {})
 
 unitDefinitions.btc.type = UnitType.create('bitcoin', null, { satoshi: 1, btc: 1e8 }, 'satoshi')
-unitDefinitions.btc.zero = unitDefinitions.btc.type.btc(0)
-console.log(unitDefinitions.btc.zero.toString())
-
-const getUnitType = symbol => unitDefinitions[symbol].type
 
 const plainToString = obj => obj.toString({ unit: false })
 
@@ -31,20 +27,24 @@ const amountObj = (amount, symbol, fractions) => {
 
 const amountFrom = (val, symbol, definitions = unitDefinitions) => {
   const unitDef = definitions[symbol]
-  const amount = unitDef.type[symbol](val)
+  const unit = unitDef.type
+  const amount = unit[symbol](val)
+
   if (plainToString(amount).includes('e')) {
     throw Error(`scientific notation not supported: ${plainToString(amount)}`)
   }
-  const zero = unitDef.type[symbol](0)
-  if (amount.lte(zero)) {
+
+  if (amount.lte(unit.ZERO)) {
     throw Error(`zero or negative value not allowed: ${plainToString(amount)}`)
   }
 
   return amountObj(amount, symbol, unitDef.fractions)
 }
 
-const baseFrom = (val, symbol, definitions = unitDefinitions) => {
-
+const baseAmountFrom = (val, symbol, definitions = unitDefinitions) => {
+  const unitDef = definitions[symbol]
+  const amount = unitDef.type.baseUnit(val)
+  return amountObj(amount, symbol, unitDef.fractions)
 }
 
-module.exports = { getUnitType, amountFrom }
+module.exports = { baseAmountFrom, amountFrom }
