@@ -51,8 +51,8 @@ describe('UserAccount balance', () => {
 
       const depositText = 'Deposit'
       const withdrawText = 'Withdraw'
-      const depositHref = slug => `balance/deposit${slug}`
-      const withdrawHref = slug => `balance/withdraw${slug}`
+      const depositHref = slug => `./balance/deposit${slug}`
+      const withdrawHref = slug => `./balance/withdraw${slug}`
 
       assertActionLinks('btc', depositText, depositHref('/btc'))
       assertActionLinks('btc', withdrawText, withdrawHref('/btc'))
@@ -85,17 +85,15 @@ describe('UserAccount balance', () => {
     it('request address + deposit history from wallet service', async () => {
       const address = 'abccdef'
       const invoices = [
-        createInvoice('inv-id-1', 1, '123', 2),
-        createInvoice('inv-id-2', 2, '345', 3),
-        createInvoice('inv-id-3', 3, '678000000', 4),
+        createInvoice('inv-id-1', 3, '123', 120),
+        createInvoice('inv-id-2', 2, '345', 133),
+        createInvoice('inv-id-3', 0, '678000000', null),
         createInvoice('inv-id-4', 10, '93100000', 5)
       ]
-      const hrInvoiceAmounts = ['0.000123', '0.000345', '678.000000', '93.100000']
 
-      const createExpectInvoiceRow = ({ _id: { invoiceId }, date, amount, blockheight }, ix) => {
-        const hrDate = moment(date).format('LLLL')
-        const hrAmount = hrInvoiceAmounts[ix]
-        const hrBlock = String(blockheight)
+      const createExpectInvoiceRow = ({ _id: { invoiceId }, date, amount, blockheight }, hrAmount) => {
+        const hrDate = moment.utc(date).format('LLLL')
+        const hrBlock = (blockheight && String(blockheight)) || 'unconfirmed'
         return [hrDate, hrAmount, hrBlock, invoiceId]
       }
       const createExpectInvoiceLink = ({ _id: { invoiceId }, blockheight }) => {
@@ -104,8 +102,20 @@ describe('UserAccount balance', () => {
           tx: `https://www.etherchain.org/tx/${invoiceId}`
         }
       }
-      const expectedInvoiceRows = invoices.map(createExpectInvoiceRow)
-      const expectedInvoiceLinks = invoices.map(createExpectInvoiceLink)
+
+      const expectedInvoiceRows = [
+        createExpectInvoiceRow(invoices[2], '678.000000'),
+        createExpectInvoiceRow(invoices[1], '0.000345'),
+        createExpectInvoiceRow(invoices[0], '0.000123'),
+        createExpectInvoiceRow(invoices[3], '93.100000')
+      ]
+
+      const expectedInvoiceLinks = [
+        createExpectInvoiceLink(invoices[2]),
+        createExpectInvoiceLink(invoices[1]),
+        createExpectInvoiceLink(invoices[0]),
+        createExpectInvoiceLink(invoices[3])
+      ]
 
       walletMock.addMockFor(getAddressReq(), getAddressResOk(address))
       walletMock.addMockFor(getInvoicesReq(), getInvoicesResOk(invoices))

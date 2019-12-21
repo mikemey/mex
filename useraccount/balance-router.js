@@ -20,6 +20,8 @@ const Balances = mg.model('balances', BalancesSchema)
 
 const BALANCE_VIEW = 'balance'
 
+const unconfirmedLabel = 'unconfirmed'
+
 const getAssetMetadata = symbol => assetsMetadata[symbol]
 const availableSymbols = Object.keys(assetsMetadata)
 const balanceDefaults = Object.keys(assetsMetadata)
@@ -38,18 +40,24 @@ const blockHrefFrom = (blockheight, symbol) =>
 const invoiceHrefFrom = (invoiceId, symbol) =>
   getAssetMetadata(symbol).links.tx.replace('<<txid>>', invoiceId)
 
-const asHRInvoices = (invoices, symbol) => invoices.map(inv => {
-  return {
-    id: inv._id.invoiceId,
-    href: invoiceHrefFrom(inv._id.invoiceId, symbol),
-    hrdate: moment(inv.date).format('LLLL'),
-    hramount: asHRAmount(inv.amount, symbol),
-    block: {
-      id: inv.blockheight,
-      href: blockHrefFrom(inv.blockheight, symbol)
+const asHRInvoices = (invoices, symbol) => invoices
+  .map(inv => {
+    return {
+      id: inv._id.invoiceId,
+      href: invoiceHrefFrom(inv._id.invoiceId, symbol),
+      hrdate: moment.utc(inv.date).format('LLLL'),
+      hramount: asHRAmount(inv.amount, symbol),
+      block: {
+        id: inv.blockheight || unconfirmedLabel,
+        href: blockHrefFrom(inv.blockheight, symbol)
+      }
     }
-  }
-})
+  })
+  .sort((a, b) => getInvoiceOrdinal(b) - getInvoiceOrdinal(a))
+
+const getInvoiceOrdinal = ({ block: { id } }) => id === unconfirmedLabel
+  ? Number.MAX_VALUE
+  : id
 
 const addressMessages = withAction('address')
 const invoicesMessages = withAction('invoices')

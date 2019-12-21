@@ -10,6 +10,7 @@ const unitDefinitions = supportedAssets.reduce((units, symbol) => {
 }, {})
 
 unitDefinitions.btc.type = UnitType.create('bitcoin', null, { satoshi: 1, btc: 1e8 }, 'satoshi')
+unitDefinitions.eth.type = UnitType.create('ethereum', null, { gwei: 1, eth: 1e9 }, 'gwei')
 
 const check = symbol => {
   if (symbol === null || symbol === undefined) {
