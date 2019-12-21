@@ -2,12 +2,23 @@ const { UnitType } = require('number-unit')
 
 const { assetsMetadata } = require('../metadata')
 
-const unitDefinitions = Object.keys(assetsMetadata).reduce((units, symbol) => {
+const supportedAssets = Object.keys(assetsMetadata)
+
+const unitDefinitions = supportedAssets.reduce((units, symbol) => {
   units[symbol] = { fractions: assetsMetadata[symbol].fractions }
   return units
 }, {})
 
 unitDefinitions.btc.type = UnitType.create('bitcoin', null, { satoshi: 1, btc: 1e8 }, 'satoshi')
+
+const check = symbol => {
+  if (symbol === null || symbol === undefined) {
+    throw new Error('unit conversion requires symbol')
+  }
+  if (!supportedAssets.includes(symbol)) {
+    throw new Error(`unit conversion symbol not supported: ${symbol}`)
+  }
+}
 
 const plainToString = obj => obj.toString({ unit: false })
 
@@ -26,6 +37,7 @@ const amountObj = (amount, symbol, fractions) => {
 }
 
 const amountFrom = (val, symbol, definitions = unitDefinitions) => {
+  check(symbol)
   const unitDef = definitions[symbol]
   const unit = unitDef.type
   const amount = unit[symbol](val)
@@ -42,6 +54,7 @@ const amountFrom = (val, symbol, definitions = unitDefinitions) => {
 }
 
 const baseAmountFrom = (val, symbol, definitions = unitDefinitions) => {
+  check(symbol)
   const unitDef = definitions[symbol]
   const amount = unitDef.type.baseUnit(val)
   return amountObj(amount, symbol, unitDef.fractions)

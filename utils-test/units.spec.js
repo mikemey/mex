@@ -3,7 +3,7 @@ const { UnitType } = require('number-unit')
 const { units: { amountFrom, baseAmountFrom }, dbconnection } = require('../utils')
 const { TestDataSetup: { dropTestDatabase, dbConfig } } = require('../test-tools')
 
-describe('Units conversion', () => {
+describe.only('Units conversion', () => {
   const testUnitsOverride = {
     btc: {
       fractions: 8,
@@ -58,6 +58,22 @@ describe('Units conversion', () => {
 
   it('zero not allowed', () => {
     (() => testAmountFrom('0')).should.throw(Error, 'zero or negative value not allowed: 0')
+  })
+
+  it('amountFrom throws error when no symbol', () => {
+    (() => amountFrom('1')).should.throw(Error, 'unit conversion requires symbol')
+  })
+
+  it('amountFrom throws error for unsupported symbol', () => {
+    (() => amountFrom('1', 'unknown')).should.throw(Error, 'unit conversion symbol not supported: unknown')
+  })
+
+  it('baseAmountFrom throws error when no symbol', () => {
+    (() => baseAmountFrom('1')).should.throw(Error, 'unit conversion requires symbol')
+  })
+
+  it('baseAmountFrom throws error for unsupported symbol', () => {
+    (() => baseAmountFrom('1', 'unknown')).should.throw(Error, 'unit conversion symbol not supported: unknown')
   })
 
   describe('store in db', () => {
