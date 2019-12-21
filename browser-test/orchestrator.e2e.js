@@ -2,7 +2,7 @@ const childProcess = require('child_process')
 
 const SessionService = require('../session')
 const UserAccountService = require('../useraccount')
-const WalletService = require('../wallet')
+// const WalletService = require('../wallet')
 
 const { TestDataSetup: { dbConfig, seedTestData } } = require('../test-tools')
 
@@ -20,7 +20,7 @@ const walletServiceConfig = {
   wsserver: { port: 13044, path: '/wallet', authorizedTokens: ['c291bmQgb2YgZGEgcG9saWNlCg=='] },
   sessionService: createClientConfig(sessionServiceConfig.wsserver),
   chains: {
-    btcnode: btcnodeOrch.defaultBtcAdapterConfig
+    // btcnode: btcnodeOrch.defaultBtcAdapterConfig
   },
   db: dbConfig
 }
@@ -48,21 +48,23 @@ const userAccountProcess = {
   createService: () => new UserAccountService(userAccountServiceConfig)
 }
 
-const walletProcess = {
-  command: 'wallet',
-  logname: ' wallet',
-  process: null,
-  service: null,
-  createService: () => new WalletService(walletServiceConfig)
-}
+// const walletProcess = {
+//   command: 'wallets',
+//   logname: ' wallets',
+//   process: null,
+//   service: null,
+//   createService: () => new WalletService(walletServiceConfig)
+// }
 
-const allProcessDefinitions = [sessionProcess, userAccountProcess, walletProcess]
+const PROCESS_DEFINITIONS = [sessionProcess, userAccountProcess]
+// const PROCESS_DEFINITIONS = [sessionProcess, userAccountProcess, walletProcess]
+
 const serviceLogger = logname => data => data.toString()
   .split(/(\r?\n)/g)
   .filter(line => line.trim().length > 0)
   .forEach(line => { console.log(`[${logname}]`, line) })
 
-const startAll = () => allProcessDefinitions.forEach(processdef => {
+const startAll = () => PROCESS_DEFINITIONS.forEach(processdef => {
   try {
     processdef.process = childProcess.spawn(
       'node', ['orchestrator.e2e.js', processdef.command],
@@ -86,7 +88,7 @@ const startService = processdef => {
   }
 }
 
-const stopAll = () => allProcessDefinitions.forEach(async processdef => {
+const stopAll = () => PROCESS_DEFINITIONS.forEach(async processdef => {
   try {
     if (processdef.service) {
       console.log('stopping service', processdef.logname)
@@ -117,7 +119,7 @@ process.on('SIGINT', stopAll);
     return seedTestData()
   }
 
-  const processdef = allProcessDefinitions.find(def => def.command.toLowerCase() === command)
+  const processdef = PROCESS_DEFINITIONS.find(def => def.command.toLowerCase() === command)
   if (processdef) {
     startService(processdef)
   } else {

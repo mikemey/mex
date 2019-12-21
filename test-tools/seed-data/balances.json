@@ -1,0 +1,17 @@
+[
+  {
+    "_id": {
+      "$oid": "5de363fbd0f61042035dc603"
+    },
+    "assets": [
+      {
+        "symbol": "btc",
+        "amount": "123400000"
+      },
+      {
+        "symbol": "eth",
+        "amount": "12"
+      }
+    ]
+  }
+]
