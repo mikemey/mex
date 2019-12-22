@@ -7,7 +7,8 @@ const { assetsMetadata } = require('../metadata')
 const chains = require('./chains')
 const Deposits = require('./wallet-deposit')
 
-const DEPOSITS_TOPIC = 'deposits'
+const INVCOICES_TOPIC = 'invoices'
+const BLOCKS_TOPIC = 'blocks'
 
 const configSchema = Joi.object({
   chains: Joi.object().required(),
@@ -32,7 +33,7 @@ class WalletService extends WSSecureServer {
     this.dbConfig = config.db
     this.chainsConfig = config.chains
 
-    this.offerTopics(DEPOSITS_TOPIC)
+    this.offerTopics(INVCOICES_TOPIC, BLOCKS_TOPIC)
   }
 
   start () {
@@ -40,7 +41,10 @@ class WalletService extends WSSecureServer {
       dbconnection.connect(this.dbConfig),
       super.start(),
       chains.createAll(this.chainsConfig),
-      Deposits.startListening(deposits => this.broadcast(DEPOSITS_TOPIC, deposits))
+      Deposits.startListening({
+        invoices: event => this.broadcast(INVCOICES_TOPIC, event),
+        blocks: event => this.broadcast(BLOCKS_TOPIC, event)
+      })
     ])
   }
 

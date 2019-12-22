@@ -17,6 +17,9 @@ describe('Wallet depositer - broadcast', () => {
   const addressMsgs = withJwtMessages('address')
   const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })
 
+  const INVOICE_TOPIC = 'invoices'
+  const BLOCKS_TOPIC = 'blocks'
+
   before(startServices)
   after(stopServices)
 
@@ -24,6 +27,7 @@ describe('Wallet depositer - broadcast', () => {
     await dropTestDatabase()
     await generateBlocks(1)
   })
+  afterEach(() => wsClient.unsubscribe(INVOICE_TOPIC, BLOCKS_TOPIC))
 
   const createInvoice = (amount, blockheight = null) => {
     return {
@@ -50,8 +54,8 @@ describe('Wallet depositer - broadcast', () => {
       }
 
       let expectConfirmedTxs = false
-      const subscribeRes = await wsClient.subscribe('deposits', (topic, message) => {
-        topic.should.equal('deposits')
+      const subscribeRes = await wsClient.subscribe(INVOICE_TOPIC, (topic, message) => {
+        topic.should.equal(INVOICE_TOPIC)
         if (expectConfirmedTxs) {
           checkDateAndRemove(expectedConfirmedResponse, message)
           message.should.deep.equal(expectedConfirmedResponse)
@@ -87,8 +91,8 @@ describe('Wallet depositer - broadcast', () => {
       const confirmedTx2 = createInvoice(amount2, nextBlockHeight)
 
       let callbackCount = 0
-      await wsClient.subscribe('deposits', (topic, message) => {
-        topic.should.equal('deposits')
+      await wsClient.subscribe(INVOICE_TOPIC, (topic, message) => {
+        topic.should.equal(INVOICE_TOPIC)
         callbackCount += 1
         const isFirstTxFirst = message.invoices[0]._id.invoiceId === confirmedTx1._id.invoiceId
 
@@ -145,4 +149,20 @@ describe('Wallet depositer - broadcast', () => {
     const addr = await receiver.getNewAddress()
     await sender.sendToAddress(addr, btcs)
   }))
+
+  it('broadcasts new blocks', done => {
+    (async () => {
+      const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
+      const subscribeRes = await wsClient.subscribe(BLOCKS_TOPIC, (topic, message) => {
+        topic.should.equal(BLOCKS_TOPIC)
+        message.should.deep.equal({ symbol: 'btc', blockheight: currentBlockHeight + 1 })
+        done()
+      })
+      subscribeRes.status.should.equal(OK_STATUS)
+
+      const userAddressRes = await wsClient.send(regUserAddressReq())
+      await faucetWallet.sendToAddress(userAddressRes.address, '3.2')
+      await generateBlocks(1)
+    })().catch(done)
+  })
 })

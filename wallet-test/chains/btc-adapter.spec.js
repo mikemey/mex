@@ -27,13 +27,14 @@ describe('Btc adapter', () => {
       return generateBlocks(1)
     })
 
-    const expectReceivedInvoices = (blockheight, expectCount, expectInvoices, done) => invoiceRes =>
-      new Promise((resolve, reject) => {
+    const expectReceivedInvoices = (blockheight, expectCount, expectInvoices, done) => invoiceRes => {
+      if (invoiceRes.type === 'invoices') {
         invoiceRes.blockheight.should.equal(blockheight)
         invoiceRes.invoices.should.have.length(expectCount)
         expectInvoices.forEach(invoice => invoiceRes.invoices.should.deep.include(invoice))
-        resolve()
-      }).then(done).catch(done)
+        done()
+      }
+    }
 
     it('get new address', async () => {
       btcAdapter.startListener()

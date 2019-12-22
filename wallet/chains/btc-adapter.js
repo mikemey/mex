@@ -68,12 +68,14 @@ const create = config => {
         return
       }
       logger.debug('new tx:', tx.txid)
-      callbackWith(extractInvoices(tx))
+      sendInvoiceUpdate(extractInvoices(tx))
     }
 
     const processBlock = async blockhash => {
       const block = await wallet.getBlockByHash(blockhash)
+      sendBlockUpdate(block.height)
       data.currentBlockHeight = block.height
+
       const blockInvoices = block.tx
         .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
         .map(invcoice => {
@@ -81,7 +83,7 @@ const create = config => {
           return invcoice
         })
       logger.info('new block height:', data.currentBlockHeight, 'hash:', blockhash, '# txs:', blockInvoices.length)
-      callbackWith(blockInvoices)
+      sendInvoiceUpdate(blockInvoices)
     }
 
     const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
@@ -93,8 +95,12 @@ const create = config => {
       return invoices
     }, [])
 
-    const callbackWith = invoices => invoicesCallback && invoicesCallback({
-      blockheight: data.currentBlockHeight, invoices
+    const sendInvoiceUpdate = invoices => invoicesCallback && invoicesCallback({
+      type: 'invoices', blockheight: data.currentBlockHeight, invoices
+    })
+
+    const sendBlockUpdate = blockheight => invoicesCallback && invoicesCallback({
+      type: 'block', symbol, blockheight
     })
 
     return listenToZMQ()

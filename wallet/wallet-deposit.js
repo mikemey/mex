@@ -20,7 +20,7 @@ const logger = Logger('deposits')
 const dbAddressId = (userId, symbol) => { return { userId: ObjectId(userId), symbol } }
 
 const getAddress = async request => {
-  logger.debug('receivet getAddress request:', request)
+  logger.debug('received getAddress request:', request)
   const { user: { id }, symbol } = request
   const userAddress = await findUserAddresses(id, symbol) || await createUserAddress(id, symbol)
   logger.info('respond with address:', userAddress.address)
@@ -49,30 +49,37 @@ const getInvoices = async request => {
 const startListening = listenerCallback => {
   logger.info('start listening to chains')
   startAllListener(async event => {
-    logger.debug('new invoices event, received:', event.invoices.length)
-
-    const $orClause = event.invoices.map(invoice => { return { address: invoice.address } })
-    const userAddresses = await addressesColl.find({ $or: $orClause }).toArray()
-    logger.debug('relevant addresses:', userAddresses.length)
-
-    const invOps = invoicesColl.initializeOrderedBulkOp()
-
-    const invoices = userAddresses.reduce((allInvoices, userAddress) => {
-      const eventInvoices = event.invoices.filter(inv => inv.address === userAddress.address)
-      const dbInvoices = eventInvoices.map(invoice => addBulkOperation(invOps, invoice, userAddress))
-      allInvoices.push(...dbInvoices)
-      return allInvoices
-    }, [])
-
-    if (invoices.length > 0) {
-      logger.debug('storing invcoices:', invoices.length)
-      const result = await invOps.execute()
-      logger.info('stored invoices event, created:', result.nInserted, 'updated:', result.nModified)
-      listenerCallback({ blockheight: event.blockheight, invoices })
-    } else {
-      logger.debug('no relevant invoices in event')
+    switch (event.type) {
+      case 'invoices': return processInvoices(listenerCallback.invoices, event)
+      case 'block': return processBlock(listenerCallback.blocks, event)
+      default:
     }
   })
+}
+
+const processInvoices = async (invoicesCallback, event) => {
+  logger.debug('new invoices event, received:', event.invoices.length)
+  const $orClause = event.invoices.map(invoice => { return { address: invoice.address } })
+  const userAddresses = await addressesColl.find({ $or: $orClause }).toArray()
+  logger.debug('relevant addresses:', userAddresses.length)
+
+  const invOps = invoicesColl.initializeOrderedBulkOp()
+
+  const invoices = userAddresses.reduce((allInvoices, userAddress) => {
+    const eventInvoices = event.invoices.filter(inv => inv.address === userAddress.address)
+    const dbInvoices = eventInvoices.map(invoice => addBulkOperation(invOps, invoice, userAddress))
+    allInvoices.push(...dbInvoices)
+    return allInvoices
+  }, [])
+
+  if (invoices.length > 0) {
+    logger.debug('storing invcoices:', invoices.length)
+    const result = await invOps.execute()
+    logger.info('stored invoices event, created:', result.nInserted, 'updated:', result.nModified)
+    invoicesCallback({ blockheight: event.blockheight, invoices })
+  } else {
+    logger.debug('no relevant invoices in event')
+  }
 }
 
 const addBulkOperation = (bulkops, invoice, userAddress) => {
@@ -94,6 +101,11 @@ const addBulkOperation = (bulkops, invoice, userAddress) => {
     bulkops.insert(dbInvcoice)
   }
   return dbInvcoice
+}
+
+const processBlock = (blockCallback, event) => {
+  const { symbol, blockheight } = event
+  return blockCallback({ symbol, blockheight })
 }
 
 module.exports = { ADDRESS_ACT, INVOICES_ACT, getAddress, getInvoices, startListening }
