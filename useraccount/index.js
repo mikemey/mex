@@ -26,6 +26,7 @@ class UserAccountService extends HttpServer {
     super(httpserverConfig)
 
     this.dbConfig = config.db
+    this.basepath = config.httpserver.path
     this.sessionClient = new WSClient(config.sessionService, 'UserAccount SessionClient')
     this.walletClient = new WSClient(config.walletService, 'UserAccount WalletClient')
 
@@ -48,10 +49,13 @@ class UserAccountService extends HttpServer {
     app.use(bodyParser.urlencoded({ extended: true }))
     app.set('views', path.join(__dirname, '/views'))
     app.set('view engine', 'pug')
+
+    app.locals.basedir = path.join(__dirname, '/public')
+    app.locals.basepath = this.basepath
   }
 
   addRoutes (router) {
-    router.get('/index', (_, res) => res.render('index', { email: 'hello you' }))
+    router.get('/index', (req, res) => res.render('index', { email: req.user.email }))
     router.use('/', this.accessRouter.createRoutes())
     router.use('/', this.balanceRouter.createRoutes())
   }

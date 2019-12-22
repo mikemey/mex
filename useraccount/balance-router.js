@@ -61,9 +61,9 @@ const getInvoiceOrdinal = ({ block: { id } }) => id === unconfirmedLabel
 const addressMessages = withAction('address')
 const invoicesMessages = withAction('invoices')
 
-const depositPath = slug => `./balance/deposit/${slug}`
-const withdrawPath = slug => `./balance/withdraw/${slug}`
-const depositRoot = path => depositPath(path).substring(1)
+const depositPath = slug => `balance/deposit/${slug}`
+const withdrawPath = slug => `balance/withdraw/${slug}`
+const depositRoot = path => '/' + depositPath(path)
 
 class BalanceRouter {
   constructor (walletClient) {

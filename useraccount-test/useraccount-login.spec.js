@@ -45,7 +45,7 @@ describe('UserAccount login', () => {
     const beLoginResponseOk = loginAction.ok({ jwt: dummyJwt })
     const beLoginResponseNok = message => loginAction.nok(message)
     const beResponseError = message => wsmessages.error(message)
-    const beVerifyResponseOk = verifyAction.ok()
+    const beVerifyResponseOk = verifyAction.ok({ user: { email: 'test@test.com' } })
     const beVerifyResponseNok = verifyAction.nok()
     const beVerifyResponseError = message => wsmessages.error(message)
 

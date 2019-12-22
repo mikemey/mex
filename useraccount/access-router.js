@@ -38,17 +38,19 @@ const hash = data => crypto.createHash('sha256').update(data).digest('hex')
 class AccessRouter {
   constructor (sessionClient, httpConfig) {
     this.sessionClient = sessionClient
-    this.pathPrefix = httpConfig.path
-
     this.logger = Logger(this.constructor.name)
-    this.loginPath = `${this.pathPrefix}/${LOGIN}`
-    this.registerPath = `${this.pathPrefix}/${REGISTER}`
-    this.unavailablePath = `${this.pathPrefix}/${SERVICE_UNAVAILABLE}`
-    this.homePath = `${this.pathPrefix}/index`
+
+    this.homePath = `${httpConfig.path}/index`
+    this.loginPath = `${httpConfig.path}/${LOGIN}`
+    this.unprotectedPaths = [
+      this.loginPath,
+      `${httpConfig.path}/${REGISTER}`,
+      `${httpConfig.path}/${SERVICE_UNAVAILABLE}`,
+      `${httpConfig.path}/version`
+    ]
   }
 
   createAuthenticationCheck () {
-    const unprotectedPaths = [this.loginPath, this.registerPath, this.unavailablePath, `${this.pathPrefix}/version`]
     const verifyMessages = withAction('verify')
 
     const redirectToLogin = (res, flag = 'auth') => {
@@ -57,8 +59,7 @@ class AccessRouter {
     }
 
     return (req, res, next) => {
-      res.locals.pathPrefix = this.pathPrefix
-      if (unprotectedPaths.includes(req.path)) { return next() }
+      if (this.unprotectedPaths.includes(req.path)) { return next() }
       if (req.session && req.session.jwt) {
         return this.sessionClient.send(verifyMessages.build({ jwt: req.session.jwt }))
           .then(result => {

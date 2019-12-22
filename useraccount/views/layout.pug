@@ -3,22 +3,23 @@ doctype html
 html(lang="en")
   head
     meta(charset="UTF-8")
-    title mex #{ page_title || "" }
+    title=`mex ${page_title}`
+    block styles
   body
     #header
       if user
         ul
           li
-            a(href=`${pathPrefix}/index`) Home
+            a(href=`${basepath}/index`) Home
           li
-            a(href=`${pathPrefix}/balance`) Balances
+            a(href=`${basepath}/balance`) Balances
           li #{user.email}
       else
         ul
           li
-            a(href=`${pathPrefix}/login`) Login
+            a(href=`${basepath}/login`) Login
           li
-            a(href=`${pathPrefix}/register`) Register
+            a(href=`${basepath}/register`) Register
 
     block content
     block foot

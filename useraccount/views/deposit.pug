@@ -1,4 +1,9 @@
 extends layout.pug
+
+block styles
+  style
+    include /deposit.css
+
 block variables
   - var page_title = `${symbol} deposits`
 
@@ -7,7 +12,7 @@ block content
   div= `${symbol.toUpperCase()} deposit address: `
     span(data-address=symbol)= address
 
-  table(style="border: 1px solid black;")
+  table
     thead
       tr
         th Date
@@ -21,8 +26,8 @@ block content
           td #{invoice.hramount}
           if invoice.block.href
             td
-              a(href=invoice.block.href)= invoice.block.id
+              a(href=invoice.block.href target='_blank')= invoice.block.id
           else
             td #{invoice.block.id}
           td
-            a(href=invoice.href)= invoice.id
+            a(href=invoice.href target='_blank')= invoice.id
