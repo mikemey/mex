@@ -145,7 +145,7 @@ process.on('SIGINT', stopAll);
     startAll()
     return seedTestData()
   }
-  if (command === 'start') {
+  if (command === 'stop') {
     return stopAll()
   }
 
