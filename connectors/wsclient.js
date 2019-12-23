@@ -51,6 +51,7 @@ class WSClient {
 
   _reset (callback = () => { }) {
     this.logger.debug('resetting state')
+    this._clearListeners(true)
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
     this.messageHandler = {}
@@ -215,13 +216,16 @@ class WSClient {
     return { cancel }
   }
 
-  _clearListeners () {
+  _clearListeners (all = false) {
     if (this.ws != null) {
       this.ws.removeAllListeners('open')
       this.ws.removeAllListeners('close')
       this.ws.removeAllListeners('error')
       this.ws.removeAllListeners('unexpected-response')
       this.ws.removeAllListeners('close')
+      if (all) {
+        this.ws.removeAllListeners('message')
+      }
     }
   }
 }
