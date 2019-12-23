@@ -37,6 +37,14 @@ const unsubscribeOK = wsmessages.withAction(UNSUBSCRIBE_ACT).ok()
 
 const isInvalid = topic => topic.includes('{')
 
+const removeSocketFromList = (socketList, ws) => {
+  const csIndex = socketList.findIndex(c => c.ws === ws)
+  if (csIndex >= 0) {
+    return socketList.splice(csIndex, 1)[0]
+  }
+  return false
+}
+
 class WSServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
@@ -61,11 +69,14 @@ class WSServer {
   }
 
   _removeClientSocket (ws, quietly = false) {
-    const csIndex = this.clientSockets.findIndex(c => c.ws === ws)
-    if (csIndex >= 0) {
-      return this.clientSockets.splice(csIndex, 1)[0]
+    for (const topic in this.topicSubscriptions) {
+      removeSocketFromList(this.topicSubscriptions[topic], ws)
     }
-    if (!quietly && csIndex < 0) { throw new Error('ws not found!') }
+    const removedClientSocket = removeSocketFromList(this.clientSockets, ws)
+    if (removedClientSocket) {
+      return removedClientSocket
+    }
+    if (!quietly) { throw new Error('ws not found!') }
   }
 
   start () {
@@ -173,38 +184,48 @@ class WSServer {
     if (!subscriber) {
       return Promise.reject(Error(`invalid topic [${topic}]`))
     }
+    if (subscriber.length === 0) {
+      return Promise.resolve()
+    }
     this.logger.debug('broadcasting:', `<${topic}>`, message, ', clients:', subscriber.length)
     const broadcastmsg = wsmessages.createBroadcastMessage(topic, message)
-    const messageToClient = clientSocket => Promise.resolve(clientSocket.send(broadcastmsg))
-    return Promise.all(subscriber.map(messageToClient))
+    return Promise.all(subscriber.map(clientSocket => clientSocket.send(broadcastmsg)))
   }
 
   _internalReceived (clientSocket, request) {
     if (request.action === SUBSCRIBE_ACT) {
-      const subscriber = this.topicSubscriptions.get(request.topic)
-      if (!subscriber) {
-        clientSocket.logger.error('topic not available:', request.topic)
-        return Promise.resolve(topicSubscriptionNOK)
-      }
-      const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
-      if (clientIx < 0) {
-        subscriber.push(clientSocket)
-        clientSocket.logger.info('topic:', request.topic, ', subscriptions:', subscriber.length)
-      }
-      return Promise.resolve(topicSubscriptionOK)
+      return Promise.resolve(this.subscribeEvent(clientSocket, request))
     }
     if (request.action === UNSUBSCRIBE_ACT) {
-      const subscriber = this.topicSubscriptions.get(request.topic)
-      if (subscriber) {
-        const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
-        if (clientIx >= 0) {
-          subscriber.splice(clientIx, 1)
-          clientSocket.logger.info('topic:', request.topic, ', subscriptions:', subscriber.length)
-        }
-      }
-      return Promise.resolve(unsubscribeOK)
+      return Promise.resolve(this.unsubscribeEvent(clientSocket, request))
     }
     return this.received(request)
+  }
+
+  subscribeEvent (clientSocket, request) {
+    const subscriber = this.topicSubscriptions.get(request.topic)
+    if (!subscriber) {
+      clientSocket.logger.error('topic not available:', request.topic)
+      return Promise.resolve(topicSubscriptionNOK)
+    }
+    const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
+    if (clientIx < 0) {
+      subscriber.push(clientSocket)
+      clientSocket.logger.info('topic:', request.topic, ', subscriptions:', subscriber.length)
+    }
+    return topicSubscriptionOK
+  }
+
+  unsubscribeEvent (clientSocket, request) {
+    const subscriber = this.topicSubscriptions.get(request.topic)
+    if (subscriber) {
+      const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
+      if (clientIx >= 0) {
+        subscriber.splice(clientIx, 1)
+        clientSocket.logger.info('topic:', request.topic, ', subscriptions:', subscriber.length)
+      }
+    }
+    return unsubscribeOK
   }
 
   received (request) { return Promise.resolve(request) }

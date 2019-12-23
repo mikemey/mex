@@ -1,5 +1,9 @@
 const { WSServer, WSClient } = require('../connectors')
 
+const { promisify } = require('util')
+
+const pause = promisify(setTimeout)
+
 describe('Real WSServer + WSClient', () => {
   const port = 12201
   const path = '/wsserverclient'
@@ -23,8 +27,6 @@ describe('Real WSServer + WSClient', () => {
     serverReceived.push(request)
     return Promise.resolve(request)
   }
-
-  const pause = ms => new Promise((resolve, reject) => setTimeout(resolve, ms))
 
   before(() => wsserver.start())
   beforeEach(() => { serverReceived = [] })
@@ -122,6 +124,22 @@ describe('Real WSServer + WSClient', () => {
       received.topic2.count.should.equal(2)
     })
 
+    it('ignores closed clients', async () => {
+      const topic1 = 't1'
+      const received = { client1: { count: 0 }, client2: { count: 0 } }
+
+      wsserver.offerTopics(topic1)
+      await wsclient.subscribe(topic1, _ => {
+        received.client1.count = received.client1.count + 1
+        return wsclient.stop()
+      })
+      await wsserver.broadcast(topic1, { m: 1 })
+      await wsserver.broadcast(topic1, { m: 1 })
+      await pause(15)
+
+      received.client1.count.should.equal(1)
+    })
+
     it('allows broadcast without subscriptions', async () => {
       wsserver.offerTopics('t1')
       await wsserver.broadcast('t1', { what: 'ever' })
@@ -129,7 +147,7 @@ describe('Real WSServer + WSClient', () => {
 
     it('reject invalid subscriptions', async () => {
       wsserver.offerTopics('t1')
-      const subscribeRes = await wsclient.subscribe('xx', (topic, message) => { })
+      const subscribeRes = await wsclient.subscribe('xx', _ => { })
       subscribeRes.should.deep.equal({ action: 'subscribe', status: 'nok' })
     })
 
