@@ -68,15 +68,14 @@ class WSServer {
     return cs
   }
 
-  _removeClientSocket (ws, quietly = false) {
+  _removeClientSocket (ws) {
     for (const topic in this.topicSubscriptions) {
       removeSocketFromList(this.topicSubscriptions[topic], ws)
     }
     const removedClientSocket = removeSocketFromList(this.clientSockets, ws)
     if (removedClientSocket) {
-      return removedClientSocket
+      removedClientSocket.logger.debug('client socket closed.')
     }
-    if (!quietly) { throw new Error('ws not found!') }
   }
 
   start () {
@@ -93,11 +92,8 @@ class WSServer {
           clientSocket.logger.info('client authorized successful')
         },
         message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
-        drain: (ws) => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
-        close: (ws, code) => {
-          const clientSocket = this._removeClientSocket(ws)
-          clientSocket.logger.debug('socket closed:', code)
-        }
+        drain: ws => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
+        close: ws => this._removeClientSocket(ws)
       }).listen(this.config.port, socket => {
         if (socket) {
           this.logger.info('listening on port', this.config.port)

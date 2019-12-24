@@ -186,10 +186,10 @@ class WSClient {
   }
 
   stop () {
-    return new Promise((resolve, reject) => this._stopSync(resolve, reject))
+    return new Promise((resolve) => this._stopSync(resolve))
   }
 
-  _stopSync (resolve = () => { }, reject = () => { }) {
+  _stopSync (resolve = () => { }) {
     this.logger.debug('closing connection...')
     if (this.ws === null) return resolve()
     try {
@@ -197,7 +197,6 @@ class WSClient {
       this.logger.info('stopped')
     } catch (err) {
       this.logger.error('error stopping:', err.message)
-      reject(err)
     }
     this._reset(resolve)
   }
