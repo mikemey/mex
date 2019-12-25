@@ -19,14 +19,15 @@ const httpserverConfig = {
 }
 
 const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
-  return { url: `ws://localhost:${port}${path}`, authToken, timeout: 40 }
+  return { url: `ws://localhost:${port}${path}`, authToken, timeout: 40, pingInterval: 20000 }
 }
 
 const userAccountService = new UserAccountService({
   httpserver: httpserverConfig,
   sessionService: createClientConfig(sessionMockConfig),
   walletService: createClientConfig(walletMockConfig),
-  db: dbConfig
+  db: dbConfig,
+  clientTimeout: 1000
 })
 
 const sessionMock = new WSServerMock(sessionMockConfig, 'uac session-mock')

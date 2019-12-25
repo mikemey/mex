@@ -108,7 +108,8 @@ describe('UserAccountService', () => {
       { title: 'missing httpserver configuration', changeConfig: cfg => delete cfg.httpserver, error: '"httpserver" is required' },
       { title: 'missing sessionService configuration', changeConfig: cfg => delete cfg.sessionService, error: '"sessionService" is required' },
       { title: 'missing walletService configuration', changeConfig: cfg => delete cfg.walletService, error: '"walletService" is required' },
-      { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' }
+      { title: 'missing db configuration', changeConfig: cfg => delete cfg.db, error: '"db" is required' },
+      { title: 'missing clientTimeout configuration', changeConfig: cfg => delete cfg.clientTimeout, error: '"clientTimeout" is required' }
     ]
 
     testParameters.forEach(params => {
@@ -117,7 +118,8 @@ describe('UserAccountService', () => {
           httpserver: { does: 'not-matter' },
           sessionService: { does: 'not-matter' },
           walletService: { does: 'not-matter' },
-          db: { does: 'not-matter' }
+          db: { does: 'not-matter' },
+          clientTimeout: 10
         }
         params.changeConfig(config)
         assertConfigError(config, params.error)

@@ -10,7 +10,8 @@ describe('Websocket client', () => {
   const path = 'testwsclient'
   const authToken = '12345678901234567890'
   const timeout = 250
-  const defTestConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout }
+  const pingInterval = 60000
+  const defTestConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout, pingInterval }
   const defaultClient = (config = defTestConfig) => new WSClient(Object.assign({}, config), 'ws-test-client')
 
   describe('configuration checks', () => {
@@ -42,6 +43,8 @@ describe('Websocket client', () => {
     it('timeout minimum', () => withKey({ timeout: 19 }, '"timeout" must be larger than or equal to 20'))
     it('timeout maximum', () => withKey({ timeout: 60001 }, '"timeout" must be less than or equal to 60000'))
     it('timeout not a number', () => withKey({ timeout: '123x' }, '"timeout" must be a number'))
+    it('pingInterval required', () => deleteKey('pingInterval', '"pingInterval" is required'))
+    it('pingInterval not a number', () => withKey({ pingInterval: '123x' }, '"pingInterval" must be a number'))
   })
 
   describe('connection to server', () => {
@@ -73,7 +76,7 @@ describe('Websocket client', () => {
     }
 
     it('wrong URL throws Error when sending', () => expectDisconnected(
-      defaultClient({ url: `ws://localhost:${port + 1}/${path}`, authToken, timeout })
+      defaultClient({ url: `ws://localhost:${port + 1}/${path}`, authToken, timeout, pingInterval })
     ))
 
     it('uses configured authorization key', () => wsclient.send(message(0))
@@ -117,25 +120,33 @@ describe('Websocket client', () => {
         .then(canSendMessages)
     })
 
-    it('multiple clients can connect/reconnect', () => {
+    describe('multiple clients', () => {
       const client2 = defaultClient()
       const client3 = defaultClient()
-      const checkAndSend = (client, num) => (response) => {
-        response.should.deep.equal(mockServer.defaultResponse)
-        return client.send(message(num))
-      }
-      const client1Send = checkAndSend(wsclient, 1)
-      const client2Send = checkAndSend(client2, 2)
-      const client3Send = checkAndSend(client3, 3)
-      return wsclient.send(message(1)).then(client3Send)
-        .then(() => wsclient.stop())
-        .then(() => client2.send(message(2))).then(client2Send).then(client1Send)
-        .then(response => {
+
+      afterEach(async () => {
+        await client2.stop()
+        await client3.stop()
+      })
+
+      it('can connect/reconnect', () => {
+        const checkAndSend = (client, num) => (response) => {
           response.should.deep.equal(mockServer.defaultResponse)
-          mockServer.received.messages.should.deep.equal(
-            [message(1), message(3), message(2), message(2), message(1)]
-          )
-        })
+          return client.send(message(num))
+        }
+        const client1Send = checkAndSend(wsclient, 1)
+        const client2Send = checkAndSend(client2, 2)
+        const client3Send = checkAndSend(client3, 3)
+        return wsclient.send(message(1)).then(client3Send)
+          .then(() => wsclient.stop())
+          .then(() => client2.send(message(2))).then(client2Send).then(client1Send)
+          .then(response => {
+            response.should.deep.equal(mockServer.defaultResponse)
+            mockServer.received.messages.should.deep.equal(
+              [message(1), message(3), message(2), message(2), message(1)]
+            )
+          })
+      })
     })
 
     const checkForTimeout = client => expectSocketClosed(client).then(() => {

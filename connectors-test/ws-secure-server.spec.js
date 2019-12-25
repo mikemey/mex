@@ -15,14 +15,16 @@ describe('WSSecureServer', () => {
     sessionService: {
       url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
       authToken: sessionMockToken,
-      timeout: 200
+      timeout: 200,
+      pingInterval: 10000
     }
   }
 
   const userClientConfig = {
     url: `ws://localhost:${wsSecureServerConfig.wsserver.port}${wsSecureServerConfig.wsserver.path}`,
     authToken: wsSecureServerToken,
-    timeout: 200
+    timeout: 200,
+    pingInterval: 10000
   }
 
   const secureServerResponse = { action: 'testing-response' }
@@ -56,7 +58,7 @@ describe('WSSecureServer', () => {
   const verifyMessages = withAction('verify')
   const verifyRequest = verifyMessages.build({ jwt: testJwt })
 
-  afterEach(() => sessionServiceMock.errorCheck())
+  afterEach(() => userClient.stop().then(sessionServiceMock.errorCheck()))
 
   describe('session service running', () => {
     before(() => Promise.all([securedServer.start(), sessionServiceMock.start()]))

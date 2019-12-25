@@ -16,11 +16,18 @@ const ClientSocket = (ws, logger) => {
       return false
     }
   }
+
   const end = () => {
-    try { return ws.end() } catch (err) { /* ignore closed socket error */ }
+    try { return ws.end() } catch (err) {
+      logger.error('error while closing:', err.message)
+    }
   }
+
   const getBufferedAmount = () => {
-    try { return ws.getBufferedAmount() } catch (err) { return 0 }
+    try { return ws.getBufferedAmount() } catch (err) {
+      logger.error('error getting buffered amount:', err.message)
+      return 0
+    }
   }
 
   return { ws, logger, send, end, getBufferedAmount }
@@ -185,7 +192,10 @@ class WSServer {
     }
     this.logger.debug('broadcasting:', `<${topic}>`, message, ', clients:', subscriber.length)
     const broadcastmsg = wsmessages.createBroadcastMessage(topic, message)
-    return Promise.all(subscriber.map(clientSocket => clientSocket.send(broadcastmsg)))
+    return Promise.all(subscriber.map(clientSocket => {
+      const sendResultOk = clientSocket.send(broadcastmsg)
+      if (!sendResultOk) { this._sendingError(clientSocket, 'broadcast result NOK') }
+    }))
   }
 
   _internalReceived (clientSocket, request) {

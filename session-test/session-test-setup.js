@@ -19,7 +19,7 @@ const testConfig = {
   db: dbConfig
 }
 const sessionService = new SessionService(testConfig)
-const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500 }, 'session-test-client')
+const wsClient = new WSClient({ url, authToken: testToken, timeout: 1500, pingInterval: 100000 }, 'session-test-client')
 
 const startService = () => {
   seedTestData()

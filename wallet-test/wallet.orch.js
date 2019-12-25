@@ -15,7 +15,8 @@ const walletServiceConfig = {
   sessionService: {
     url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
     authToken: sessionAuthToken,
-    timeout: 40
+    timeout: 40,
+    pingInterval: 10000
   },
   chains: {
     btcnode: chainsOrch.getChainOrch('btc').defaultBtcAdapterConfig
@@ -26,7 +27,8 @@ const walletServiceConfig = {
 const wsClientConfig = {
   url: `ws://localhost:${wsserverConfig.port}${wsserverConfig.path}`,
   authToken: walletAuthToken,
-  timeout: 500
+  timeout: 500,
+  pingInterval: 10000
 }
 
 const walletService = new WalletService(walletServiceConfig)

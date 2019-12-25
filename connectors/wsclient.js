@@ -6,7 +6,8 @@ const { Logger, Validator, wsmessages } = require('../utils')
 const configSchema = Joi.object({
   url: Joi.string().uri().required(),
   authToken: Validator.secretToken('authToken'),
-  timeout: Joi.number().min(20).max(60000).required()
+  timeout: Joi.number().min(20).max(60000).required(),
+  pingInterval: Joi.number().min(20).max(100000).required()
 })
 
 const WS_WAIT_RETRIES = 5
@@ -20,7 +21,7 @@ const Waiter = (ws, reject) => {
     }
     retries--
     if (retries > 0) {
-      setTimeout(() => checkStatus(desiredState, resolve), 5)
+      setTimeout(() => checkStatus(desiredState, resolve), 10)
     } else {
       reject(Error(`waiting for socket state ${desiredState} exceeded retries (max: ${WS_WAIT_RETRIES})`))
     }
@@ -51,6 +52,7 @@ class WSClient {
 
   _reset (callback = () => { }) {
     this.logger.debug('resetting state')
+    clearInterval(this.wsping)
     this._clearListeners(true)
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
@@ -76,6 +78,8 @@ class WSClient {
     this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
     this.ws.prependOnceListener('open', () => {
       connectTimeout.cancel()
+      clearInterval(this.wsping)
+      this.wsping = setInterval(() => this.ws.ping(), this.wsconfig.pingInterval)
       saveEnding(resolve, 'connection established')
     })
 
@@ -209,7 +213,7 @@ class WSClient {
     }, this.wsconfig.timeout)
 
     const cancel = () => {
-      this.logger.debug('cancel time:', message)
+      this.logger.debug('cancel timeout:', message)
       clearTimeout(timeout)
     }
     return { cancel }
