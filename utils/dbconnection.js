@@ -2,7 +2,6 @@ const mg = require('mongoose')
 require('mongoose-long')(mg)
 
 const ObjectId = mg.Types.ObjectId
-const Long = require('mongodb').Long
 
 const logger = require('./logger').Logger('dbconnection')
 
@@ -29,4 +28,4 @@ const close = () => connectionEstablished
 
 const collection = name => mg.connection.collection(name)
 
-module.exports = { isConnected, connect, close, collection, ObjectId, Long, mg }
+module.exports = { isConnected, connect, close, collection, ObjectId }
