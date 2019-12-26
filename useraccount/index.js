@@ -50,7 +50,6 @@ class UserAccountService extends HttpServer {
   stop () {
     return Promise.all([
       this.balanceRouter.stop(),
-      this.balanceService.stop(),
       this.sessionClient.stop(),
       this.walletClient.stop(),
       super.stop(),
