@@ -32,6 +32,7 @@ const userAccountService = new UserAccountService({
 
 const sessionMock = new WSServerMock(sessionMockConfig, 'uac session-mock')
 const walletMock = new WSServerMock(walletMockConfig, 'uac wallet-mock')
+walletMock.offerTopics('invoices', 'blocks')
 
 const loginMessages = withAction('login')
 const verifyMessages = withAction('verify')
@@ -63,12 +64,8 @@ sessionMock.softReset = () => {
   }
 }
 
-const start = ({ startSessionMock = true, startWalletMock = true, authenticatedAgent = false } = {}) => Promise
-  .all([
-    startSessionMock ? sessionMock.start() : Promise.resolve(),
-    startWalletMock ? walletMock.start() : Promise.resolve(),
-    userAccountService.start()
-  ])
+const start = ({ authenticatedAgent = false } = {}) => Promise
+  .all([sessionMock.start(), walletMock.start(), userAccountService.start()])
   .then(async () => {
     testRun.allRequestsAuthenticated = authenticatedAgent
     return {

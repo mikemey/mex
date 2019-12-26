@@ -10,9 +10,7 @@ describe('UserAccountService', () => {
   let useragent
 
   describe('uses configuration', () => {
-    before(async () => ({ useragent } = await orchestrator.start(
-      { startSessionMock: false, startWalletMock: false }
-    )))
+    before(async () => ({ useragent } = await orchestrator.start()))
     after(() => orchestrator.stop())
 
     it('version', () => useragent.get('/version')
