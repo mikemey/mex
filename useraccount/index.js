@@ -18,7 +18,7 @@ const configSchema = Joi.object({
   httpserver: Joi.object().min(1).required(),
   sessionService: Joi.object().min(1).required(),
   walletService: Joi.object().min(1).required(),
-  db: Joi.object().min(1).required(), 
+  db: Joi.object().min(1).required(),
   clientTimeout: Joi.number().min(10).max(100000).required()
 })
 
