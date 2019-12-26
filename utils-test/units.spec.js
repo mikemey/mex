@@ -13,6 +13,7 @@ describe('Units conversion', () => {
     { symbol: 'btc', input: '0.9', base: '90000000', defaultUnit: '0.90000000' },
     { symbol: 'btc', input: '0.009', base: '900000', defaultUnit: '0.00900000' },
     { symbol: 'btc', input: '9999999', base: '999999900000000', defaultUnit: '9999999.00000000' },
+    { symbol: 'btc', input: '0', base: '0', defaultUnit: '0.00000000' },
 
     { symbol: 'eth', input: '1', base: '1000000000', defaultUnit: '1.000000' },
     { symbol: 'eth', input: '999999.999999999', base: '999999999999999', defaultUnit: '999999.999999' },
@@ -44,10 +45,6 @@ describe('Units conversion', () => {
 
   it('negative numbers not allowed', () => {
     (() => testFromAmount('-1')).should.throw(Error, 'zero or negative value not allowed: -1')
-  })
-
-  it('zero not allowed', () => {
-    (() => testFromAmount('0')).should.throw(Error, 'zero or negative value not allowed: 0')
   })
 
   it('fromAmount throws error when no symbol', () => {

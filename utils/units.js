@@ -34,15 +34,16 @@ const amountObj = (baseAmount, unit) => {
 const fromAmount = (val, symbol) => {
   check(symbol)
   const valnum = Number(val)
-  if (valnum <= 0) {
+  if (valnum < 0) {
     throw Error(`zero or negative value not allowed: ${val}`)
   }
-
   const unit = unitDefinitions[symbol]
-  const baseAmount = valnum
-    .toFixed(unit.fractions)
-    .replace('.', '')
-    .replace(/^[0]*/, '')
+  const baseAmount = valnum === 0
+    ? '0'
+    : valnum
+      .toFixed(unit.fractions)
+      .replace('.', '')
+      .replace(/^[0]*/, '')
 
   return amountObj(baseAmount, unit)
 }
