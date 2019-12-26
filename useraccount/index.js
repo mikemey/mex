@@ -11,7 +11,6 @@ const { WSClient } = require('../connectors')
 
 const AccessRouter = require('./access-router')
 const BalanceRouter = require('./balance-router')
-const InvoiceService = require('./invoice-service')
 const BalanceService = require('./balance-service')
 
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
@@ -36,15 +35,14 @@ class UserAccountService extends HttpServer {
     this.walletClient = new WSClient(config.walletService, 'UserAccount WalletClient')
 
     this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
-    const invoiceService = InvoiceService(this.walletClient)
-    const balanceService = BalanceService(this.walletClient)
-    this.balanceRouter = new BalanceRouter(invoiceService, balanceService, config)
+    this.balanceService = BalanceService(this.walletClient)
+    this.balanceRouter = new BalanceRouter(this.balanceService, config)
   }
 
   start () {
     return Promise.all([
       dbconnection.connect(this.dbConfig),
-      this.balanceRouter.start(),
+      this.balanceService.start(),
       super.start()
     ]).catch(err => { this.logger.debug('start error:', err.message) })
   }
@@ -52,6 +50,7 @@ class UserAccountService extends HttpServer {
   stop () {
     return Promise.all([
       this.balanceRouter.stop(),
+      this.balanceService.stop(),
       this.sessionClient.stop(),
       this.walletClient.stop(),
       super.stop(),

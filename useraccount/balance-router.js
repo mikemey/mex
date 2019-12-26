@@ -45,32 +45,29 @@ const withdrawPath = slug => `balance/withdraw/${slug}`
 const depositRoot = path => '/' + depositPath(path)
 
 class BalanceRouter {
-  constructor (invoiceService, balanceService, config) {
+  constructor (balanceService, config) {
     this.config = config
-    this.invoiceService = invoiceService
     this.balanceService = balanceService
+    this.balanceService.setInvoiceListener(this._invoiceUpdate.bind(this))
 
     this.clients = new Map()
     this.logger = Logger(this.constructor.name)
   }
 
-  start () {
-    this.logger.debug('starting update router')
-    return this.invoiceService.registerInvoiceCallback((_, message) => {
-      this.logger.info('received invoice updates:', message.invoices.length)
-      return message.invoices
-        .filter(invoice => this.clients.has(invoice.userId))
-        .forEach(invoice => {
-          const data = JSON.stringify(asHRInvoice(invoice))
-          this.clients.get(invoice.userId).send(data)
-        })
-    })
+  stop () {
+    for (const [userId, clientSocket] of this.clients) {
+      clientSocket.terminate()
+      this.clients.delete(userId)
+    }
   }
 
-  stop () {
-    for (const clientSocket of this.clients.values()) {
-      clientSocket.terminate()
-    }
+  _invoiceUpdate (invoices) {
+    this.logger.info('received invoice updates:', invoices.length)
+    invoices.filter(invoice => this.clients.has(invoice.userId))
+      .forEach(invoice => {
+        const data = JSON.stringify(asHRInvoice(invoice))
+        this.clients.get(invoice.userId).send(data)
+      })
   }
 
   createRoutes () {
@@ -103,7 +100,7 @@ class BalanceRouter {
       }
 
       this.logger.info('requesting deposit data, userId:', req.user.id)
-      return this.invoiceService.getInvoiceData(symbol, req.session.jwt)
+      return this.balanceService.getInvoices(symbol, req.session.jwt)
         .then(deposit => deposit.isOK
           ? res.render('deposit', { address: deposit.data.address, symbol, invoices: asHRInvoices(deposit.data.invoices) })
           : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
