@@ -1,7 +1,7 @@
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
   wsmessages: { OK_STATUS, ERROR_STATUS },
-  dbconnection: { collection }
+  dbconnection: { ObjectId, collection }
 } = require('../../utils')
 
 const {
@@ -32,37 +32,41 @@ describe('Wallet depositer - invoice', () => {
   })
 
   it('invoices for existing user', async () => {
-    const secondUserId = 'second'
-    const thirdUserId = 'third'
-    const invoice = (invoiceId, { userId = registeredUser.id, symbol = 'eth' } = {}) => {
+    const secondUserId = '59a70a4293b8187fe4d25043'
+    const thirdUserId = '59a708d8eecd787e582bdda3'
+    const dbInvoice = (invoiceId, { rawId = registeredUser.id, symbol = 'eth' } = {}) => {
       return {
-        _id: { userId, symbol, invoiceId },
+        _id: { userId: ObjectId(rawId), symbol, invoiceId },
         date: '2019-12-19T13:59:55.163Z',
         amount: '12345000',
         blockheight: 1965
       }
     }
+    const toExpectedInvoice = ({ _id: { userId, symbol, invoiceId }, date, amount, blockheight }) => {
+      return { userId: userId.toString(), symbol, invoiceId, date, amount, blockheight }
+    }
 
-    const dbInvoices = [
-      invoice(1),
-      invoice(2, { userId: secondUserId }),
-      invoice(3, { symbol: 'other' }),
-      invoice(4)
-    ]
-    await invoicesColl.insertMany(dbInvoices)
+    await invoicesColl.insertMany([
+      dbInvoice(1),
+      dbInvoice(2, { rawId: secondUserId }),
+      dbInvoice(3, { symbol: 'other' }),
+      dbInvoice(4)
+    ])
 
     const expectInvoices = async (userId, ...invoices) => {
       sessionMock.reset()
       setSessionMockUser({ id: userId })
 
+      const flatInvoices = invoices.map(toExpectedInvoice)
+
       const invoicesResponse = await wsClient.send(getInvoiceReq('eth'))
       invoicesResponse.should.deep.equal(
-        { status: OK_STATUS, action: 'invoices', invoices }
+        { status: OK_STATUS, action: 'invoices', invoices: flatInvoices }
       )
     }
 
-    await expectInvoices(registeredUser.id, invoice(1), invoice(4))
-    await expectInvoices(secondUserId, invoice(2, { userId: secondUserId }))
+    await expectInvoices(registeredUser.id, dbInvoice(1), dbInvoice(4))
+    await expectInvoices(secondUserId, dbInvoice(2, { rawId: secondUserId }))
     await expectInvoices(thirdUserId)
   })
 

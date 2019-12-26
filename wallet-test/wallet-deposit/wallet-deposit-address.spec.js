@@ -47,7 +47,7 @@ describe('Wallet depositer - general/address', () => {
       await addressColl.insertMany([
         { _id: { userId: ObjectId(registeredUser.id), symbol: 'btc' }, wrong },
         { _id: { userId: ObjectId(registeredUser.id), symbol: 'eth' }, address },
-        { _id: { userId: 'other-id', symbol: 'eth' }, wrong }
+        { _id: { userId: ObjectId('59a70c5d1452e41b4abb0238'), symbol: 'eth' }, wrong }
       ])
       const addressResponse = await wsClient.send(regUserAddressReq('eth'))
       addressResponse.status.should.equal(OK_STATUS)

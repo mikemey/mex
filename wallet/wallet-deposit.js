@@ -40,8 +40,13 @@ const createUserAddress = async (userId, symbol) => {
 
 const getInvoices = async request => {
   const { user: { id }, symbol } = request
-  logger.debug('searching invoices for:', id, 'symbol:', symbol)
-  const invoices = await invoicesColl.find({ '_id.userId': id, '_id.symbol': symbol }).toArray()
+  const invoices = await invoicesColl
+    .find({ '_id.userId': ObjectId(id), '_id.symbol': symbol })
+    .map(({ _id: { userId, symbol, invoiceId }, date, amount, blockheight }) => {
+      return { userId: userId.toString(), symbol, invoiceId, date, amount, blockheight }
+    })
+    .toArray()
+
   logger.debug('found invoices:', invoices.length)
   return invoicesMessages.ok({ invoices })
 }
@@ -65,17 +70,20 @@ const processInvoices = async (invoicesCallback, event) => {
 
   const invOps = invoicesColl.initializeOrderedBulkOp()
 
-  const invoices = userAddresses.reduce((allInvoices, userAddress) => {
-    const eventInvoices = event.invoices.filter(inv => inv.address === userAddress.address)
-    const dbInvoices = eventInvoices.map(invoice => addBulkOperation(invOps, invoice, userAddress))
-    allInvoices.push(...dbInvoices)
-    return allInvoices
-  }, [])
+  const dbInvoices = userAddresses
+    .reduce((allInvoices, userAddress) => {
+      const eventInvoices = event.invoices.filter(inv => inv.address === userAddress.address)
+      const dbInvoices = eventInvoices.map(invoice => addBulkOperation(invOps, invoice, userAddress))
+      allInvoices.push(...dbInvoices)
+      return allInvoices
+    }, [])
 
-  if (invoices.length > 0) {
-    logger.debug('storing invcoices:', invoices.length)
+  if (dbInvoices.length > 0) {
+    logger.debug('storing invcoices:', dbInvoices.length)
     const result = await invOps.execute()
     logger.info('stored invoices event, created:', result.nInserted, 'updated:', result.nModified)
+
+    const invoices = dbInvoices.map(toFlatInvoice)
     invoicesCallback({ blockheight: event.blockheight, invoices })
   } else {
     logger.debug('no relevant invoices in event')
@@ -101,6 +109,10 @@ const addBulkOperation = (bulkops, invoice, userAddress) => {
     bulkops.insert(dbInvcoice)
   }
   return dbInvcoice
+}
+
+const toFlatInvoice = ({ _id: { userId, symbol, invoiceId }, date, amount, blockheight }) => {
+  return { userId: userId.toString(), symbol, invoiceId, date, amount, blockheight }
 }
 
 const processBlock = (blockCallback, event) => {

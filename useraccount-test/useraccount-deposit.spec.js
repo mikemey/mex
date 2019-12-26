@@ -18,18 +18,20 @@ describe('UserAccount Deposits', () => {
 
   const addressBuilder = withAction('address')
   const invoicesBuilder = withAction('invoices')
-  const getAddressReq = (symbol = 'eth') => orchestrator.withJwtMessages(addressBuilder.build({ symbol }))
+  const getAddressReq = symbol => orchestrator.withJwtMessages(addressBuilder.build({ symbol }))
   const getAddressResOk = address => addressBuilder.ok({ address })
   const errorRes = error('test')
-  const getInvoicesReq = (symbol = 'eth') => orchestrator.withJwtMessages(invoicesBuilder.build({ symbol }))
+  const getInvoicesReq = symbol => orchestrator.withJwtMessages(invoicesBuilder.build({ symbol }))
   const getInvoicesResOk = invoices => addressBuilder.ok({ invoices })
 
-  const depositPath = slug => `/balance/deposit${slug}`
+  const depositPath = symbol => `/balance/deposit/${symbol}`
 
   const daysPast = days => moment.utc().subtract(days, 'd')
-  const createInvoice = (invoiceId, past, amount, blockheight) => {
+  const createInvoice = (invoiceId, past, symbol, amount, blockheight) => {
     return {
-      _id: { invoiceId },
+      userId: 123,
+      symbol,
+      invoiceId,
       date: daysPast(past).toISOString(),
       amount,
       blockheight
@@ -38,19 +40,20 @@ describe('UserAccount Deposits', () => {
 
   it('request address + deposit history from wallet service', async () => {
     const address = 'abccdef'
+    const testSymbol = 'eth'
     const invoices = [
-      createInvoice('inv-id-1', 3, '123', 120),
-      createInvoice('inv-id-2', 2, '345', 133),
-      createInvoice('inv-id-3', 0, '678000000', null),
-      createInvoice('inv-id-4', 10, '93100000', 5)
+      createInvoice('inv-id-1', 3, testSymbol, '123', 120),
+      createInvoice('inv-id-2', 2, testSymbol, '345', 133),
+      createInvoice('inv-id-3', 0, testSymbol, '678000000', null),
+      createInvoice('inv-id-4', 10, testSymbol, '93100000', 5)
     ]
 
-    const createExpectInvoiceRow = ({ _id: { invoiceId }, date, blockheight }, hrAmount) => {
+    const createExpectInvoiceRow = ({ invoiceId, date, blockheight }, hrAmount) => {
       const hrDate = moment.utc(date).format('LLLL')
       const hrBlock = (blockheight && String(blockheight)) || 'unconfirmed'
       return [hrDate, hrAmount, hrBlock, invoiceId]
     }
-    const createExpectInvoiceLink = ({ _id: { invoiceId }, blockheight }) => {
+    const createExpectInvoiceLink = ({ invoiceId, blockheight }) => {
       const block = blockheight
         ? `https://www.etherchain.org/block/${blockheight}`
         : 'unconfirmed'
@@ -72,14 +75,14 @@ describe('UserAccount Deposits', () => {
       createExpectInvoiceLink(invoices[3])
     ]
 
-    walletMock.addMockFor(getAddressReq(), getAddressResOk(address))
-    walletMock.addMockFor(getInvoicesReq(), getInvoicesResOk(invoices))
-    const res = orchestrator.withHtml(await useragent.get(depositPath('/eth')))
+    walletMock.addMockFor(getAddressReq(testSymbol), getAddressResOk(address))
+    walletMock.addMockFor(getInvoicesReq(testSymbol), getInvoicesResOk(invoices))
+    const res = orchestrator.withHtml(await useragent.get(depositPath(testSymbol)))
     res.status.should.equal(200)
     res.html.pageTitle().should.equal('mex eth deposits')
 
     const $ = res.html.$
-    $('[data-address="eth"]').text().should.equal(address)
+    $(`[data-address="${testSymbol}"]`).text().should.equal(address)
 
     const extractColsFromRow = trElmt => $(trElmt).children('td')
       .map((_, td) => $(td).text())
@@ -98,15 +101,16 @@ describe('UserAccount Deposits', () => {
     uiInvoices.should.deep.equal(expectedInvoiceRows)
     uiLinks.should.deep.equal(expectedInvoiceLinks)
 
-    walletMock.assertReceived(getAddressReq(), getInvoicesReq())
+    walletMock.assertReceived(getAddressReq(testSymbol), getInvoicesReq(testSymbol))
   })
 
   it('block + invoice links open new tab', async () => {
-    const invoices = [createInvoice('inv-id-1', 3, '123', 120)]
-    walletMock.addMockFor(getAddressReq('btc'), getAddressResOk('an address'))
-    walletMock.addMockFor(getInvoicesReq('btc'), getInvoicesResOk(invoices))
+    const testSymbol = 'btc'
+    const invoices = [createInvoice('inv-id-1', 3, testSymbol, '123', 120)]
+    walletMock.addMockFor(getAddressReq(testSymbol), getAddressResOk('an address'))
+    walletMock.addMockFor(getInvoicesReq(testSymbol), getInvoicesResOk(invoices))
 
-    const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
+    const res = orchestrator.withHtml(await useragent.get(depositPath(testSymbol)))
     const allTargets = res.html.$('tr[data-invoice="inv-id-1"] a').map((_, anch) => anch.attribs.target).get()
     allTargets.should.deep.equal(['_blank', '_blank'])
   })
@@ -115,7 +119,7 @@ describe('UserAccount Deposits', () => {
     walletMock.addMockFor(getAddressReq('btc'), errorRes)
     walletMock.addMockFor(getInvoicesReq('btc'), getInvoicesResOk([]))
 
-    const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
+    const res = orchestrator.withHtml(await useragent.get(depositPath('btc')))
     res.status.should.equal(200)
     res.html.pageTitle().should.equal('mex balances')
     res.html.$('#message').text().should.equal('wallet service error')
@@ -125,14 +129,14 @@ describe('UserAccount Deposits', () => {
     walletMock.addMockFor(getAddressReq('btc'), getAddressResOk('abc'))
     walletMock.addMockFor(getInvoicesReq('btc'), errorRes)
 
-    const res = orchestrator.withHtml(await useragent.get(depositPath('/btc')))
+    const res = orchestrator.withHtml(await useragent.get(depositPath('btc')))
     res.status.should.equal(200)
     res.html.pageTitle().should.equal('mex balances')
     res.html.$('#message').text().should.equal('wallet service error')
   })
 
   it('redirects to /balances for unknown symbol', async () => {
-    const res = orchestrator.withHtml(await useragent.get(depositPath('/unknown')))
+    const res = orchestrator.withHtml(await useragent.get(depositPath('unknown')))
     res.status.should.equal(200)
     res.html.pageTitle().should.equal('mex balances')
     res.html.$('#message').text().should.equal('asset not supported: unknown')

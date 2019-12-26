@@ -125,6 +125,9 @@ const generateBlocks = (blocks = 1) => faucetWallet.getNewAddress()
     return faucetWallet.generateToAddress(blocks, address)
   })
 
+const generateBlocksWithInfo = (blocks) => generateBlocks(blocks)
+  .then(blockHashes => blockHashes.map(hash => faucetWallet.getBlockByHash(hash)))
+
 const refillFaucet = () => {
   const needMoreBlocks = () => generateBlocks()
     .then(() => faucetWallet.command('getbalances'))
@@ -179,5 +182,12 @@ const waitForNodeDown = (attempts = 9) => new Promise((resolve, reject) => {
 })
 
 module.exports = {
-  startNode, stopNode, generateBlocks, mainWallet, faucetWallet, thirdPartyWallet, defaultBtcAdapterConfig
+  startNode,
+  stopNode,
+  generateBlocks,
+  generateBlocksWithInfo,
+  mainWallet,
+  faucetWallet,
+  thirdPartyWallet,
+  defaultBtcAdapterConfig
 }

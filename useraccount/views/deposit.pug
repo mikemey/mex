@@ -1,8 +1,10 @@
 extends layout.pug
 
-block styles
+block htmlhead
   style
-    include /deposit.css
+    include deposit.css
+  script
+    include deposit.js
 
 block variables
   - var page_title = `${symbol} deposits`
@@ -12,6 +14,7 @@ block content
   div= `${symbol.toUpperCase()} deposit address: `
     span(data-address=symbol)= address
 
+  input#wspath(type="hidden" value=`${basepath}/wsapi/invoices`)
   table
     thead
       tr
@@ -19,7 +22,7 @@ block content
         th Amount
         th Block
         th Invoice
-    tbody
+    tbody#invoices
       each invoice in invoices
         tr(data-invoice=invoice.id)
           td #{invoice.hrdate}

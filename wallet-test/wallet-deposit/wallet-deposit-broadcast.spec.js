@@ -38,29 +38,33 @@ describe('Wallet depositer - broadcast', () => {
     }
   }
 
+  const toExpectedInvoice = ({ _id: { userId, symbol, invoiceId }, date, amount, blockheight }) => {
+    return { userId: userId.toString(), symbol, invoiceId, date, amount, blockheight }
+  }
+
   it('unconfirmed + confirmed single invoice from own user', done => {
     (async () => {
       const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
       const amount = amountFrom('0.12345', 'btc')
       const unconfirmedTx = createInvoice(amount)
-      const expectedUnconfirmedResponse = {
-        blockheight: currentBlockHeight,
-        invoices: [unconfirmedTx]
-      }
       const confirmedTx = createInvoice(amount, currentBlockHeight + 1)
-      const expectedConfirmedResponse = {
-        blockheight: currentBlockHeight + 1,
-        invoices: [confirmedTx]
-      }
 
       let expectConfirmedTxs = false
       const subscribeRes = await wsClient.subscribe(INVOICE_TOPIC, (topic, message) => {
         topic.should.equal(INVOICE_TOPIC)
         if (expectConfirmedTxs) {
+          const expectedConfirmedResponse = {
+            blockheight: currentBlockHeight + 1,
+            invoices: [confirmedTx].map(toExpectedInvoice)
+          }
           checkDateAndRemove(expectedConfirmedResponse, message)
           message.should.deep.equal(expectedConfirmedResponse)
           done()
         } else {
+          const expectedUnconfirmedResponse = {
+            blockheight: currentBlockHeight,
+            invoices: [unconfirmedTx].map(toExpectedInvoice)
+          }
           checkDateAndRemove(expectedUnconfirmedResponse, message)
           message.should.deep.equal(expectedUnconfirmedResponse)
           expectConfirmedTxs = true
@@ -94,20 +98,18 @@ describe('Wallet depositer - broadcast', () => {
       await wsClient.subscribe(INVOICE_TOPIC, (topic, message) => {
         topic.should.equal(INVOICE_TOPIC)
         callbackCount += 1
-        const isFirstTxFirst = message.invoices[0]._id.invoiceId === confirmedTx1._id.invoiceId
+        const isFirstTxFirst = message.invoices[0].invoiceId === confirmedTx1._id.invoiceId
 
         if (callbackCount < 3) {
-          const expectedInvoices = {
-            blockheight: currentBlockHeight,
-            invoices: isFirstTxFirst ? [unconfirmedTx1] : [unconfirmedTx2]
-          }
+          const invoices = (isFirstTxFirst ? [unconfirmedTx1] : [unconfirmedTx2])
+            .map(toExpectedInvoice)
+          const expectedInvoices = { blockheight: currentBlockHeight, invoices }
           checkDateAndRemove(expectedInvoices, message)
           message.should.deep.equal(expectedInvoices)
         } else {
-          const expectedBlockInvoices = {
-            blockheight: nextBlockHeight,
-            invoices: isFirstTxFirst ? [confirmedTx1, confirmedTx2] : [confirmedTx2, confirmedTx1]
-          }
+          const invoices = (isFirstTxFirst ? [confirmedTx1, confirmedTx2] : [confirmedTx2, confirmedTx1])
+            .map(toExpectedInvoice)
+          const expectedBlockInvoices = { blockheight: nextBlockHeight, invoices }
           checkDateAndRemove(expectedBlockInvoices, message)
           message.should.deep.equal(expectedBlockInvoices)
           done()

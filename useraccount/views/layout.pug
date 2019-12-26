@@ -1,10 +1,11 @@
 block variables
 doctype html
-html(lang="en")
+html(lang='en')
   head
-    meta(charset="UTF-8")
+    meta(charset='UTF-8')
     title=`mex ${page_title}`
-    block styles
+    script(src=`${basepath}/public/jquery-3.4.1.min.js`)
+    block htmlhead
   body
     #header
       if user

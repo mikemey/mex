@@ -19,10 +19,14 @@ const BalancesSchema = mg.Schema({
 const Balances = mg.model('balances', BalancesSchema)
 
 const BALANCE_VIEW = 'balance'
-
+const INVOICE_TOPIC = 'invoices'
 const unconfirmedLabel = 'unconfirmed'
 
-const getAssetMetadata = symbol => assetsMetadata[symbol]
+const getAssetMetadata = symbol => {
+  const metadata = assetsMetadata[symbol]
+  if (!metadata) throw Error(`asset not supported: ${symbol}`)
+  return metadata
+}
 const availableSymbols = Object.keys(assetsMetadata)
 const balanceDefaults = Object.keys(assetsMetadata)
   .map(key => { return { symbol: key, amount: Long('0') } })
@@ -40,23 +44,23 @@ const blockHrefFrom = (blockheight, symbol) =>
 const invoiceHrefFrom = (invoiceId, symbol) =>
   getAssetMetadata(symbol).links.tx.replace('<<txid>>', invoiceId)
 
-const asHRInvoices = (invoices, symbol) => invoices
-  .map(inv => {
-    return {
-      id: inv._id.invoiceId,
-      href: invoiceHrefFrom(inv._id.invoiceId, symbol),
-      hrdate: moment.utc(inv.date).format('LLLL'),
-      hramount: asHRAmount(inv.amount, symbol),
-      block: inv.blockheight
-        ? { id: inv.blockheight, href: blockHrefFrom(inv.blockheight, symbol) }
-        : { id: unconfirmedLabel }
-    }
-  })
-  .sort((a, b) => getInvoiceOrdinal(b) - getInvoiceOrdinal(a))
+const asHRInvoice = ({ symbol, invoiceId, date, amount, blockheight }) => {
+  return {
+    id: invoiceId,
+    href: invoiceHrefFrom(invoiceId, symbol),
+    hrdate: moment.utc(date).format('LLLL'),
+    hramount: asHRAmount(amount, symbol),
+    block: blockheight
+      ? { id: blockheight, href: blockHrefFrom(blockheight, symbol) }
+      : { id: unconfirmedLabel }
+  }
+}
 
-const getInvoiceOrdinal = ({ block: { id } }) => id === unconfirmedLabel
-  ? Number.MAX_VALUE
-  : id
+const asHRInvoices = invoices => invoices
+  .sort((a, b) => getBlockOrdinal(b) - getBlockOrdinal(a) || b.date - a.date)
+  .map(asHRInvoice)
+
+const getBlockOrdinal = ({ blockheight }) => blockheight || Number.MAX_VALUE
 
 const addressMessages = withAction('address')
 const invoicesMessages = withAction('invoices')
@@ -66,15 +70,39 @@ const withdrawPath = slug => `balance/withdraw/${slug}`
 const depositRoot = path => '/' + depositPath(path)
 
 class BalanceRouter {
-  constructor (walletClient) {
+  constructor (walletClient, config) {
     this.walletClient = walletClient
+    this.config = config
+
+    this.clients = new Map()
     this.logger = Logger(this.constructor.name)
+  }
+
+  start () {
+    this.logger.debug('starting update router')
+    const updateClientSockets = (_, message) => {
+      this.logger.info('received invoice updates:', message.invoices.length)
+      return message.invoices
+        .filter(invoice => this.clients.has(invoice.userId))
+        .forEach(invoice => {
+          const data = JSON.stringify(asHRInvoice(invoice))
+          this.clients.get(invoice.userId).send(data)
+        })
+    }
+
+    return this.walletClient.subscribe(INVOICE_TOPIC, updateClientSockets)
+  }
+
+  stop () {
+    for (const clientSocket of this.clients.values()) {
+      clientSocket.terminate()
+    }
   }
 
   createRoutes () {
     const router = express.Router()
 
-    router.get('/balance', async (req, res, next) => {
+    router.get('/balance', (req, res, next) => {
       return Balances.findById(req.user.id, 'assets').exec((err, doc) => {
         if (err) { return next(err) }
 
@@ -114,7 +142,7 @@ class BalanceRouter {
         ? res.render('deposit', {
           address: addressRes.address,
           symbol,
-          invoices: asHRInvoices(invoicesRes.invoices, symbol)
+          invoices: asHRInvoices(invoicesRes.invoices)
         })
         : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
       ).catch(err => {
@@ -123,8 +151,63 @@ class BalanceRouter {
       })
     })
 
+    router.ws('/wsapi/invoices', (ws, req) => {
+      this.logger.info('new ws connecting:', req.user.id)
+      const clientSocket = ClientSocket(req.user.id, ws, this.config.clientTimeout, () => this.clients.delete(req.user.id))
+      this.clients.set(req.user.id, clientSocket)
+    })
+
     return router
   }
+}
+
+const ClientSocket = (userId, ws, timeout, removeClient) => {
+  const logger = Logger(`user-update-${userId}`)
+  const data = {
+    isAlive: true,
+    aliveCheck: null
+  }
+
+  ws.on('pong', () => { data.isAlive = true })
+  ws.on('close', () => terminate())
+  ws.on('error', err => {
+    logger.info('client error:', err)
+    terminate()
+  })
+
+  const send = message => {
+    try {
+      ws.send(message)
+    } catch (err) {
+      logger.error('send error:', err)
+      terminate()
+    }
+  }
+
+  data.aliveCheck = setInterval(() => {
+    if (data.isAlive === false) {
+      logger.debug('remove inactive client:', userId)
+      terminate()
+    } else {
+      data.isAlive = false
+      ws.ping(err => {
+        if (err) {
+          logger.info('ping failed:', err)
+        }
+      })
+    }
+  }, timeout)
+
+  const terminate = () => {
+    logger.debug('terminating')
+    if (data.aliveCheck) {
+      clearInterval(data.aliveCheck)
+    }
+    removeClient()
+    ws.terminate()
+  }
+
+  return { send, terminate }
 }
 
 module.exports = BalanceRouter
