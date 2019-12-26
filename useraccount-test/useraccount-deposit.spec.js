@@ -42,9 +42,9 @@ describe('UserAccount Deposits', () => {
     const address = 'abccdef'
     const testSymbol = 'eth'
     const invoices = [
-      createInvoice('inv-id-1', 3, testSymbol, '123', 120),
-      createInvoice('inv-id-2', 2, testSymbol, '345', 133),
-      createInvoice('inv-id-3', 0, testSymbol, '678000000', null),
+      createInvoice('inv-id-1', 3, testSymbol, '1000', 120),
+      createInvoice('inv-id-2', 2, testSymbol, '345000', 133),
+      createInvoice('inv-id-3', 0, testSymbol, '6780000000', null),
       createInvoice('inv-id-4', 10, testSymbol, '93100000', 5)
     ]
 
@@ -62,10 +62,10 @@ describe('UserAccount Deposits', () => {
     }
 
     const expectedInvoiceRows = [
-      createExpectInvoiceRow(invoices[2], '678.000000'),
+      createExpectInvoiceRow(invoices[2], '6.780000'),
       createExpectInvoiceRow(invoices[1], '0.000345'),
-      createExpectInvoiceRow(invoices[0], '0.000123'),
-      createExpectInvoiceRow(invoices[3], '93.100000')
+      createExpectInvoiceRow(invoices[0], '0.000001'),
+      createExpectInvoiceRow(invoices[3], '0.093100')
     ]
 
     const expectedInvoiceLinks = [

@@ -1,16 +1,11 @@
-const { UnitType } = require('number-unit')
-
 const { assetsMetadata } = require('../metadata')
 
 const supportedAssets = Object.keys(assetsMetadata)
 
 const unitDefinitions = supportedAssets.reduce((units, symbol) => {
-  units[symbol] = { fractions: assetsMetadata[symbol].fractions }
+  units[symbol] = assetsMetadata[symbol].unit
   return units
 }, {})
-
-unitDefinitions.btc.type = UnitType.create('bitcoin', null, { satoshi: 1, btc: 1e8 }, 'satoshi')
-unitDefinitions.eth.type = UnitType.create('ethereum', null, { gwei: 1, eth: 1e9 }, 'gwei')
 
 const check = symbol => {
   if (symbol === null || symbol === undefined) {
@@ -21,44 +16,41 @@ const check = symbol => {
   }
 }
 
-const plainToString = obj => obj.toString({ unit: false })
-
-const amountObj = (amount, symbol, fractions) => {
+const amountObj = (baseAmount, unit) => {
   return {
-    toBaseUnit: () => plainToString(amount.toBase()),
+    toBaseUnit: () => baseAmount,
     toDefaultUnit: () => {
-      const asStr = plainToString(amount.to(symbol))
-      const dotIndex = asStr.indexOf('.')
-      const totalLength = dotIndex + fractions + 1
-      return dotIndex > 0
-        ? asStr.substring(0, totalLength).padEnd(totalLength, '0')
-        : `${asStr}.${'0'.repeat(fractions)}`
+      const amt = baseAmount.padStart(unit.fractions + 1, '0')
+      const whole = amt.slice(0, -unit.fractions)
+
+      const fraction = amt
+        .slice(whole.length, whole.length + unit.hrfractions)
+        .padEnd(unit.hrfractions, '0')
+      return `${whole}.${fraction}`
     }
   }
 }
 
-const amountFrom = (val, symbol, definitions = unitDefinitions) => {
+const fromAmount = (val, symbol) => {
   check(symbol)
-  const unitDef = definitions[symbol]
-  const unit = unitDef.type
-  const amount = unit[symbol](val)
-
-  if (plainToString(amount).includes('e')) {
-    throw Error(`scientific notation not supported: ${plainToString(amount)}`)
+  const valnum = Number(val)
+  if (valnum <= 0) {
+    throw Error(`zero or negative value not allowed: ${val}`)
   }
 
-  if (amount.lte(unit.ZERO)) {
-    throw Error(`zero or negative value not allowed: ${plainToString(amount)}`)
-  }
+  const unit = unitDefinitions[symbol]
+  const baseAmount = valnum
+    .toFixed(unit.fractions)
+    .replace('.', '')
+    .replace(/^[0]*/, '')
 
-  return amountObj(amount, symbol, unitDef.fractions)
+  return amountObj(baseAmount, unit)
 }
 
-const baseAmountFrom = (val, symbol, definitions = unitDefinitions) => {
+const fromBaseAmount = (val, symbol) => {
   check(symbol)
-  const unitDef = definitions[symbol]
-  const amount = unitDef.type.baseUnit(val)
-  return amountObj(amount, symbol, unitDef.fractions)
+  const unit = unitDefinitions[symbol]
+  return amountObj(String(val), unit)
 }
 
-module.exports = { baseAmountFrom, amountFrom }
+module.exports = { fromBaseAmount, fromAmount }

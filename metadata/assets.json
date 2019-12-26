@@ -1,7 +1,12 @@
 {
   "btc": {
     "hrname": "Bitcoin",
-    "fractions": 8,
+    "confirmations": 1,
+    "unit": {
+      "hrfractions": 8,
+      "fractions": 8,
+      "base": "satoshi"
+    },
     "links": {
       "block": "https://live.blockcypher.com/btc/block/<<blockheight>>/",
       "tx": "https://live.blockcypher.com/btc/tx/<<txid>>/"
@@ -9,7 +14,12 @@
   },
   "eth": {
     "hrname": "Ethereum",
-    "fractions": 6,
+    "confirmations": 2,
+    "unit": {
+      "hrfractions": 6,
+      "fractions": 9,
+      "base": "gwei"
+    },
     "links": {
       "block": "https://www.etherchain.org/block/<<blockheight>>",
       "tx": "https://www.etherchain.org/tx/<<txid>>"

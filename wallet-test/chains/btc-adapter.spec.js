@@ -6,7 +6,7 @@ const {
   generateBlocks, defaultBtcAdapterConfig
 } = require('./btc-node.orch')
 
-const { units: { amountFrom } } = require('../../utils')
+const { units: { fromAmount } } = require('../../utils')
 
 describe('Btc adapter', () => {
   const btcAdapter = BtcAdapter.create(defaultBtcAdapterConfig)
@@ -48,7 +48,7 @@ describe('Btc adapter', () => {
       (async () => {
         const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
         const address = await btcAdapter.createNewAddress()
-        const amount = amountFrom('2.22222', 'btc')
+        const amount = fromAmount('2.22222', 'btc')
         const expectedInvoice = { invoiceId: undefined, address, amount: amount.toBaseUnit(), blockheight: null }
 
         btcAdapter.startListener(expectReceivedInvoices(currentBlockHeight, 2, [expectedInvoice], done))
@@ -61,12 +61,12 @@ describe('Btc adapter', () => {
         const nextBlockHeight = 1 + (await faucetWallet.getBlockchainInformation()).blocks
 
         const myAddress = await btcAdapter.createNewAddress()
-        const myAmount = amountFrom('2.22222', 'btc')
+        const myAmount = fromAmount('2.22222', 'btc')
         const myInvoiceId = await faucetWallet.sendToAddress(myAddress, myAmount.toDefaultUnit())
         const myexpectedInvoice = { invoiceId: myInvoiceId, address: myAddress, amount: myAmount.toBaseUnit(), blockheight: nextBlockHeight }
 
         const otherAddress = await thirdPartyWallet.getNewAddress()
-        const otherAmount = amountFrom('1.111', 'btc')
+        const otherAmount = fromAmount('1.111', 'btc')
         const otherInvoiceId = await faucetWallet.sendToAddress(otherAddress, otherAmount.toDefaultUnit())
         const expectedOtherInvoice = {
           invoiceId: otherInvoiceId, address: otherAddress, amount: otherAmount.toBaseUnit(), blockheight: nextBlockHeight

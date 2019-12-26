@@ -4,7 +4,7 @@ const BitcoinClient = require('bitcoin-core')
 const Joi = require('@hapi/joi')
 const zmq = require('zeromq')
 
-const { Logger, Validator, units: { amountFrom } } = require('../../utils')
+const { Logger, Validator, units: { fromAmount } } = require('../../utils')
 
 const configSchema = Joi.object({
   client: Joi.object().required(),
@@ -89,7 +89,7 @@ const create = config => {
     const extractInvoices = tx => tx.vout.reduce((invoices, vout) => {
       if (vout.scriptPubKey.addresses) {
         vout.scriptPubKey.addresses.forEach(address => {
-          invoices.push(newInvoice(tx.txid, address, amountFrom(vout.value, 'btc').toBaseUnit()))
+          invoices.push(newInvoice(tx.txid, address, fromAmount(vout.value, 'btc').toBaseUnit()))
         })
       }
       return invoices

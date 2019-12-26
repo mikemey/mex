@@ -1,79 +1,69 @@
-const { UnitType } = require('number-unit')
-
-const { units: { amountFrom, baseAmountFrom }, dbconnection } = require('../utils')
+const { units: { fromAmount, fromBaseAmount }, dbconnection } = require('../utils')
 const { TestDataSetup: { dropTestDatabase, dbConfig } } = require('../test-tools')
 
 describe('Units conversion', () => {
-  const testUnitsOverride = {
-    btc: {
-      fractions: 8,
-      type: UnitType.create('bitcoin', null, { satoshi: 1, btc: 1e8 }, 'satoshi')
-    },
-    eth: {
-      fractions: 4,
-      type: UnitType.create('ethereum', null, { wei: 1e-15, pwei: 1, eth: 1e3 }, 'pwei')
-    }
-  }
-
-  const testAmountFrom = (val, symbol = 'btc') => amountFrom(val, symbol, testUnitsOverride)
+  const testFromAmount = (val, symbol = 'btc') => fromAmount(val, symbol)
 
   const testdata = [
-    { input: 999999.99999999, symbol: 'btc', base: '99999999999999', defaultUnit: '999999.99999999' },
-    { input: 0.23456789, symbol: 'btc', base: '23456789', defaultUnit: '0.23456789' },
-    { input: 0.000001, symbol: 'btc', base: '100', defaultUnit: '0.00000100' },
-    { input: 1, symbol: 'btc', base: '100000000', defaultUnit: '1.00000000' },
-    { input: 1.00000000, symbol: 'btc', base: '100000000', defaultUnit: '1.00000000' },
-    { input: 0.9, symbol: 'btc', base: '90000000', defaultUnit: '0.90000000' },
-    { input: 999999, symbol: 'btc', base: '99999900000000', defaultUnit: '999999.00000000' },
+    { symbol: 'btc', input: '9999999.99999999', base: '999999999999999', defaultUnit: '9999999.99999999' },
+    { symbol: 'btc', input: '0.23456789', base: '23456789', defaultUnit: '0.23456789' },
+    { symbol: 'btc', input: '0.00000001', base: '1', defaultUnit: '0.00000001' },
+    { symbol: 'btc', input: '1', base: '100000000', defaultUnit: '1.00000000' },
+    { symbol: 'btc', input: '1.00000000', base: '100000000', defaultUnit: '1.00000000' },
+    { symbol: 'btc', input: '0.9', base: '90000000', defaultUnit: '0.90000000' },
+    { symbol: 'btc', input: '0.009', base: '900000', defaultUnit: '0.00900000' },
+    { symbol: 'btc', input: '9999999', base: '999999900000000', defaultUnit: '9999999.00000000' },
 
-    { input: 1, symbol: 'eth', base: '1000', defaultUnit: '1.0000' },
-    { input: 999999.99999999, symbol: 'eth', base: '999999999.99999', defaultUnit: '999999.9999' },
-    { input: 0.001, symbol: 'eth', base: '1', defaultUnit: '0.0010' },
-    { input: 0.123, symbol: 'eth', base: '123', defaultUnit: '0.1230' }
+    { symbol: 'eth', input: '1', base: '1000000000', defaultUnit: '1.000000' },
+    { symbol: 'eth', input: '999999.999999999', base: '999999999999999', defaultUnit: '999999.999999' },
+    { symbol: 'eth', input: '0.000001', base: '1000', defaultUnit: '0.000001' },
+    { symbol: 'eth', input: '0.000000001', base: '1', defaultUnit: '0.000000' },
+    { symbol: 'eth', input: '0.123', base: '123000000', defaultUnit: '0.123000' }
   ]
 
   testdata.forEach(({ input, symbol, base, defaultUnit }) => {
-    it(`amountFrom numbers ${input} --> ${base}`, () => testValue(input))
-    it(`amountFrom strings ${input} --> ${base}`, () => testValue(String(input)))
+    it(`fromAmount(number).toBaseUnit ${input} ${symbol} --> ${base}`, () =>
+      testFromAmount(Number(input), symbol).toBaseUnit().should.equal(base)
+    )
+    it(`fromAmount(string).toBaseUnit ${input} ${symbol} --> ${base}`, () =>
+      testFromAmount(input, symbol).toBaseUnit().should.equal(base)
+    )
+    it(`fromAmount(number).toDefaultUnit ${input} ${symbol} --> ${defaultUnit}`, () =>
+      testFromAmount(Number(input), symbol).toDefaultUnit().should.equal(defaultUnit)
+    )
+    it(`fromAmount(string).toDefaultUnit ${input} ${symbol} --> ${defaultUnit}`, () =>
+      testFromAmount(input, symbol).toDefaultUnit().should.equal(defaultUnit)
+    )
 
-    it(`baseAmountFrom ${base} --> ${defaultUnit}`, () => {
-      const amount = baseAmountFrom(base, symbol, testUnitsOverride)
-      amount.toDefaultUnit().should.equal(defaultUnit)
-    })
-
-    const testValue = testInput => {
-      const amount = testAmountFrom(testInput, symbol)
+    it(`fromBaseAmount ${base} --> ${defaultUnit}`, () => {
+      const amount = fromBaseAmount(base, symbol)
       amount.toBaseUnit().should.equal(base)
       amount.toDefaultUnit().should.equal(defaultUnit)
-    }
-  })
-
-  it('scientific notation not supported', () => {
-    (() => testAmountFrom('0.0000000000000001')).should.throw(Error, 'scientific notation not supported: 1e-16')
+    })
   })
 
   it('negative numbers not allowed', () => {
-    (() => testAmountFrom('-1')).should.throw(Error, 'zero or negative value not allowed: -1')
+    (() => testFromAmount('-1')).should.throw(Error, 'zero or negative value not allowed: -1')
   })
 
   it('zero not allowed', () => {
-    (() => testAmountFrom('0')).should.throw(Error, 'zero or negative value not allowed: 0')
+    (() => testFromAmount('0')).should.throw(Error, 'zero or negative value not allowed: 0')
   })
 
-  it('amountFrom throws error when no symbol', () => {
-    (() => amountFrom('1')).should.throw(Error, 'unit conversion requires symbol')
+  it('fromAmount throws error when no symbol', () => {
+    (() => fromAmount('1')).should.throw(Error, 'unit conversion requires symbol')
   })
 
-  it('amountFrom throws error for unsupported symbol', () => {
-    (() => amountFrom('1', 'unknown')).should.throw(Error, 'unit conversion symbol not supported: unknown')
+  it('fromAmount throws error for unsupported symbol', () => {
+    (() => fromAmount('1', 'unknown')).should.throw(Error, 'unit conversion symbol not supported: unknown')
   })
 
-  it('baseAmountFrom throws error when no symbol', () => {
-    (() => baseAmountFrom('1')).should.throw(Error, 'unit conversion requires symbol')
+  it('fromBaseAmount throws error when no symbol', () => {
+    (() => fromBaseAmount('1')).should.throw(Error, 'unit conversion requires symbol')
   })
 
-  it('baseAmountFrom throws error for unsupported symbol', () => {
-    (() => baseAmountFrom('1', 'unknown')).should.throw(Error, 'unit conversion symbol not supported: unknown')
+  it('fromBaseAmount throws error for unsupported symbol', () => {
+    (() => fromBaseAmount('1', 'unknown')).should.throw(Error, 'unit conversion symbol not supported: unknown')
   })
 
   describe('store in db', () => {
@@ -86,12 +76,12 @@ describe('Units conversion', () => {
     after(dbconnection.close)
 
     it('can store and retrieve', async () => {
-      const incomingAmount = amountFrom('3.4567', 'btc')
+      const incomingAmount = fromAmount('3.4567', 'btc')
 
       const saved = await testcollection.insertOne({ testval: incomingAmount.toBaseUnit() })
       const doc = await testcollection.findOne({ _id: saved.insertedId })
 
-      const storedAmount = baseAmountFrom(doc.testval, 'btc', testUnitsOverride)
+      const storedAmount = fromBaseAmount(doc.testval, 'btc')
       storedAmount.toBaseUnit().should.equal('345670000')
       storedAmount.toDefaultUnit().should.equal('3.45670000')
     })

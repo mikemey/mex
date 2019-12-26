@@ -3,7 +3,7 @@ const moment = require('moment')
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
   wsmessages: { OK_STATUS },
-  units: { amountFrom }
+  units: { fromAmount }
 } = require('../../utils')
 
 const {
@@ -45,7 +45,7 @@ describe('Wallet depositer - broadcast', () => {
   it('unconfirmed + confirmed single invoice from own user', done => {
     (async () => {
       const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
-      const amount = amountFrom('0.12345', 'btc')
+      const amount = fromAmount('0.12345', 'btc')
       const unconfirmedTx = createInvoice(amount)
       const confirmedTx = createInvoice(amount, currentBlockHeight + 1)
 
@@ -85,8 +85,8 @@ describe('Wallet depositer - broadcast', () => {
     (async () => {
       const currentBlockHeight = (await faucetWallet.getBlockchainInformation()).blocks
       const nextBlockHeight = currentBlockHeight + 1
-      const amount1 = amountFrom('0.12345', 'btc')
-      const amount2 = amountFrom('9.8765', 'btc')
+      const amount1 = fromAmount('0.12345', 'btc')
+      const amount2 = fromAmount('9.8765', 'btc')
 
       const unconfirmedTx1 = createInvoice(amount1)
       const unconfirmedTx2 = createInvoice(amount2)

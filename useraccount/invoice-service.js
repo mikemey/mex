@@ -5,10 +5,10 @@ const INVOICE_TOPIC = 'invoices'
 const addressMessages = withAction('address')
 const invoicesMessages = withAction('invoices')
 
-const WalletConnector = (walletClient) => {
+const InvoiceService = (walletClient) => {
   const registerInvoiceCallback = cb => walletClient.subscribe(INVOICE_TOPIC, cb)
 
-  const requestDepositData = (symbol, jwt) => {
+  const getInvoiceData = (symbol, jwt) => {
     const addressReq = addressMessages.build({ symbol, jwt })
     const invoicesReq = invoicesMessages.build({ symbol, jwt })
     return Promise
@@ -19,7 +19,7 @@ const WalletConnector = (walletClient) => {
       )
   }
 
-  return { registerInvoiceCallback, requestDepositData }
+  return { registerInvoiceCallback, getInvoiceData }
 }
 
-module.exports = WalletConnector
+module.exports = InvoiceService

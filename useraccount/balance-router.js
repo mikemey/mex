@@ -3,18 +3,7 @@ const querystring = require('querystring')
 const moment = require('moment')
 
 const { assetsMetadata } = require('../metadata')
-const { Logger, dbconnection: { Long, mg } } = require('../utils')
-
-const asset = mg.Schema({
-  symbol: 'string',
-  amount: Long
-}, { _id: false })
-
-const BalancesSchema = mg.Schema({
-  assets: [asset]
-})
-
-const Balances = mg.model('balances', BalancesSchema)
+const { Logger, units: { fromBaseAmount } } = require('../utils')
 
 const BALANCE_VIEW = 'balance'
 const unconfirmedLabel = 'unconfirmed'
@@ -25,16 +14,8 @@ const getAssetMetadata = symbol => {
   return metadata
 }
 const availableSymbols = Object.keys(assetsMetadata)
-const balanceDefaults = Object.keys(assetsMetadata)
-  .map(key => { return { symbol: key, amount: Long('0') } })
 
-const asHRAmount = (amount, symbol) => {
-  const assetFractions = getAssetMetadata(symbol).fractions
-  const amt = amount.toString().padStart(assetFractions + 1, '0')
-  const whole = amt.slice(0, -assetFractions)
-  const fraction = amt.slice(-assetFractions, amt.length)
-  return `${whole}.${fraction}`
-}
+const asHRAmount = (amount, symbol) => fromBaseAmount(amount, symbol).toDefaultUnit()
 
 const blockHrefFrom = (blockheight, symbol) =>
   getAssetMetadata(symbol).links.block.replace('<<blockheight>>', blockheight)
@@ -64,9 +45,10 @@ const withdrawPath = slug => `balance/withdraw/${slug}`
 const depositRoot = path => '/' + depositPath(path)
 
 class BalanceRouter {
-  constructor (walletConnector, config) {
+  constructor (invoiceService, balanceService, config) {
     this.config = config
-    this.walletConnector = walletConnector
+    this.invoiceService = invoiceService
+    this.balanceService = balanceService
 
     this.clients = new Map()
     this.logger = Logger(this.constructor.name)
@@ -74,7 +56,7 @@ class BalanceRouter {
 
   start () {
     this.logger.debug('starting update router')
-    return this.walletConnector.registerInvoiceCallback((_, message) => {
+    return this.invoiceService.registerInvoiceCallback((_, message) => {
       this.logger.info('received invoice updates:', message.invoices.length)
       return message.invoices
         .filter(invoice => this.clients.has(invoice.userId))
@@ -94,17 +76,10 @@ class BalanceRouter {
   createRoutes () {
     const router = express.Router()
 
-    router.get('/balance', (req, res, next) => {
-      return Balances.findById(req.user.id, 'assets').exec((err, doc) => {
-        if (err) { return next(err) }
-
-        const balance = doc === null
-          ? balanceDefaults
-          : balanceDefaults.map(balDefault =>
-            doc.assets.find(asset => asset.symbol === balDefault.symbol) || balDefault
-          )
-
-        const assets = balance.map(asset => {
+    router.get('/balance', (req, res, next) => this.balanceService
+      .getBalances(req.user.id)
+      .then(balances => {
+        const assets = balances.map(asset => {
           asset.hrname = getAssetMetadata(asset.symbol).hrname
           asset.hramount = asHRAmount(asset.amount, asset.symbol)
           asset.hrefDeposit = depositPath(asset.symbol)
@@ -118,7 +93,8 @@ class BalanceRouter {
         }
         res.render(BALANCE_VIEW, viewData)
       })
-    })
+      .catch(err => { next(err) })
+    )
 
     router.get(depositRoot(':symbol'), async (req, res) => {
       const symbol = req.params.symbol
@@ -127,7 +103,7 @@ class BalanceRouter {
       }
 
       this.logger.info('requesting deposit data, userId:', req.user.id)
-      return this.walletConnector.requestDepositData(symbol, req.session.jwt)
+      return this.invoiceService.getInvoiceData(symbol, req.session.jwt)
         .then(deposit => deposit.isOK
           ? res.render('deposit', { address: deposit.data.address, symbol, invoices: asHRInvoices(deposit.data.invoices) })
           : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
