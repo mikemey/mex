@@ -29,7 +29,7 @@ exit_code=0
 sed_any_group="\(.*\)"
 sed_number_group="\([0-9]*\)"
 server_baseurl_re="^baseurl=${sed_any_group}$"
-server_pid_re="^.*pid=${sed_number_group}$"
+server_pid_re="^pid=${sed_number_group}$"
 
 function print_usage () {
   echo -e "\n usage: $(basename -- $0) [ start | stop | run | open ]"
@@ -79,11 +79,10 @@ function stop_e2e_infrastructure () {
     error_message "session log file not found: $e2e_output"
     return
   fi
-  all_pids=($(extract_from_output "$server_pid_re"))
-  for pid in ${all_pids[@]}; do
-    echo "stopping process: $pid"
-    kill ${pid}
-  done
+  server_pid=($(extract_from_output "$server_pid_re"))
+  echo "stopping process: $server_pid"
+  kill ${server_pid}
+  sleep 1
   echo "e2e infrastructure stopped."
 
   errors=`grep "Error" ${e2e_output}`
