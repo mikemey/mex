@@ -126,7 +126,7 @@ const generateBlocks = (blocks = 1) => faucetWallet.getNewAddress()
   })
 
 const generateBlocksWithInfo = (blocks) => generateBlocks(blocks)
-  .then(blockHashes => blockHashes.map(hash => faucetWallet.getBlockByHash(hash)))
+  .then(blockHashes => Promise.all(blockHashes.map(hash => faucetWallet.getBlockByHash(hash))))
 
 const refillFaucet = () => {
   const needMoreBlocks = () => generateBlocks()

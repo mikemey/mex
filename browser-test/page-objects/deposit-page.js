@@ -6,13 +6,15 @@ class DepositPage extends ATestPage {
     this.symbol = symbol
   }
 
-  getDepositAddress () { return cy.get(`[data-address="${this.symbol}"]`) }
+  getDepositAddressSpan () { return cy.get(`[data-address="${this.symbol}"]`) }
+
+  invoiceCount () { return cy.get('tbody#invoices tr') }
 
   assertInvoice (invoiceId, date, amount, block) {
     const invoiceItem = ix => cy.get(`tr[data-invoice=${invoiceId}] td:nth-child(${ix})`)
-    invoiceItem(1).should('have.text', date)
+    date && invoiceItem(1).should('have.text', date)
     invoiceItem(2).should('have.text', amount)
-    invoiceItem(3).should('have.text', block)
+    invoiceItem(3).should('have.text', `${block}`)
     invoiceItem(4).should('have.text', invoiceId)
   }
 

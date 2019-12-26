@@ -20,3 +20,13 @@ Cypress.Commands.add('loginUser', ({ email, password }) => {
   homepage.assertPageActive()
   return cy.wrap({ email, password })
 })
+
+Cypress.Commands.add('sendToAddress',
+  (address, amount) => cy.task('sendToAddress', { address, amount })
+)
+
+Cypress.Commands.add('generateUnrelatedTxs', () => cy.task('generateUnrelatedTxs'))
+
+Cypress.Commands.add('generateBlocksWithInfo',
+  count => cy.task('generateBlocksWithInfo', count)
+)

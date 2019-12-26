@@ -42,12 +42,15 @@ class AccessRouter {
 
     this.homePath = `${httpConfig.path}/index`
     this.loginPath = `${httpConfig.path}/${LOGIN}`
-    this.unprotectedPaths = [
-      this.loginPath,
-      `${httpConfig.path}/${REGISTER}`,
-      `${httpConfig.path}/${SERVICE_UNAVAILABLE}`,
-      `${httpConfig.path}/version`
-    ]
+
+    const unprotected = [
+      `^${this.loginPath}$`,
+      `^${httpConfig.path}/${REGISTER}$`,
+      `^${httpConfig.path}/${SERVICE_UNAVAILABLE}$`,
+      `^${httpConfig.path}/version$`,
+      `^${httpConfig.path}/public/.*`
+    ].map(str => new RegExp(str))
+    this.isUnprotected = path => unprotected.find(re => path.match(re)) !== undefined
   }
 
   createAuthenticationCheck () {
@@ -59,7 +62,7 @@ class AccessRouter {
     }
 
     return (req, res, next) => {
-      if (this.unprotectedPaths.includes(req.path)) { return next() }
+      if (this.isUnprotected(req.path)) { return next() }
       if (req.session && req.session.jwt) {
         return this.sessionClient.send(verifyMessages.build({ jwt: req.session.jwt }))
           .then(result => {
