@@ -59,7 +59,7 @@ const withAction = action => {
   const nokBase = Object.assign({ status: NOK_STATUS }, actionBase)
   const ok = (obj = {}) => Object.assign(obj, okBase)
   const nok = message => message ? Object.assign({ message }, nokBase) : nokBase
-  const build = obj => Object.assign(obj, actionBase)
+  const build = (obj = {}) => Object.assign(obj, actionBase)
 
   return { ok, nok, build }
 }

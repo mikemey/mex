@@ -9,9 +9,8 @@ const LOG_LEVELS = {
 const defaultLevel = 'info'
 const getLogLevel = () => {
   const envLevel = (process.env.LOG_LEVEL || defaultLevel).toLowerCase()
-  const level = Object.values(LOG_LEVELS)
-    .find(data => data.hrName.trim() === envLevel) || LOG_LEVELS.info
-  return level.ord
+  const levelKey = Object.keys(LOG_LEVELS).find(logLvlKey => logLvlKey === envLevel) || defaultLevel
+  return LOG_LEVELS[levelKey].ord
 }
 
 const Logger = category => {
@@ -45,7 +44,9 @@ const Logger = category => {
 
   const skipLogLevel = level => level.ord > data.currentLevel
 
-  return { debug, info, error, childLogger, skipLogLevel }
+  const setLogLevel = logLevel => { data.currentLevel = logLevel.ord }
+
+  return { debug, info, error, childLogger, skipLogLevel, setLogLevel }
 }
 
 module.exports = { Logger, LOG_LEVELS }

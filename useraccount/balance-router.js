@@ -3,9 +3,7 @@ const querystring = require('querystring')
 const moment = require('moment')
 
 const { assetsMetadata } = require('../metadata')
-const {
-  Logger, wsmessages: { withAction, OK_STATUS }, dbconnection: { Long, mg }
-} = require('../utils')
+const { Logger, dbconnection: { Long, mg } } = require('../utils')
 
 const asset = mg.Schema({
   symbol: 'string',
@@ -19,7 +17,6 @@ const BalancesSchema = mg.Schema({
 const Balances = mg.model('balances', BalancesSchema)
 
 const BALANCE_VIEW = 'balance'
-const INVOICE_TOPIC = 'invoices'
 const unconfirmedLabel = 'unconfirmed'
 
 const getAssetMetadata = symbol => {
@@ -62,17 +59,14 @@ const asHRInvoices = invoices => invoices
 
 const getBlockOrdinal = ({ blockheight }) => blockheight || Number.MAX_VALUE
 
-const addressMessages = withAction('address')
-const invoicesMessages = withAction('invoices')
-
 const depositPath = slug => `balance/deposit/${slug}`
 const withdrawPath = slug => `balance/withdraw/${slug}`
 const depositRoot = path => '/' + depositPath(path)
 
 class BalanceRouter {
-  constructor (walletClient, config) {
-    this.walletClient = walletClient
+  constructor (walletConnector, config) {
     this.config = config
+    this.walletConnector = walletConnector
 
     this.clients = new Map()
     this.logger = Logger(this.constructor.name)
@@ -80,7 +74,7 @@ class BalanceRouter {
 
   start () {
     this.logger.debug('starting update router')
-    const updateClientSockets = (_, message) => {
+    return this.walletConnector.registerInvoiceCallback((_, message) => {
       this.logger.info('received invoice updates:', message.invoices.length)
       return message.invoices
         .filter(invoice => this.clients.has(invoice.userId))
@@ -88,9 +82,7 @@ class BalanceRouter {
           const data = JSON.stringify(asHRInvoice(invoice))
           this.clients.get(invoice.userId).send(data)
         })
-    }
-
-    return this.walletClient.subscribe(INVOICE_TOPIC, updateClientSockets)
+    })
   }
 
   stop () {
@@ -133,22 +125,16 @@ class BalanceRouter {
       if (!availableSymbols.includes(symbol)) {
         return res.redirect(303, '../' + '?' + querystring.stringify({ message: `asset not supported: ${symbol}` }))
       }
-      const addressReq = addressMessages.build({ symbol, jwt: req.session.jwt })
-      const invoicesReq = invoicesMessages.build({ symbol, jwt: req.session.jwt })
+
       this.logger.info('requesting deposit data, userId:', req.user.id)
-      return Promise.all([
-        this.walletClient.send(addressReq), this.walletClient.send(invoicesReq)
-      ]).then(([addressRes, invoicesRes]) => addressRes.status === OK_STATUS && invoicesRes.status === OK_STATUS
-        ? res.render('deposit', {
-          address: addressRes.address,
-          symbol,
-          invoices: asHRInvoices(invoicesRes.invoices)
+      return this.walletConnector.requestDepositData(symbol, req.session.jwt)
+        .then(deposit => deposit.isOK
+          ? res.render('deposit', { address: deposit.data.address, symbol, invoices: asHRInvoices(deposit.data.invoices) })
+          : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
+        ).catch(err => {
+          this.logger.error('wallet service error:', err)
+          res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
         })
-        : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
-      ).catch(err => {
-        this.logger.error('wallet service error:', err)
-        res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
-      })
     })
 
     router.ws('/wsapi/invoices', (ws, req) => {

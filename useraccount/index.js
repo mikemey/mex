@@ -11,6 +11,7 @@ const { WSClient } = require('../connectors')
 
 const AccessRouter = require('./access-router')
 const BalanceRouter = require('./balance-router')
+const WalletConnector = require('./wallet-connector')
 
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
 
@@ -33,8 +34,9 @@ class UserAccountService extends HttpServer {
     this.sessionClient = new WSClient(config.sessionService, 'UserAccount SessionClient')
     this.walletClient = new WSClient(config.walletService, 'UserAccount WalletClient')
 
+    const walletConnector = WalletConnector(this.walletClient)
     this.accessRouter = new AccessRouter(this.sessionClient, config.httpserver)
-    this.balanceRouter = new BalanceRouter(this.walletClient, config)
+    this.balanceRouter = new BalanceRouter(walletConnector, config)
   }
 
   start () {

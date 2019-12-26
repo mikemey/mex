@@ -41,13 +41,15 @@ const testEmail = 'uaorch-test-user@test.com'
 const testPassword = 'abcdefghijk'
 const testJwt = 'blablalbalblabla'
 
+const withJwtMessages = (obj, jwt = testJwt) => Object.assign({ jwt }, obj)
+
 const testRun = {
   allRequestsAuthenticated: false,
   user: { email: testEmail, password: testPassword },
   sessionMessages: {
     loginRequest: loginMessages.build({ email: testEmail, password: pwhasher(testPassword) }),
-    loginResponse: loginMessages.ok({ jwt: testJwt }),
-    verifyRequest: verifyMessages.build({ jwt: testJwt }),
+    loginResponse: withJwtMessages(loginMessages.ok()),
+    verifyRequest: withJwtMessages(verifyMessages.build()),
     verifyResponse: verifyMessages.ok({ user: { id: testUserId, email: testEmail } })
   }
 }
@@ -60,8 +62,6 @@ sessionMock.softReset = () => {
     sessionMock.addMockFor(loginRequest, loginResponse)
   }
 }
-
-const withJwtMessages = (obj, jwt = testJwt) => Object.assign({ jwt }, obj)
 
 const start = ({ startSessionMock = true, startWalletMock = true, authenticatedAgent = false } = {}) => Promise
   .all([
