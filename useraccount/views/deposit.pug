@@ -1,8 +1,6 @@
 extends layout.pug
 
 block htmlhead
-  style
-    include deposit.css
   script
     include deposit.js
 
@@ -10,27 +8,34 @@ block variables
   - var page_title = `${symbol} deposits`
 
 block content
-  h2= `${symbol.toUpperCase()} Deposits`
-  div= `${symbol.toUpperCase()} deposit address: `
-    span(data-address=symbol)= address
-
   input#wspath(type="hidden" value=`${basepath}/wsapi/invoices`)
-  table
-    thead
-      tr
-        th Date
-        th Amount
-        th Block
-        th Invoice
-    tbody#invoices
-      each invoice in invoices
-        tr(data-invoice=invoice.id)
-          td #{invoice.hrdate}
-          td #{invoice.hramount}
-          if invoice.block.href
+
+  h3= `${symbol.toUpperCase()} Deposits`
+  .offset-md-2.col-md-8
+    .card.text-center
+      .card-header= `${symbol.toUpperCase()} deposit address:`
+      .card-body
+        h5.card-title(data-address=symbol)= address
+        p.bg-danger.text-light
+          b THIS IS A TESTNET ADDRESS! DO NOT SEND REAL BITCOINS!
+
+  .table-responsive.mt-3
+    table.table.table-bordered.table-sm
+      thead.thead-light
+        tr
+          th(scope="col") Date
+          th(scope="col") Amount
+          th(scope="col") Block
+          th(scope="col") Invoice
+      tbody#invoices
+        each invoice in invoices
+          tr(data-invoice=invoice.id)
+            td(scope="row") #{invoice.hrdate}
+            td #{invoice.hramount}
+            if invoice.block.href
+              td
+                a(href=invoice.block.href target='_blank')= invoice.block.id
+            else
+              td #{invoice.block.id}
             td
-              a(href=invoice.block.href target='_blank')= invoice.block.id
-          else
-            td #{invoice.block.id}
-          td
-            a(href=invoice.href target='_blank')= invoice.id
+              a(href=invoice.href target='_blank')= invoice.id

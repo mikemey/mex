@@ -23,7 +23,7 @@ describe('Registration', () => {
     regpage.register('hello@you.com', 'helloyou')
     regpage.registerButton().click()
     loginpage.assertPageActive()
-    loginpage.message().contains('congratulations')
+    loginpage.message().contains('Congratulations')
   })
 
   it('duplicate email', () => {

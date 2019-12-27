@@ -85,7 +85,7 @@ class AccessRouter {
           })
           .catch(err => {
             this.logger.error('session service error:', err.message)
-            errorResponse(res, SERVICE_UNAVAILABLE, 'session service unavailable, sorry!')
+            errorResponse(res, SERVICE_UNAVAILABLE, 'Session service unavailable, sorry!')
           })
       } else {
         redirectToLogin(res)
@@ -96,7 +96,7 @@ class AccessRouter {
   createRoutes () {
     const serviceUnavailable = (res, view, backendMessage, email) => {
       this.logger.error('session service error:', backendMessage)
-      errorResponse(res, view, 'service unavailable', email)
+      errorResponse(res, view, 'Service unavailable', email)
     }
 
     const router = express.Router()

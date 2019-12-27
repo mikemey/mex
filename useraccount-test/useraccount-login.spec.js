@@ -89,7 +89,7 @@ describe('UserAccount login', () => {
       it('error jwt verification', () => {
         sessionMock.addMockFor(beVerifyRequest, beVerifyResponseError('jwt-verify-error'))
         return postLogin()
-          .then(expectVerificationError('service unavailable'))
+          .then(expectVerificationError('Service unavailable'))
       })
     })
 
@@ -102,7 +102,7 @@ describe('UserAccount login', () => {
 
       it('error response from backend', () => {
         sessionMock.addMockFor(beLoginRequest, beResponseError('test-error'))
-        return postLogin().then(expectLoginError('service unavailable', 1))
+        return postLogin().then(expectLoginError('Service unavailable', 1))
       })
     })
   })

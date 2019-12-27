@@ -3,20 +3,23 @@ block variables
   - var page_title = 'balances'
 
 block content
-  h2 Balances
+  h3 Balances
   if message
-    #message= message
-  table(style="border: 1px solid black;")
-    thead
-      tr
-        th Asset
-        th Balance
-    tbody
-      each asset in assets
+    #message.alert.alert-primary= message
+
+  .table-responsive.mt-3
+    table.table.table-bordered.table-sm
+      thead.thead-light
         tr
-          td #{asset.hrname}
-          td(data-balance=asset.symbol) #{asset.hramount}
-          td
-            a(data-deposit=asset.symbol href=asset.hrefDeposit) Deposit
-          td
-            a(data-withdraw=asset.symbol href=asset.hrefWithdraw) Withdraw
+          th(scope="col") Asset
+          th(scope="col") Balance
+          th(scope="col" colspan=2) Actions
+      tbody
+        each asset in assets
+          tr
+            td(scope="row") #{asset.hrname}
+            td(data-balance=asset.symbol) #{asset.hramount}
+            td
+              a(data-deposit=asset.symbol href=asset.hrefDeposit) Deposit
+            td
+              a(data-withdraw=asset.symbol href=asset.hrefWithdraw) Withdraw

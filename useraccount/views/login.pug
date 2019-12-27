@@ -3,18 +3,30 @@ block variables
   - var page_title = 'login'
 
 block content
-  h2 Login
-  if flag === 'reg'
-    #message congratulations!
-  if flag === 'auth'
-    #message Please log-in
-  if flag === 'unavailable'
-    #message service unavailable
-  form(method="POST")
-    label(for="email") Email
-    input#email(type="email" name="email" placeholder="Email" value=email required autofocus)
-    label(for="password") Password
-    input#password(type="password" name="password" placeholder="Password" required)
-    button#login(type="submit") Login
-    if error
-      #error= error
+  h3 Login
+  .offset-md-2.col-md-8
+    if flag === 'reg'
+      #message.alert.alert-success Congratulations!
+    if flag === 'auth'
+      #message.alert.alert-primary Please log-in
+    if flag === 'unavailable'
+      #message.alert.alert-danger Service unavailable
+
+  .offset-md-2.col-md-8
+    form(method="POST")
+      .form-group.row
+        label.col-sm-2.col-form-label(for="email") Email
+        .col-sm-10
+          input.form-control#email(type="email" name="email" placeholder="Email" value=email required autofocus)
+      .form-group.row
+        label.col-sm-2.col-form-label(for="password") Password
+        .col-sm-10
+          input.form-control#password(type="password" name="password" placeholder="Password" required)
+      .form-group.row
+        .col-sm-10
+          button.btn.btn-success#login(type="submit") Login
+      
+      if error
+        .form-group.row
+          .col-sm-12
+            #error.alert.alert-danger.w-100= error

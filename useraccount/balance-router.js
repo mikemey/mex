@@ -110,7 +110,7 @@ class BalanceRouter {
           : res.redirect(303, '../' + '?' + querystring.stringify({ message: 'wallet service error' }))
         ).catch(err => {
           this.logger.error('wallet service error:', err)
-          res.render('unavailable', { error: 'wallet service unavailable, sorry!' })
+          res.render('unavailable', { error: 'Wallet service unavailable, sorry!' })
         })
     })
 

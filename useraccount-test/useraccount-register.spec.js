@@ -104,14 +104,14 @@ describe('UserAccount register', () => {
     it('error from backend', () => {
       const errorMessage = 'test-error'
       sessionMock.addMockFor(backendRequest(), backendResponseError(errorMessage))
-      return postRegistration({}).then(expectRegistrationError('service unavailable', 1))
+      return postRegistration({}).then(expectRegistrationError('Service unavailable', 1))
     })
 
     it('backend timeout', () => {
       sessionMock.addMockFor(backendRequest(), new Promise(resolve => {
         setTimeout(resolve, 100, {})
       }))
-      return postRegistration({}).then(expectRegistrationError('service unavailable', 1))
+      return postRegistration({}).then(expectRegistrationError('Service unavailable', 1))
     })
   })
 })

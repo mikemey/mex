@@ -35,7 +35,7 @@ describe('UserAccountService', () => {
       const unavailableRes = orchestrator.withHtml(await useragent.get('/unavailable'))
       unavailableRes.should.have.status(200)
       unavailableRes.html.pageTitle().should.equal('mex unavailable')
-      unavailableRes.html.$('#message').text().should.equal('service unavailable, sorry!')
+      unavailableRes.html.$('#message').text().should.equal('Service unavailable, sorry!')
     })
 
     it('session-service down', async () => {
@@ -43,7 +43,7 @@ describe('UserAccountService', () => {
       const unavailableRes = orchestrator.withHtml(await useragent.get('/index'))
       unavailableRes.should.have.status(200)
       unavailableRes.html.pageTitle().should.equal('mex unavailable')
-      unavailableRes.html.$('#message').text().should.equal('session service unavailable, sorry!')
+      unavailableRes.html.$('#message').text().should.equal('Session service unavailable, sorry!')
 
       await sessionMock.start()
       const indexRes = orchestrator.withHtml(await useragent.get('/balance'))
@@ -55,7 +55,7 @@ describe('UserAccountService', () => {
       const unavailableRes = orchestrator.withHtml(await useragent.get('/balance/deposit/btc'))
       unavailableRes.should.have.status(200)
       unavailableRes.html.pageTitle().should.equal('mex unavailable')
-      unavailableRes.html.$('#message').text().should.equal('wallet service unavailable, sorry!')
+      unavailableRes.html.$('#message').text().should.equal('Wallet service unavailable, sorry!')
 
       const actionBuilder = withAction('address')
       const getAddressReq = orchestrator.withJwtMessages(actionBuilder.build({ symbol: 'btc' }))

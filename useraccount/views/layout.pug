@@ -2,27 +2,34 @@ block variables
 doctype html
 html(lang='en')
   head
-    meta(charset='UTF-8')
+    meta(charset='utf-8')
+    meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
     title=`mex ${page_title}`
-    script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js")
+    script(src=`${basepath}/public/jquery-3.4.1.min.js`)
+    link(rel="stylesheet" href=`${basepath}/public/jquery-3.4.1.min.js`)
     block htmlhead
   body
+  .container-fluid.mt-4
     #header
-      if user
-        ul
-          li
-            a(href=`${basepath}/index`) Home
-          li
-            a(href=`${basepath}/balance`) Balances
-          li #{user.email}
-      else
-        ul
-          li
-            a(href=`${basepath}/login`) Login
-          li
-            a(href=`${basepath}/register`) Register
+      .p-3.mb-2.bg-warning.text-dark.text-center 
+        b Server is using TESTNET connectors. Do NOT send real tokens!
+
+      ul.nav.justify-content-center
+        if user
+          li.nav-item
+            a.nav-link(href=`${basepath}/index`) Home
+          li.nav-item
+            a.nav-link(href=`${basepath}/balance`) Balances
+          li.nav-item 
+            span.nav-link #{user.email}
+        else
+          li.nav-item
+            a.nav-link(href=`${basepath}/login`) Login
+          li.nav-item
+            a.nav-link(href=`${basepath}/register`) Register
 
     block content
     block foot
-      footer
-        p mex v0.1
+      footer.footer.mt-auto.py-4
+        .text-right
+          small.text-muted mex v0.1
