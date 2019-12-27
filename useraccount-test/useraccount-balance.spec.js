@@ -78,7 +78,7 @@ describe('UserAccount balance', () => {
     return balance
   }
 
-  it('update balance with 1 confirmation required', async () => {
+  it('update btc balance with 1 confirmation required', async () => {
     await insertTestUserBalance('100000000')
     const symbol = 'btc'
     const newUserId = 'abcdeabcdabcdeabcdeabcde'
@@ -116,10 +116,42 @@ describe('UserAccount balance', () => {
     assertBalance(symbol, '0.99999999', await getBalancePage())
   })
 
-  // it('update balance with > 1 confirmations required', async () => {
-  //   walletMock.logger.setLogLevel(LOG_LEVELS.debug)
-  //   assertBalance('eth', '0.000000', await getBalancePage())
+  it('update eth balance with 12 confirmations required', async () => {
+    const symbol = 'eth'
+    const otherUserId = 'abcdeabcdabcdeabcdeabcde'
+    const confirmedMessage = {
+      blockheight: 401,
+      invoices: [
+        { userId: orchestrator.testUserId, symbol, invoiceId: '200', date: 'irrelevant', amount: '1111111111', blockheight: 401 },
+        { userId: orchestrator.testUserId, symbol, invoiceId: '201', date: 'irrelevant', amount: '55555555555', blockheight: 401 },
+        { userId: otherUserId, symbol, invoiceId: '202', date: 'irrelevant', amount: '77777777', blockheight: 401 }
+      ]
+    }
+    const unconfirmedMessage = {
+      blockheight: 402,
+      invoices: [
+        { userId: orchestrator.testUserId, symbol, invoiceId: '203', date: 'irrelevant', amount: '999999999999', blockheight: 402 }
+      ]
+    }
+    const newBlockMessage = blockheight => { return { symbol, blockheight } }
 
-  //   assertBalance('eth', '3.330000', await getBalancePage())
-  // })
+    await walletMock.broadcast('invoices', confirmedMessage)
+    await walletMock.broadcast('invoices', unconfirmedMessage)
+    await timeoutPromise(10)
+    assertBalance(symbol, '0.000000', await getBalancePage())
+
+    for (let block = 402; block <= 411; block++) {
+      await walletMock.broadcast('blocks', newBlockMessage(block))
+    }
+    await timeoutPromise(10)
+    assertBalance(symbol, '0.000000', await getBalancePage())
+
+    await walletMock.broadcast('blocks', newBlockMessage(412))
+    await timeoutPromise(10)
+    assertBalance(symbol, '56.666666', await getBalancePage())
+
+    const unconfirmedInvoices = await collection('unsettled').find({}).toArray()
+    unconfirmedInvoices.length.should.equal(1)
+    unconfirmedInvoices[0].amount.should.equal('999999999999')
+  })
 })
