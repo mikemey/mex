@@ -104,7 +104,7 @@ const addBulkOperation = (bulkops, invoice, userAddress) => {
     bulkops
       .find({ _id: recordId })
       .upsert()
-      .update({ $set: { date: dbInvcoice.date, amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
+      .updateOne({ $set: { date: dbInvcoice.date, amount: dbInvcoice.amount, blockheight: dbInvcoice.blockheight } })
   } else {
     bulkops.insert(dbInvcoice)
   }

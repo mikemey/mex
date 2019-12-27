@@ -63,7 +63,7 @@ const create = config => {
       try {
         tx = await wallet.getTransactionByHash(txhash)
       } catch (err) {
-        if (err.message === `${txhash} not found`) { return /* ignore non-mempool TXs */ }
+        if (err.message === `${txhash} not found`) { return /* ignore unrelated TXs */ }
         logger.error(err.message)
         return
       }
