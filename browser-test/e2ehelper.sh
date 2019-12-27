@@ -118,7 +118,7 @@ function wait_for_server () {
 
   printf "waiting for server hosting ${server_baseUrl} "
   while [[ ${server_startup_retries} > 0 && `curl -s -o /dev/null -w "%{http_code}" ${server_baseUrl}` == "000" ]]; do
-    sleep 0.2
+    sleep 0.3
     printf "$server_startup_retries "
     server_startup_retries=`expr ${server_startup_retries} - 1`
   done
