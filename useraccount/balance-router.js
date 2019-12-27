@@ -35,6 +35,10 @@ const asHRInvoice = ({ symbol, invoiceId, date, amount, blockheight }) => {
 }
 
 const asHRInvoices = invoices => invoices
+  .map(invoice => {
+    invoice.date = moment.utc(invoice.date)
+    return invoice
+  })
   .sort((a, b) => getBlockOrdinal(b) - getBlockOrdinal(a) || b.date - a.date)
   .map(asHRInvoice)
 

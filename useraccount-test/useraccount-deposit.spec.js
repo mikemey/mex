@@ -44,8 +44,9 @@ describe('UserAccount Deposits', () => {
     const invoices = [
       createInvoice('inv-id-1', 3, testSymbol, '1000', 120),
       createInvoice('inv-id-2', 2, testSymbol, '345000', 133),
-      createInvoice('inv-id-3', 0, testSymbol, '6780000000', null),
-      createInvoice('inv-id-4', 10, testSymbol, '93100000', 5)
+      createInvoice('inv-id-3', 1, testSymbol, '6780000000', null),
+      createInvoice('inv-id-4', 10, testSymbol, '93100000', 5),
+      createInvoice('inv-id-5', 0, testSymbol, '780000000', null)
     ]
 
     const createExpectInvoiceRow = ({ invoiceId, date, blockheight }, hrAmount) => {
@@ -62,6 +63,7 @@ describe('UserAccount Deposits', () => {
     }
 
     const expectedInvoiceRows = [
+      createExpectInvoiceRow(invoices[4], '0.780000'),
       createExpectInvoiceRow(invoices[2], '6.780000'),
       createExpectInvoiceRow(invoices[1], '0.000345'),
       createExpectInvoiceRow(invoices[0], '0.000001'),
@@ -69,6 +71,7 @@ describe('UserAccount Deposits', () => {
     ]
 
     const expectedInvoiceLinks = [
+      createExpectInvoiceLink(invoices[4]),
       createExpectInvoiceLink(invoices[2]),
       createExpectInvoiceLink(invoices[1]),
       createExpectInvoiceLink(invoices[0]),
@@ -115,7 +118,7 @@ describe('UserAccount Deposits', () => {
     allTargets.should.deep.equal(['_blank', '_blank'])
   })
 
-  it('request address request fails', async () => {
+  it('address request fails', async () => {
     walletMock.addMockFor(getAddressReq('btc'), errorRes)
     walletMock.addMockFor(getInvoicesReq('btc'), getInvoicesResOk([]))
 
