@@ -1,3 +1,7 @@
+const { promisify } = require('util')
+
+const timeoutPromise = promisify(setTimeout)
+
 const {
   dbconnection: { ObjectId, collection },
   wsmessages: { withAction }
@@ -11,16 +15,23 @@ describe('UserAccount balance', () => {
   const balanceColl = collection('balances')
 
   before(async () => {
-    await dropTestDatabase()
-    await seedTestData();
     ({ useragent, walletMock, sessionMock } = await orchestrator.start({ authenticatedAgent: true }))
   })
   after(() => orchestrator.stop())
+
+  beforeEach(async () => {
+    await dropTestDatabase()
+    await seedTestData()
+  })
   beforeEach(() => walletMock.reset())
 
   const getBalancePage = async () => orchestrator.withHtml(await useragent.get('/balance'))
-
   const assertBalance = (symbol, balance, res) => res.html.$(`[data-balance="${symbol}"]`).text().should.equal(balance)
+
+  const insertTestUserBalance = btcAmount => balanceColl.insertMany([
+    { _id: { userId: ObjectId(orchestrator.testUserId), symbol: 'btc' }, amount: btcAmount },
+    { _id: { userId: ObjectId(orchestrator.testUserId), symbol: 'not-supported' }, amount: '123' }
+  ])
 
   it('user without balance-record', async () => {
     const res = await getBalancePage()
@@ -30,12 +41,8 @@ describe('UserAccount balance', () => {
   })
 
   it('existing user with balance', async () => {
-    await balanceColl.insertOne({
-      _id: ObjectId(orchestrator.testUserId),
-      assets: [
-        { symbol: 'btc', amount: '922337203685477587' }
-      ]
-    })
+    await insertTestUserBalance('922337203685477587')
+
     const res = await getBalancePage()
     res.html.pageTitle().should.equal('mex balances')
     assertBalance('btc', '9223372036.85477587', res)
@@ -61,34 +68,52 @@ describe('UserAccount balance', () => {
     assertActionLinks('eth', withdrawText, withdrawHref('eth'))
   })
 
-  xit('update balance with 1 confirmation required', async () => {
+  const waitForBalanceRecord = async (rawUserId, symbol, amount, retry = 5) => {
+    if (retry <= 0) { throw Error(`retries exceeded waiting for: ${rawUserId} - ${symbol} - ${amount}`) }
+    const balance = await balanceColl.findOne({ _id: { userId: ObjectId(rawUserId), symbol }, amount })
+    if (!balance) {
+      await timeoutPromise(5)
+      return waitForBalanceRecord(rawUserId, symbol, amount, --retry)
+    }
+    return balance
+  }
+
+  it('update balance with 1 confirmation required', async () => {
+    await insertTestUserBalance('100000000')
     const symbol = 'btc'
-    const userId = '123456789abcdeabcde01234'
+    const newUserId = 'abcdeabcdabcdeabcdeabcde'
     const verifyMessages = withAction('verify')
     const verifyRequest = orchestrator.withJwtMessages(verifyMessages.build())
-    const verifyResponse = verifyMessages.ok({ user: { id: userId } })
+    const verifyResponse = verifyMessages.ok({ user: { id: newUserId } })
     sessionMock.reset()
     sessionMock.addMockFor(verifyRequest, verifyResponse)
 
     const unconfirmedMessage = {
       blockheight: 381,
       invoices: [
-        { userId, symbol, invoiceId: '123', date: '2019-12-26T08:48:21.615Z', amount: '84375244', blockheight: null }
+        { userId: newUserId, symbol, invoiceId: '123', date: 'irrelevant', amount: '77777777', blockheight: null }
       ]
     }
     const confirmedMessage = {
       blockheight: 382,
       invoices: [
-        { userId, symbol, invoiceId: '123', date: '2019-12-26T09:27:43.106Z', amount: '84375244', blockheight: 382 },
-        { userId: orchestrator.testUserId, symbol, invoiceId: '124', date: '2019-12-26T09:27:43.106Z', amount: '111111111', blockheight: 382 }
+        { userId: newUserId, symbol, invoiceId: '123', date: 'irrelevant', amount: '77777777', blockheight: 382 },
+        { userId: orchestrator.testUserId, symbol, invoiceId: '124', date: 'irrelevant', amount: '111111111', blockheight: 382 },
+        { userId: newUserId, symbol, invoiceId: '125', date: 'irrelevant', amount: '22222222', blockheight: 382 },
+        { userId: orchestrator.testUserId, symbol, invoiceId: '126', date: 'irrelevant', amount: '33333333', blockheight: 382 }
       ]
     }
 
     await walletMock.broadcast('invoices', unconfirmedMessage)
+    await timeoutPromise(20)
     assertBalance(symbol, '0.00000000', await getBalancePage())
 
     await walletMock.broadcast('invoices', confirmedMessage)
-    assertBalance(symbol, '0.84375244', await getBalancePage())
+    await waitForBalanceRecord(orchestrator.testUserId, symbol, '244444444')
+
+    const newUserBtc = await balanceColl.findOne({ '_id.userId': ObjectId(newUserId), '_id.symbol': symbol })
+    newUserBtc.amount.should.equal('99999999')
+    assertBalance(symbol, '0.99999999', await getBalancePage())
   })
 
   // it('update balance with > 1 confirmations required', async () => {

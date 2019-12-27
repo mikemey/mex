@@ -1,17 +1,20 @@
 [
   {
     "_id": {
-      "$oid": "5de363fbd0f61042035dc603"
-    },
-    "assets": [
-      {
-        "symbol": "btc",
-        "amount": "123400000"
+      "userId": {
+        "$oid": "5de363fbd0f61042035dc603"
       },
-      {
-        "symbol": "eth",
-        "amount": "12000"
-      }
-    ]
+      "symbol": "btc"
+    },
+    "amount": "123400000"
+  },
+  {
+    "_id": {
+      "userId": {
+        "$oid": "5de363fbd0f61042035dc603"
+      },
+      "symbol": "eth"
+    },
+    "amount": "12000"
   }
 ]

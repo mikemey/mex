@@ -14,7 +14,7 @@
   },
   "eth": {
     "hrname": "Ethereum",
-    "confirmations": 2,
+    "confirmations": 12,
     "unit": {
       "hrfractions": 6,
       "fractions": 9,
