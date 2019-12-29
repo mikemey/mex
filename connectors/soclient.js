@@ -14,48 +14,82 @@ const SocketClient = (config, logCategory) => {
   Validator.oneTimeValidation(configSchema, config)
   if (!logCategory) { throw Error('logCategory required') }
 
-  const logger = Logger(logCategory)
-  const client = new Dealer()
-  const messageHandlers = new Map()
+  const clientConfig = {
+    connectTimeout: config.timeout,
+    sendTimeout: config.timeout,
+    receiveTimeout: config.timeout,
+    linger: 0
+  }
 
-  const start = async () => {
+  let client = null
+  const logger = Logger(logCategory)
+  const messageHandler = new Map()
+
+  const start = () => {
+    client = new Dealer(clientConfig)
+    client.events.on('handshake:error:auth', ({ error }) => {
+      logger.info('authentication error:', error.message)
+      stop(error)
+    })
+
     client.plainUsername = connectionUser
     client.plainPassword = config.authToken
 
-    // client.events.on('handshake:error:auth', data => {
-    //   logger.error('auth error:', data.address, data.error)
-    // })
     logger.info('connecting to:', config.address)
-    await client.connect(config.address)
+    client.connect(config.address)
     listenLoop()
   }
 
   const listenLoop = async () => {
-    for await (const rawmessage of client) {
-      const [mid, data] = parseMessage(rawmessage)
-      logger.debug('received:', mid, data)
-      messageHandlers.get(mid).resolve(data)
-      messageHandlers.delete(mid)
+    try {
+      logger.debug('start listen-loop')
+      for await (const rawmessage of client) {
+        const [mid, data] = parseMessage(rawmessage)
+        logger.debug('received:', mid, data)
+        messageHandler.get(mid).resolve(data)
+        messageHandler.delete(mid)
+      }
+    } catch (err) {
+      logger.info('listening error:', err.message)
+      stop(Error('disconnected'))
     }
   }
 
   const send = data => {
-    const message = createMessage(data)
-    const [mid, rawdata] = message
+    if (client === null) { start() }
     return new Promise((resolve, reject) => {
+      const message = createMessage(data)
+      const [mid, rawdata] = message
       logger.debug('sending:', mid, rawdata)
-      messageHandlers.set(mid, { resolve, reject })
-      return client.send(message)
-    }).catch(err => {
-      logger.error('sending error:', mid, err.message, err)
-      messageHandlers.get(mid).reject(new Error('disconnected'))
-      messageHandlers.delete(mid)
+
+      messageHandler.set(mid, { resolve, reject })
+      client.send(message)
+        .catch(err => {
+          logger.info('sending error:', mid, err.message)
+          stop(err)
+        })
     })
   }
 
-  const stop = () => client.close()
+  const stop = error => {
+    if (error) {
+      for (const [mid, handler] of messageHandler) {
+        logger.debug('rejecting message handler', mid)
+        handler.reject(error)
+        messageHandler.delete(mid)
+      }
+    }
+    if (client) {
+      try {
+        client.close()
+        logger.debug('socket closed')
+      } catch (err) { /* ignore closing error */ }
+    }
+    client = null
+    logger.debug('stopped')
+  }
 
-  return { start, send, stop }
+  return { send, stop }
 }
 
 module.exports = SocketClient

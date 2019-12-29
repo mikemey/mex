@@ -5,12 +5,12 @@ const setTimeoutPromise = util.promisify(setTimeout)
 const { SocketClient } = require('../connectors')
 const ServerInterceptor = require('./interceptor/soserver-interceptor')
 
-describe('mex client', () => {
+describe.only('Socket client', () => {
   const address = 'ipc:///tmp/mextest'
   const authToken = '12345678901234567890'
-  const timeout = 20
+  const timeout = 250
   const defTestConfig = { address, authToken, timeout }
-  const defaultClient = (config = defTestConfig) => SocketClient(Object.assign({}, config), 'test-client')
+  const defaultClient = (config = defTestConfig, name = 'test-client') => SocketClient(Object.assign({}, config), name)
 
   describe('configuration checks', () => {
     const checkConfigError = (errconfig, expectedMessage) => {
@@ -44,13 +44,12 @@ describe('mex client', () => {
   })
 
   describe('connection to server', () => {
-    const mockServer = ServerInterceptor(address)
+    const mockServer = ServerInterceptor(address, authToken)
     const sockClient = defaultClient()
 
-    beforeEach(() => Promise.all([sockClient.start(), mockServer.start()]))
+    beforeEach(() => mockServer.start())
     afterEach(() => Promise.all([sockClient.stop(), mockServer.stop()]))
 
-    const delay = ms => () => new Promise(resolve => setTimeout(resolve, ms))
     const message = data => { return { mid: data } }
 
     const canSendMessages = () => {
@@ -63,18 +62,13 @@ describe('mex client', () => {
     }
 
     const expectDisconnected = client => clientError(client, 'disconnected')
-    const expectTimeout = client => clientError(client, 'response timed out')
     const clientError = (client, expectedMessage) => {
       return client.send(message(`message causing: ${expectedMessage}`))
         .then(() => { throw new Error('expected Error when invoking client.send()') })
         .catch(err => err.message.should.equal(expectedMessage))
     }
 
-    it('wrong address throws Error when sending', () => expectDisconnected(
-      defaultClient({ url: 'ipc:///tmp/unknown', authToken, timeout })
-    ))
-
-    it.only('uses configured authorization key', () => sockClient.send(message(0))
+    it('uses configured authorization key', () => sockClient.send(message(0))
       .then(res => {
         res.should.deep.equal(mockServer.defaultResponse)
         mockServer.received.authTokens.should.deep.equal([
@@ -83,32 +77,52 @@ describe('mex client', () => {
       })
     )
 
+    it('can resend after stopping', () => sockClient.send(message('i_1'))
+      .then(() => sockClient.send(message('i_2')))
+      .then(() => sockClient.stop())
+      .then(() => sockClient.send(message('i_3')))
+      .then(() => mockServer.received.messages.should.have.length(3))
+    )
+
+    it('wrong address throws error when sending', () => {
+      const wrongClient = defaultClient({ address: 'ipc:///tmp/unknown', authToken, timeout }, 'wrong-address-client')
+      return expectDisconnected(wrongClient)
+        .then(wrongClient.stop)
+    })
+
+    it('wrong authToken throws error when starting', () => {
+      const wrongClient = defaultClient(
+        { address, authToken: 'YmxhYmFsYmFibGFiYWxiYWwK', timeout }, 'wrong-auth-client'
+      )
+      return clientError(wrongClient, 'Authentication failure')
+    })
+
     it('resend after server restart', () => sockClient.send(message('s 1'))
       .then(() => {
         mockServer.received.messages.should.deep.equal([message('s 1')])
         return mockServer.stop()
       })
-      // .then(delay(10))
       .then(() => mockServer.start())
       .then(canSendMessages)
     )
 
-    it('stopped server - Disconnect Error - can resend', () => mockServer.stop()
-      .then(() => expectDisconnected(sockClient))
-      .then(() => mockServer.start())
-      .then(canSendMessages)
-    )
+    it('stopped server - Disconnect Error - can resend', () => {
+      mockServer.stop()
+      return expectDisconnected(sockClient)
+        .then(() => mockServer.start())
+        .then(canSendMessages)
+    })
 
-    it('response times out - Timeout Error - does not accept old message', () => {
+    it('response times out - does not accept old message', () => {
       mockServer.interceptors.responsePromise = () => setTimeoutPromise(timeout + 5)
         .then(() => { return { delayed: 'response' } })
-      return expectTimeout(sockClient)
+      return expectDisconnected(sockClient)
         .then(canSendMessages)
     })
 
     describe('multiple clients', () => {
-      const client2 = defaultClient()
-      const client3 = defaultClient()
+      const client2 = defaultClient(defTestConfig, 'client2')
+      const client3 = defaultClient(defTestConfig, 'client3')
 
       afterEach(async () => {
         await client2.stop()
@@ -124,6 +138,7 @@ describe('mex client', () => {
         const client2Send = checkAndSend(client2, 2)
         const client3Send = checkAndSend(client3, 3)
         return sockClient.send(message(1)).then(client3Send)
+          .then(() => sockClient.stop())
           .then(() => client2.send(message(2))).then(client2Send).then(client1Send)
           .then(response => {
             response.should.deep.equal(mockServer.defaultResponse)
