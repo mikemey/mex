@@ -1,5 +1,5 @@
 const { pwhasher, TestDataSetup: { dbConfig, seedTestData, registeredUser } } = require('../test-tools')
-const { wsmessages: { OK_STATUS } } = require('../utils')
+const { messages: { OK_STATUS } } = require('../utils')
 
 const { WSClient } = require('../connectors')
 const SessionService = require('../session')

@@ -2,7 +2,7 @@ const Joi = require('@hapi/joi')
 
 const { WSServer } = require('../connectors')
 
-const { dbconnection, wsmessages, errors: { ClientError }, Validator } = require('../utils')
+const { dbconnection, messages, errors: { ClientError }, Validator } = require('../utils')
 const { createAccessService, KW_LOGIN, KW_REGISTER, KW_VERIFY, KW_REVOKE } = require('./session-access')
 
 const configSchema = Joi.object({
@@ -28,8 +28,8 @@ const verifySchema = Joi.object({
 const fullSchema = Joi.alternatives().try(verifySchema, loginRegisterSchema)
 
 const requestCheck = Validator.createCheck(fullSchema, {
-  onError: () => { throw new ClientError('invalid request', wsmessages.error('invalid request'), false) },
-  onWarning: (msg, origin) => { throw new ClientError(msg, wsmessages.withAction(origin.action).nok(msg)) }
+  onError: () => { throw new ClientError('invalid request', messages.error('invalid request'), false) },
+  onWarning: (msg, origin) => { throw new ClientError(msg, messages.withAction(origin.action).nok(msg)) }
 })
 
 const jwtExpirationSecs = 2 * 60 * 60

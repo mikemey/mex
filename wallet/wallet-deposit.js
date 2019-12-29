@@ -2,7 +2,7 @@ const utc = require('moment').utc
 
 const {
   Logger,
-  wsmessages: { withAction },
+  messages: { withAction },
   dbconnection: { collection, ObjectId }
 } = require('../utils')
 const { getChainAdapter, startAllListener } = require('./chains')

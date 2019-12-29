@@ -1,6 +1,6 @@
 const moment = require('moment')
 
-const { wsmessages: { withAction, error } } = require('../utils')
+const { messages: { withAction, error } } = require('../utils')
 
 const orchestrator = require('./useraccount.orch')
 const { TestDataSetup: { seedTestData, dropTestDatabase } } = require('../test-tools')

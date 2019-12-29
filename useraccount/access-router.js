@@ -4,7 +4,7 @@ const querystring = require('querystring')
 const Joi = require('@hapi/joi')
 
 const {
-  wsmessages: { withAction, OK_STATUS, NOK_STATUS }, Validator, Logger
+  messages: { withAction, OK_STATUS, NOK_STATUS }, Validator, Logger
 } = require('../utils')
 
 const registerSchema = Joi.object({

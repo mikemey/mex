@@ -3,7 +3,7 @@ chai.use(require('chai-http'))
 const cheerio = require('cheerio')
 
 const UserAccountService = require('../useraccount')
-const { wsmessages: { withAction } } = require('../utils')
+const { messages: { withAction } } = require('../utils')
 const { WSServerMock, pwhasher, TestDataSetup: { dbConfig } } = require('../test-tools')
 
 const authToken = 'dXNlcmFjY291bm50LXRlc3QtdG9rZW4K'

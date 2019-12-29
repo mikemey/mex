@@ -1,7 +1,7 @@
 const { Dealer } = require('zeromq')
 
 const { SocketServer, SocketClient } = require('../connectors')
-const { randomString, errors, wsmessages } = require('../utils')
+const { randomString, errors, messages } = require('../utils')
 
 describe('Socket Server', () => {
   const defServerData = { expected: {}, resolve: true, response: {}, err: null }
@@ -85,7 +85,7 @@ describe('Socket Server', () => {
       currentServerData.response = new ErrorClass(`wss impl error test ${id}`, customResponse)
       return clientMock
         .send(currentServerData.expected)
-        .then(result => result.should.deep.equal(customResponse || wsmessages.error(request)))
+        .then(result => result.should.deep.equal(customResponse || messages.error(request)))
     }
 
     it('implementation throws ClientError', () => expectErrorResponse({ id: 1 }))

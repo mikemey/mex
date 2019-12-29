@@ -1,10 +1,10 @@
 const orchestrator = require('./useraccount.orch')
-const { wsmessages } = require('../utils')
+const { messages } = require('../utils')
 const { pwhasher } = require('../test-tools')
 
 describe('UserAccount register', () => {
   let useragent, sessionMock
-  const registerAction = wsmessages.withAction('register')
+  const registerAction = messages.withAction('register')
 
   before(async () => ({ useragent, sessionMock } = await orchestrator.start()))
   after(() => orchestrator.stop())
@@ -68,7 +68,7 @@ describe('UserAccount register', () => {
 
     const backendResponseOk = registerAction.ok()
     const backendResponseNok = message => registerAction.nok(message)
-    const backendResponseError = message => wsmessages.error(message)
+    const backendResponseError = message => messages.error(message)
 
     it('post forwards to login page', () => {
       sessionMock.addMockFor(backendRequest(), backendResponseOk)

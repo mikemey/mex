@@ -1,7 +1,7 @@
 const { assetsMetadata } = require('../metadata')
 const {
   dbconnection: { collection, ObjectId },
-  wsmessages: { withAction, OK_STATUS },
+  messages: { withAction, OK_STATUS },
   Logger
 } = require('../utils')
 

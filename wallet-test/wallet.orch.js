@@ -1,6 +1,6 @@
 const WalletService = require('../wallet')
 const { WSClient } = require('../connectors')
-const { wsmessages: { withAction } } = require('../utils')
+const { messages: { withAction } } = require('../utils')
 
 const { WSServerMock, TestDataSetup: { dbConfig, registeredUser } } = require('../test-tools')
 const chainsOrch = require('./chains.orch')

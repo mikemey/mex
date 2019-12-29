@@ -4,7 +4,7 @@ const timeoutPromise = promisify(setTimeout)
 
 const {
   dbconnection: { ObjectId, collection },
-  wsmessages: { withAction }
+  messages: { withAction }
 } = require('../utils')
 
 const orchestrator = require('./useraccount.orch')

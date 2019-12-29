@@ -2,7 +2,7 @@ const { Router } = require('zeromq')
 
 const Joi = require('@hapi/joi')
 
-const { Logger, Validator, wsmessages: { error, parseMessageBody, createMessageBody } } = require('../utils')
+const { Logger, Validator, messages: { error, parseMessageBody, createMessageBody } } = require('../utils')
 
 const configSchema = Joi.object({
   address: Joi.string().uri().required(),
@@ -57,11 +57,6 @@ class SocketServer {
           ? err.clientResponse
           : error(data)
       })
-    //  this._internalReceived(clientSocket, req))
-    //   .catch(err => {
-    //     incoming.dropConnection = err.keepConnection !== true
-    //     return wsmessages.error(incoming.msg.body)
-    //   })
   }
 
   stop () {

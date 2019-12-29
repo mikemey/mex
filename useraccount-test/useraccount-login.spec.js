@@ -1,12 +1,12 @@
 const orchestrator = require('./useraccount.orch')
-const { wsmessages } = require('../utils')
+const { messages } = require('../utils')
 const { pwhasher } = require('../test-tools')
 
 describe('UserAccount login', () => {
   let useragent
   let sessionMock
-  const loginAction = wsmessages.withAction('login')
-  const verifyAction = wsmessages.withAction('verify')
+  const loginAction = messages.withAction('login')
+  const verifyAction = messages.withAction('verify')
 
   before(async () => ({ useragent, sessionMock } = await orchestrator.start()))
   after(() => orchestrator.stop())
@@ -44,10 +44,10 @@ describe('UserAccount login', () => {
 
     const beLoginResponseOk = loginAction.ok({ jwt: dummyJwt })
     const beLoginResponseNok = message => loginAction.nok(message)
-    const beResponseError = message => wsmessages.error(message)
+    const beResponseError = message => messages.error(message)
     const beVerifyResponseOk = verifyAction.ok({ user: { email: 'test@test.com' } })
     const beVerifyResponseNok = verifyAction.nok()
-    const beVerifyResponseError = message => wsmessages.error(message)
+    const beVerifyResponseError = message => messages.error(message)
 
     describe('successful login', () => {
       beforeEach(() => sessionMock.addMockFor(beLoginRequest, beLoginResponseOk))

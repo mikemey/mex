@@ -1,7 +1,7 @@
 const { sign, verify, TokenExpiredError } = require('jsonwebtoken')
 const NodeCache = require('node-cache')
 
-const { Logger, wsmessages } = require('../utils')
+const { Logger, messages: { withAction } } = require('../utils')
 
 const { Credentials } = require('./model')
 
@@ -12,12 +12,12 @@ const KW_REGISTER = 'register'
 const KW_VERIFY = 'verify'
 const KW_REVOKE = 'revoke'
 
-const registerResponse = wsmessages.withAction(KW_REGISTER)
+const registerResponse = withAction(KW_REGISTER)
 const registerOK = registerResponse.ok()
-const loginResponse = wsmessages.withAction(KW_LOGIN)
-const verifyResponse = wsmessages.withAction(KW_VERIFY)
+const loginResponse = withAction(KW_LOGIN)
+const verifyResponse = withAction(KW_VERIFY)
 const verifyNOK = verifyResponse.nok()
-const revokeOK = wsmessages.withAction(KW_REVOKE).ok()
+const revokeOK = withAction(KW_REVOKE).ok()
 
 const authenticate = Credentials.authenticate()
 

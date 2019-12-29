@@ -2,7 +2,7 @@ const chai = require('chai')
 chai.use(require('chai-string'))
 
 const { wsClient, startService, stopService, loginTestUser, outdatedJwt, registeredUser } = require('./session-test-setup')
-const { wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS } } = require('../utils')
+const { messages: { OK_STATUS, NOK_STATUS, ERROR_STATUS } } = require('../utils')
 
 describe('SessionService verify', () => {
   let testJwt = null

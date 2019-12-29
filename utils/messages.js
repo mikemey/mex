@@ -5,10 +5,6 @@ const OK_STATUS = 'ok'
 const NOK_STATUS = 'nok'
 const ERROR_STATUS = 'error'
 
-const BROADCAST_TYPE = 'b'
-const ID_MSG_TYPE = 'm'
-const ID_MSG_BODY_IX = MESSAGE_ID_LENGTH + 1
-
 const randomMessageId = () => `<${randomString(MESSAGE_ID_LENGTH).toUpperCase()}>`
 
 const createMessage = data => [randomMessageId(), createMessageBody(data)]

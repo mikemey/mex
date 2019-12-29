@@ -1,6 +1,6 @@
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
-  wsmessages: { OK_STATUS, ERROR_STATUS },
+  messages: { OK_STATUS, ERROR_STATUS },
   dbconnection: { collection, ObjectId }
 } = require('../../utils')
 

@@ -7,7 +7,7 @@ const {
 } = require('./session-test-setup')
 
 const {
-  randomString, wsmessages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
+  randomString, messages: { OK_STATUS, NOK_STATUS, ERROR_STATUS }
 } = require('../utils')
 
 const { pwhasher } = require('../test-tools')

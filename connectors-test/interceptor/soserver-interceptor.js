@@ -1,7 +1,7 @@
 const { Router } = require('zeromq')
 const {
   Logger,
-  wsmessages: { parseMessageBody, createMessageBody, OK_STATUS }
+  messages: { parseMessageBody, createMessageBody, OK_STATUS }
 } = require('../../utils')
 
 const AuthHandler = (expectedAuthToken, receivedAuthTokens) => {

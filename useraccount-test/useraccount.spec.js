@@ -4,7 +4,7 @@ chai.use(require('chai-string'))
 const orchestrator = require('./useraccount.orch')
 const UserAccountService = require('../useraccount')
 
-const { wsmessages: { withAction } } = require('../utils')
+const { messages: { withAction } } = require('../utils')
 
 describe('UserAccountService', () => {
   let useragent

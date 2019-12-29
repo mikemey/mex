@@ -2,7 +2,7 @@ const moment = require('moment')
 
 const { TestDataSetup: { dropTestDatabase, registeredUser } } = require('../../test-tools')
 const {
-  wsmessages: { OK_STATUS },
+  messages: { OK_STATUS },
   units: { fromAmount }
 } = require('../../utils')
 
