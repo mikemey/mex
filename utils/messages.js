@@ -28,7 +28,23 @@ const withAction = action => {
   return { ok, nok, build }
 }
 
+const broadcastAddressFor = input => {
+  const proto = input.substring(0, 3)
+  switch (proto) {
+    case 'ipc': return `${input}_bc`
+    case 'tcp': {
+      const hostPortIx = input.lastIndexOf(':')
+      const socket = input.substring(0, hostPortIx)
+      const port = Number(input.substring(hostPortIx + 1))
+      return `${socket}:${port + 10}`
+    }
+    default:
+      throw Error(`unsupported protocol: "${proto}"`)
+  }
+}
+
 module.exports = {
+  broadcastAddressFor,
   randomMessageId,
   createMessage,
   parseMessage,
