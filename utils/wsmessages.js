@@ -9,45 +9,13 @@ const BROADCAST_TYPE = 'b'
 const ID_MSG_TYPE = 'm'
 const ID_MSG_BODY_IX = MESSAGE_ID_LENGTH + 1
 
-const randomMessageId = () => randomString(MESSAGE_ID_LENGTH).toUpperCase()
+const randomMessageId = () => `<${randomString(MESSAGE_ID_LENGTH).toUpperCase()}>`
 
-const createRawMessage = (messageId, messageBody) => {
-  if (messageId && messageId.constructor === String && messageId.length === MESSAGE_ID_LENGTH &&
-    messageBody && messageBody.constructor === Object) {
-    const rawBody = JSON.stringify(messageBody)
-    return `${ID_MSG_TYPE}${messageId}${rawBody}`
-  } else {
-    throw new Error(`message.id (string, len: ${MESSAGE_ID_LENGTH}) and message.body (object) required`)
-  }
-}
+const createMessage = data => [randomMessageId(), createMessageBody(data)]
+const parseMessage = raw => [raw[0].toString(), parseMessageBody(raw[1])]
 
-const createBroadcastMessage = (topic, messageBody) => {
-  if (messageBody && messageBody.constructor === Object) {
-    const rawBody = JSON.stringify(messageBody)
-    return `${BROADCAST_TYPE}${topic}${rawBody}`
-  } else {
-    throw new Error('message.body (object) required')
-  }
-}
-
-const extractMessage = rawMessage => {
-  const isBroadcast = rawMessage.slice(0, 1) === BROADCAST_TYPE
-  if (isBroadcast) {
-    const bodyIx = rawMessage.indexOf('{')
-    return {
-      isBroadcast,
-      topic: rawMessage.slice(1, bodyIx),
-      body: JSON.parse(rawMessage.slice(bodyIx)),
-      raw: rawMessage
-    }
-  }
-  return {
-    isBroadcast,
-    id: rawMessage.slice(1, ID_MSG_BODY_IX),
-    body: JSON.parse(rawMessage.slice(ID_MSG_BODY_IX)),
-    raw: rawMessage
-  }
-}
+const createMessageBody = body => JSON.stringify(body)
+const parseMessageBody = body => JSON.parse(body)
 
 const error = message => {
   return { status: ERROR_STATUS, message }
@@ -66,9 +34,10 @@ const withAction = action => {
 
 module.exports = {
   randomMessageId,
-  createRawMessage,
-  createBroadcastMessage,
-  extractMessage,
+  createMessage,
+  parseMessage,
+  createMessageBody,
+  parseMessageBody,
   withAction,
   error,
   OK_STATUS,

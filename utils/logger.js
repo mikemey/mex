@@ -13,9 +13,9 @@ const getLogLevel = () => {
   return LOG_LEVELS[levelKey].ord
 }
 
-const Logger = category => {
+const Logger = (category, logLevel = getLogLevel()) => {
   const data = {
-    currentLevel: getLogLevel()
+    currentLevel: logLevel
   }
 
   const hrcategory = `[${category}]`
@@ -23,7 +23,7 @@ const Logger = category => {
   const info = (...args) => output(LOG_LEVELS.info, ...args)
   const error = (...args) => output(LOG_LEVELS.error, ...args)
 
-  const childLogger = subcategory => Logger(`${category} ${subcategory}`)
+  const childLogger = subcategory => Logger(`${category} ${subcategory}`, data.currentLevel)
 
   const output = (level, ...args) => {
     if (skipLogLevel(level)) { return }

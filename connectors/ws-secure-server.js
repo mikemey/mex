@@ -1,7 +1,7 @@
 const Joi = require('@hapi/joi')
 
 const WSServer = require('./wsserver')
-const WSClient = require('./wsclient')
+// const WSClient = require('./wsclient')
 
 const {
   wsmessages: { error, withAction, OK_STATUS, NOK_STATUS }, Validator, errors: { ClientError }
@@ -29,8 +29,8 @@ class WSSecureServer extends WSServer {
     Validator.oneTimeValidation(configSchema, config)
     super(config.wsserver)
 
-    const sessionClientCategory = `${this.constructor.name} SessionClient`
-    this.sessionClient = new WSClient(config.sessionService, sessionClientCategory)
+    // const sessionClientCategory = `${this.constructor.name} SessionClient`
+    // this.sessionClient = new WSClient(config.sessionService, sessionClientCategory)
   }
 
   stop () {
