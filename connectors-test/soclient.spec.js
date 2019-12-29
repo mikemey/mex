@@ -5,8 +5,8 @@ const setTimeoutPromise = util.promisify(setTimeout)
 const { SocketClient } = require('../connectors')
 const ServerInterceptor = require('./interceptor/soserver-interceptor')
 
-describe.only('Socket client', () => {
-  const address = 'ipc:///tmp/mextest'
+describe('Socket client', () => {
+  const address = 'ipc:///tmp/socketclienttest'
   const authToken = '12345678901234567890'
   const timeout = 250
   const defTestConfig = { address, authToken, timeout }
