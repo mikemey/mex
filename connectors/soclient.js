@@ -10,14 +10,14 @@ const configSchema = Joi.object({
   timeout: Joi.number().min(20).max(60000).required()
 })
 
-const SocketClient = (config, logCategory) => {
-  Validator.oneTimeValidation(configSchema, config)
+const SocketClient = ({ address, authToken, timeout }, logCategory) => {
+  Validator.oneTimeValidation(configSchema, { address, authToken, timeout })
   if (!logCategory) { throw Error('logCategory required') }
 
   const clientConfig = {
-    connectTimeout: config.timeout,
-    sendTimeout: config.timeout,
-    receiveTimeout: config.timeout,
+    connectTimeout: timeout,
+    sendTimeout: timeout,
+    receiveTimeout: timeout,
     linger: 0
   }
 
@@ -25,7 +25,7 @@ const SocketClient = (config, logCategory) => {
   const logger = Logger(logCategory)
   const messageHandler = new Map()
 
-  const start = () => {
+  const connect = () => {
     client = new Dealer(clientConfig)
     client.events.on('handshake:error:auth', ({ error }) => {
       logger.info('authentication error:', error.message)
@@ -33,10 +33,10 @@ const SocketClient = (config, logCategory) => {
     })
 
     client.plainUsername = connectionUser
-    client.plainPassword = config.authToken
+    client.plainPassword = authToken
 
-    logger.info('connecting to:', config.address)
-    client.connect(config.address)
+    logger.info('connecting to:', address)
+    client.connect(address)
     listenLoop()
   }
 
@@ -56,7 +56,7 @@ const SocketClient = (config, logCategory) => {
   }
 
   const send = data => {
-    if (client === null) { start() }
+    if (client === null) { connect() }
     return new Promise((resolve, reject) => {
       const message = createMessage(data)
       const [mid, rawdata] = message
