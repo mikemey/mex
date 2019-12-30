@@ -82,7 +82,7 @@ const startAll = async () => {
 
 const spawnProcess = processdef => {
   processdef.process = childProcess.spawn(
-    'node', ['orchestrator.e2e.js', processdef.command],
+    'node', [__filename, processdef.command],
     { cwd: __dirname, detached: true }
   )
   redirectOutput(processdef.process.stdout, serviceLogger(processdef.logname))
