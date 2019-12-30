@@ -23,6 +23,16 @@ const configSchema = Joi.object({
   clientTimeout: Joi.number().min(10).max(100000).required()
 })
 
+const getVendorLinks = vendorPath => process.env.NODE_ENV === 'PROD'
+  ? {
+    scripts: ['https://code.jquery.com/jquery-3.4.1.min.js'],
+    styles: ['https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css']
+  }
+  : {
+    scripts: [`${vendorPath}/jquery-3.4.1.min.js`],
+    styles: [`${vendorPath}/bootstrap-4.4.1.min.css`]
+  }
+
 class UserAccountService extends HttpServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
@@ -64,8 +74,10 @@ class UserAccountService extends HttpServer {
     app.set('views', path.join(__dirname, '/views'))
     app.set('view engine', 'pug')
 
-    app.use(`${this.basepath}/public`, express.static(path.join(__dirname, 'public')))
+    const publicPath = `${this.basepath}/public`
+    app.use(publicPath, express.static(path.join(__dirname, 'public')))
     app.locals.basepath = this.basepath
+    app.locals.vendors = getVendorLinks(publicPath)
   }
 
   addRoutes (router) {

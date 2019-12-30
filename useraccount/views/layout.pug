@@ -5,8 +5,10 @@ html(lang='en')
     meta(charset='utf-8')
     meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
     title=`mex ${page_title}`
-    script(src=`${basepath}/public/jquery-3.4.1.min.js`)
-    link(rel="stylesheet" href=`${basepath}/public/bootstrap-4.4.1.min.css`)
+    each scriptUrl in vendors.scripts
+      script(src=scriptUrl)
+    each styleUrl in vendors.styles
+      link(rel="stylesheet" href=styleUrl)
     block htmlhead
   body
   .container-fluid.mt-4
