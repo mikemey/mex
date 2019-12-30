@@ -19,7 +19,7 @@ const ClientSocket = (ws, logger) => {
 
   const end = () => {
     try { return ws.end() } catch (err) {
-      logger.error('error while closing:', err.message)
+      logger.error('error while closing:', err)
     }
   }
 
@@ -76,13 +76,10 @@ class WSServer {
   }
 
   _removeClientSocket (ws) {
-    for (const topic in this.topicSubscriptions) {
-      removeSocketFromList(this.topicSubscriptions[topic], ws)
+    for (const topicHandler of this.topicSubscriptions.values()) {
+      removeSocketFromList(topicHandler, ws)
     }
-    const removedClientSocket = removeSocketFromList(this.clientSockets, ws)
-    if (removedClientSocket) {
-      removedClientSocket.logger.debug('client socket closed.')
-    }
+    return removeSocketFromList(this.clientSockets, ws)
   }
 
   start () {
@@ -100,7 +97,12 @@ class WSServer {
         },
         message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
         drain: ws => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
-        close: ws => this._removeClientSocket(ws)
+        close: ws => {
+          const clientSocket = this._removeClientSocket(ws)
+          if (clientSocket) {
+            clientSocket.logger.debug('socket closed.')
+          }
+        }
       }).listen(this.config.port, socket => {
         if (socket) {
           this.logger.info('listening on port', this.config.port)
@@ -170,7 +172,6 @@ class WSServer {
 
   _sendingError (clientSocket, message) {
     clientSocket.logger.error(message)
-    this._removeClientSocket(clientSocket.ws, true)
     clientSocket.end()
   }
 
@@ -200,15 +201,15 @@ class WSServer {
 
   _internalReceived (clientSocket, request) {
     if (request.action === SUBSCRIBE_ACT) {
-      return Promise.resolve(this.subscribeEvent(clientSocket, request))
+      return Promise.resolve(this._subscribeRequest(clientSocket, request))
     }
     if (request.action === UNSUBSCRIBE_ACT) {
-      return Promise.resolve(this.unsubscribeEvent(clientSocket, request))
+      return Promise.resolve(this._unsubscribeRequest(clientSocket, request))
     }
     return this.received(request)
   }
 
-  subscribeEvent (clientSocket, request) {
+  _subscribeRequest (clientSocket, request) {
     const subscriber = this.topicSubscriptions.get(request.topic)
     if (!subscriber) {
       clientSocket.logger.error('topic not available:', request.topic)
@@ -222,7 +223,7 @@ class WSServer {
     return topicSubscriptionOK
   }
 
-  unsubscribeEvent (clientSocket, request) {
+  _unsubscribeRequest (clientSocket, request) {
     const subscriber = this.topicSubscriptions.get(request.topic)
     if (subscriber) {
       const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
