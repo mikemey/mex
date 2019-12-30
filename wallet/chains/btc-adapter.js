@@ -35,14 +35,12 @@ const create = config => {
       data.currentBlockHeight = (await wallet.getBlockchainInformation()).blocks
 
       logger.debug('connect zmq socket...')
-      data.sock = new zmq.Subscriber()
+      data.sock = zmq.socket('sub')
       data.sock.connect(config.zmq)
-      data.sock.subscribe('hash');
-      (async () => {
-        for await (const [rawtopic, rawmsg] of data.sock) {
-          process(rawtopic, rawmsg)
-        }
-      })()
+      data.sock.subscribe('hash')
+      data.sock.on('message', (topic, message) => {
+        process(topic, message)
+      })
     }
 
     const process = async (rawtopic, rawmsg) => {
@@ -60,11 +58,12 @@ const create = config => {
 
     const processTransaction = async txhash => {
       let tx = null
+      logger.debug('incoming tx:', txhash)
       try {
         tx = await wallet.getTransactionByHash(txhash)
       } catch (err) {
         if (err.message === `${txhash} not found`) { return /* ignore unrelated TXs */ }
-        logger.error(err.message)
+        logger.error('getTransactionByHash error:', err.message)
         return
       }
       logger.debug('new tx:', tx.txid)
@@ -72,15 +71,22 @@ const create = config => {
     }
 
     const processBlock = async blockhash => {
-      const block = await wallet.getBlockByHash(blockhash)
+      logger.debug('incoming block:', blockhash)
+      let block
+      try {
+        block = await wallet.getBlockByHash(blockhash)
+      } catch (err) {
+        logger.error('getBlockByHash error:', err.message)
+        return
+      }
       sendBlockUpdate(block.height)
       data.currentBlockHeight = block.height
 
       const blockInvoices = block.tx
         .reduce((txInvoices, tx) => txInvoices.concat(extractInvoices(tx)), [])
-        .map(invcoice => {
-          invcoice.blockheight = block.height
-          return invcoice
+        .map(invoice => {
+          invoice.blockheight = block.height
+          return invoice
         })
       logger.info('new block height:', data.currentBlockHeight, 'hash:', blockhash, '# txs:', blockInvoices.length)
       sendInvoiceUpdate(blockInvoices)
