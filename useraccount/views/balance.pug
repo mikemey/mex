@@ -9,20 +9,20 @@ block content
 
   .table-responsive.mt-3
     table.table.table-bordered.table-sm
-      thead.thead-light
-        tr
+      thead.bg-light
+        tr.text-center
           th(scope="col") Asset
           th(scope="col") Balance
           th(scope="col" colspan=2) Actions
-      tbody
+      tbody.small
         each asset in assets
           tr
-            td(scope="row") #{asset.hrname}
-            td(data-balance=asset.symbol) #{asset.hramount}
-            td
+            td.px-3(scope="row") #{asset.hrname}
+            td.px-3(data-balance=asset.symbol) #{asset.hramount}
+            td.text-center
               if asset.symbol === 'btc'
                 a(data-deposit=asset.symbol href=asset.hrefDeposit) Deposit
               else
                 span Deposit (TBD)
-            td
+            td.text-center
               span Withdraw (TBD)

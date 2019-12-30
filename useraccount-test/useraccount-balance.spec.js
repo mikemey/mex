@@ -49,7 +49,14 @@ describe('UserAccount balance', () => {
     assertBalance('eth', '0.000000', res)
   })
 
-  it('deposit/withdraw links', async () => {
+  it('btc deposit link', async () => {
+    const res = await getBalancePage()
+    const link = res.html.$('[data-deposit="btc"]')
+    link.text().should.equal('Deposit')
+    link.attr('href').should.equal('balance/deposit/btc')
+  })
+
+  xit('deposit/withdraw links', async () => {
     const res = await getBalancePage()
     const assertActionLinks = (symbol, linkText, linkHref) => {
       const link = res.html.$(`[data-${linkText.toLowerCase()}="${symbol}"]`)

@@ -21,21 +21,21 @@ block content
 
   .table-responsive.mt-3
     table.table.table-bordered.table-sm
-      thead.thead-light
-        tr
+      thead.bg-light
+        tr.text-center
           th(scope="col") Date
           th(scope="col") Amount
           th(scope="col") Block
           th(scope="col") Invoice
-      tbody#invoices
+      tbody#invoices.small
         each invoice in invoices
           tr(data-invoice=invoice.id)
-            td(scope="row") #{invoice.hrdate}
-            td #{invoice.hramount}
-            if invoice.block.href
-              td
+            td.px-3(scope="row") #{invoice.hrdate}
+            td.px-3 #{invoice.hramount}
+            td.text-right.px-3
+              if invoice.block.href
                 a(href=invoice.block.href target='_blank')= invoice.block.id
-            else
-              td #{invoice.block.id}
-            td
+              else
+                span #{invoice.block.id}
+            td.px-3
               a(href=invoice.href target='_blank')= invoice.id
