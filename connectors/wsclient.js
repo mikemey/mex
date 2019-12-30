@@ -11,22 +11,70 @@ const configSchema = Joi.object({
 })
 
 const WS_WAIT_RETRIES = 5
+const getHrState = socketState => {
+  switch (socketState) {
+    case WebSocket.CLOSED: return 'CLOSED'
+    case WebSocket.CLOSING: return 'CLOSING'
+    case WebSocket.CONNECTING: return 'CONNECTING'
+    case WebSocket.OPEN: return 'OPEN'
+  }
+}
 
 const Waiter = (ws, reject) => {
   let retries = WS_WAIT_RETRIES
 
-  const checkStatus = (desiredState, resolve = err => { throw err }) => {
+  const checkStatus = (desiredState, resolve) => {
     if (ws.readyState === desiredState) {
       return resolve()
     }
     retries--
     if (retries > 0) {
-      setTimeout(() => checkStatus(desiredState, resolve), 10)
+      setTimeout(() => checkStatus(desiredState, resolve), 100)
     } else {
-      reject(Error(`waiting for socket state ${desiredState} exceeded retries (max: ${WS_WAIT_RETRIES})`))
+      reject(Error(`waiting for socket state ${desiredState} (${getHrState(desiredState)}) exceeded retries (max: ${WS_WAIT_RETRIES})`))
     }
   }
   return checkStatus
+}
+
+const Heartbeat = (logger, pingInterval) => {
+  const data = {
+    pingId: null,
+    pingTimeout: null
+  }
+
+  const start = ws => {
+    if (data.pingId !== null) { throw Error('previous ping-timeout not cancelled!') }
+    data.pingId = wsmessages.randomMessageId()
+
+    ws.addListener('close', cancel)
+    ws.addListener('unexpected-response', cancel)
+    ws.addListener('error', cancel)
+
+    logger.debug('starting heartbeat:', data.pingId)
+    data.pingTimeout = setInterval(() => {
+      logger.debug('sending heartbeat:', data.pingId)
+      ws.ping()
+    }, pingInterval)
+  }
+
+  const cancel = () => {
+    if (data.pingId !== null) {
+      logger.debug('clearing heartbeat:', data.pingId)
+      clearInterval(data.pingTimeout)
+      data.pingId = null
+    }
+  }
+
+  return { start, cancel }
+}
+
+const clearListeners = (ws, listeners) => {
+  if (ws !== null) {
+    for (const { event, listener } of listeners) {
+      ws.removeEventListener(event, listener)
+    }
+  }
 }
 
 class TimeoutError extends Error {
@@ -46,14 +94,17 @@ class WSClient {
     Validator.oneTimeValidation(configSchema, config)
 
     this.logger = Logger(logCategory)
+    this.ws = null
     this.wsconfig = config
+    this.heartbeat = Heartbeat(this.logger, config.pingInterval)
     this._reset()
   }
 
   _reset (callback = () => { }) {
     this.logger.debug('resetting state')
-    clearInterval(this.wsping)
-    this._clearListeners(true)
+    this.heartbeat.cancel()
+    if (this.ws !== null) { this.ws.removeAllListeners() }
+
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
     this.messageHandler = new Map()
@@ -63,9 +114,10 @@ class WSClient {
 
   _openWebsocket (resolve, reject) {
     this.logger.info('connecting to:', this.wsconfig.url)
+    const registeredListeners = []
 
     const saveEnding = (endCb, ...args) => {
-      this._clearListeners()
+      clearListeners(this.ws, registeredListeners)
       this.logger.debug(...args)
       endCb()
     }
@@ -75,10 +127,14 @@ class WSClient {
     )
 
     this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
-    this.ws.prependOnceListener('open', () => {
+    const prependOnceListener = (event, listener) => {
+      this.ws.prependOnceListener(event, listener)
+      registeredListeners.push({ event, listener })
+    }
+
+    prependOnceListener('open', () => {
       connectTimeout.cancel()
-      clearInterval(this.wsping)
-      this.wsping = setInterval(() => this.ws.ping(), this.wsconfig.pingInterval)
+      this.heartbeat.start(this.ws)
       saveEnding(resolve, 'connection established')
     })
 
@@ -93,11 +149,11 @@ class WSClient {
 
     const closedown = error => {
       connectTimeout.cancel()
-      saveEnding(() => reject(error), 'connection error:', error)
+      saveEnding(() => reject(error), 'connection error:', error.message)
     }
-    this.ws.prependOnceListener('close', closedown)
-    this.ws.prependOnceListener('error', closedown)
-    this.ws.prependOnceListener('unexpected-response', () => closedown(Error('unexpected-response')))
+    prependOnceListener('close', closedown)
+    prependOnceListener('error', closedown)
+    prependOnceListener('unexpected-response', () => closedown(Error('unexpected-response')))
   }
 
   send (request) {
@@ -156,9 +212,10 @@ class WSClient {
 
   _requestResponse (request, resolve, reject) {
     const sendingId = wsmessages.randomMessageId()
+    const registeredListeners = []
 
     const saveEnding = (func, obj, logFunc, ...logArgs) => {
-      this._clearListeners()
+      clearListeners(this.ws, registeredListeners)
       this.messageHandler.delete(sendingId)
       logFunc(...logArgs)
       func(obj)
@@ -177,9 +234,14 @@ class WSClient {
       responseTimeout.cancel()
       saveEnding(resolve, message.body, this.logger.debug, 'received:', `<${message.id}>`, message.body)
     })
-    this.ws.prependOnceListener('close', () => saveReject(new TimeoutError('remote socket closed'), 'requestResponse close'))
-    this.ws.prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
-    this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
+
+    const prependOnceListener = (event, listener) => {
+      this.ws.prependOnceListener(event, listener)
+      registeredListeners.push({ event, listener })
+    }
+    prependOnceListener('close', () => saveReject(new TimeoutError('remote socket closed'), 'requestResponse close'))
+    prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
+    prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
 
     this.logger.debug('sending:', `<${sendingId}>`, request)
     this.ws.send(wsmessages.createRawMessage(sendingId, request), err => err
@@ -216,19 +278,6 @@ class WSClient {
       clearTimeout(timeout)
     }
     return { cancel }
-  }
-
-  _clearListeners (all = false) {
-    if (this.ws != null) {
-      this.ws.removeAllListeners('open')
-      this.ws.removeAllListeners('close')
-      this.ws.removeAllListeners('error')
-      this.ws.removeAllListeners('unexpected-response')
-      this.ws.removeAllListeners('close')
-      if (all) {
-        this.ws.removeAllListeners('message')
-      }
-    }
   }
 }
 
