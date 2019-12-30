@@ -1,7 +1,7 @@
 const { promisify } = require('util')
 
 const { WSServer, WSClient } = require('../connectors')
-// const { wsmessages: { ERROR_STATUS } } = require('../utils')
+const { wsmessages: { ERROR_STATUS } } = require('../utils')
 
 const pause = promisify(setTimeout)
 
@@ -42,10 +42,10 @@ describe('Real WSServer + WSClient', () => {
 
   describe('multiple clients', () => {
     it('send/receive messages + broadcast', () => {
-      const client1 = createClient({ authToken: authorizedTokens[0], logCategory: 'c1' })
-      const client2 = createClient({ authToken: authorizedTokens[1], logCategory: 'c1' })
-      const client3 = createClient({ authToken: authorizedTokens[2], logCategory: 'c1' })
-      const client4 = createClient({ authToken: authorizedTokens[0], logCategory: 'c1' })
+      const client1 = createClient({ authToken: authorizedTokens[0], logCategory: 'client1' })
+      const client2 = createClient({ authToken: authorizedTokens[1], logCategory: 'client2' })
+      const client3 = createClient({ authToken: authorizedTokens[2], logCategory: 'client3' })
+      const client4 = createClient({ authToken: authorizedTokens[0], logCategory: 'client4' })
 
       const subscribeReceived = client => (topic, message) => {
         client.broadcastReceived.push(Object.assign({ topic }, message))
@@ -174,27 +174,30 @@ describe('Real WSServer + WSClient', () => {
       .catch(err => err.message.should.equal('invalid topic name [t{2]'))
     )
 
-    // it.only('re-subscribes when server closes connection', async () => {
-    //   wsserver.offerTopics('t1')
-    //   wsserver.received = _ => { throw Error('disconnect') }
+    xit('re-subscribes when server connection closed', async () => {
+      wsserver.offerTopics('t1')
+      wsserver.received = _ => { throw Error('test-error') }
 
-    //   const received = {}
-    //   const sendMessage = { any: 'thing' }
-    //   const broadcastMessage = { test: 'message' }
-    //   await wsclient.subscribe('t1', (topic, message) => {
-    //     received.topic = topic
-    //     received.message = message
-    //   })
+      const received = {}
+      const sendMessage = { any: 'thing' }
+      const broadcastMessage = { test: 'message' }
+      await wsclient.subscribe('t1', (topic, message) => {
+        received.topic = topic
+        received.message = message
+      })
 
-    //   const serverError = await wsclient.send(sendMessage)
-    //   serverError.status.should.equal(ERROR_STATUS)
-    //   wsserver.received = request => Promise.resolve(request)
+      const serverError = await wsclient.send(sendMessage)
+      serverError.status.should.equal(ERROR_STATUS)
+      wsserver.received = request => Promise.resolve(request)
 
-    //   const regularResp = await wsclient.send(sendMessage)
-    //   regularResp.should.deep.equal(sendMessage)
-    //   await wsserver.broadcast('t1', broadcastMessage)
-    //   await pause(10)
-    //   received.should.deep.equal({ topic: 't1', message: broadcastMessage })
-    // })
+      console.log('--- before resending')
+      const regularResp = await wsclient.send(sendMessage)
+      regularResp.should.deep.equal(sendMessage)
+      console.log('--- after resending')
+      await wsserver.broadcast('t1', broadcastMessage)
+      await pause(4)
+      console.log('--- after broadcast')
+      received.should.deep.equal({ topic: 't1', message: broadcastMessage })
+    })
   })
 })
