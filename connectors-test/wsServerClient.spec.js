@@ -1,6 +1,7 @@
-const { WSServer, WSClient } = require('../connectors')
-
 const { promisify } = require('util')
+
+const { WSServer, WSClient } = require('../connectors')
+// const { wsmessages: { ERROR_STATUS } } = require('../utils')
 
 const pause = promisify(setTimeout)
 
@@ -30,15 +31,21 @@ describe('Real WSServer + WSClient', () => {
   }
 
   before(() => wsserver.start())
-  beforeEach(() => { serverReceived = [] })
+  beforeEach(() => {
+    serverReceived = []
+    wsserver.received = request => {
+      serverReceived.push(request)
+      return Promise.resolve(request)
+    }
+  })
   after(() => wsserver.stop())
 
   describe('multiple clients', () => {
     it('send/receive messages + broadcast', () => {
-      const client1 = createClient({ authToken: authorizedTokens[0] })
-      const client2 = createClient({ authToken: authorizedTokens[1] })
-      const client3 = createClient({ authToken: authorizedTokens[2] })
-      const client4 = createClient({ authToken: authorizedTokens[0] })
+      const client1 = createClient({ authToken: authorizedTokens[0], logCategory: 'c1' })
+      const client2 = createClient({ authToken: authorizedTokens[1], logCategory: 'c1' })
+      const client3 = createClient({ authToken: authorizedTokens[2], logCategory: 'c1' })
+      const client4 = createClient({ authToken: authorizedTokens[0], logCategory: 'c1' })
 
       const subscribeReceived = client => (topic, message) => {
         client.broadcastReceived.push(Object.assign({ topic }, message))
@@ -98,11 +105,10 @@ describe('Real WSServer + WSClient', () => {
 
       await wsserver.broadcast('t2', testMessage)
       await pause(10)
-      received.topic.should.equal('t2')
-      received.message.should.deep.equal(testMessage)
+      received.should.deep.equal({ topic: 't2', message: testMessage })
     })
 
-    it('mulitple subscribed/unsubscribed clients', async () => {
+    it('mulitple subscribed/unsubscribed requests from one client', async () => {
       const topic1 = 't1'
       const topic2 = 't2'
       wsserver.offerTopics(topic1, topic2)
@@ -111,10 +117,10 @@ describe('Real WSServer + WSClient', () => {
       await wsclient.subscribe(topic1, incrementCountOf(received.topic1))
       await wsclient.subscribe(topic2, incrementCountOf(received.topic2))
       await wsclient.subscribe(topic2, incrementCountOf(received.topic2))
-      await wsclient.subscribe(topic2, incrementCountOf(received.topic2))
 
       await wsserver.broadcast(topic1, { m: 1 })
       await wsserver.broadcast(topic2, { m: 1 })
+      await wsclient.unsubscribe(topic1)
       await wsclient.unsubscribe(topic1)
 
       await wsserver.broadcast(topic1, { m: 1 })
@@ -167,5 +173,28 @@ describe('Real WSServer + WSClient', () => {
       .then(() => { throw new Error('expected invalid topic error') })
       .catch(err => err.message.should.equal('invalid topic name [t{2]'))
     )
+
+    // it.only('re-subscribes when server closes connection', async () => {
+    //   wsserver.offerTopics('t1')
+    //   wsserver.received = _ => { throw Error('disconnect') }
+
+    //   const received = {}
+    //   const sendMessage = { any: 'thing' }
+    //   const broadcastMessage = { test: 'message' }
+    //   await wsclient.subscribe('t1', (topic, message) => {
+    //     received.topic = topic
+    //     received.message = message
+    //   })
+
+    //   const serverError = await wsclient.send(sendMessage)
+    //   serverError.status.should.equal(ERROR_STATUS)
+    //   wsserver.received = request => Promise.resolve(request)
+
+    //   const regularResp = await wsclient.send(sendMessage)
+    //   regularResp.should.deep.equal(sendMessage)
+    //   await wsserver.broadcast('t1', broadcastMessage)
+    //   await pause(10)
+    //   received.should.deep.equal({ topic: 't1', message: broadcastMessage })
+    // })
   })
 })

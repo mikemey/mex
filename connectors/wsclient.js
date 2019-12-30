@@ -56,8 +56,8 @@ class WSClient {
     this._clearListeners(true)
     this.ws = null
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
-    this.messageHandler = {}
-    this.topicHandler = {}
+    this.messageHandler = new Map()
+    this.topicHandler = new Map()
     callback()
   }
 
@@ -85,7 +85,9 @@ class WSClient {
 
     this.ws.addListener('message', raw => {
       const message = wsmessages.extractMessage(raw)
-      const handler = message.isBroadcast ? this.topicHandler[message.topic] : this.messageHandler[message.id]
+      const handler = message.isBroadcast
+        ? this.topicHandler.get(message.topic)
+        : this.messageHandler.get(message.id)
       const errorId = message.isBroadcast ? message.topic : message.id
       return handler ? handler(message) : this.logger.info('dropping received:', `<${errorId}>`)
     })
@@ -138,10 +140,10 @@ class WSClient {
   subscribe (topic, callback = (topic, message) => { }) {
     const addTopicCallback = resolve => subscriptionResponse => {
       if (subscriptionResponse.status === wsmessages.OK_STATUS) {
-        this.topicHandler[topic] = message => {
+        this.topicHandler.set(topic, message => {
           this.logger.debug('received:', `<${topic}>`, message.body)
           callback(topic, message.body)
-        }
+        })
       }
       resolve(subscriptionResponse)
     }
@@ -150,6 +152,7 @@ class WSClient {
 
   unsubscribe (topic) {
     return this._internalSend(topicUnsubscribe(topic))
+      .then(() => this.topicHandler.delete(topic))
   }
 
   _requestResponse (request, resolve, reject) {
@@ -157,7 +160,7 @@ class WSClient {
 
     const saveEnding = (func, obj, logFunc, ...logArgs) => {
       this._clearListeners()
-      delete this.messageHandler[sendingId]
+      this.messageHandler.delete(sendingId)
       logFunc(...logArgs)
       func(obj)
     }
@@ -167,17 +170,15 @@ class WSClient {
       'response timed out'
     )
 
-    const handler = message => {
-      responseTimeout.cancel()
-      saveEnding(resolve, message.body, this.logger.debug, 'received:', `<${message.id}>`, message.body)
-    }
-
     const saveReject = (err, message) => {
       responseTimeout.cancel()
       saveEnding(reject, err, this.logger.error, message)
     }
 
-    this.messageHandler[sendingId] = handler
+    this.messageHandler.set(sendingId, message => {
+      responseTimeout.cancel()
+      saveEnding(resolve, message.body, this.logger.debug, 'received:', `<${message.id}>`, message.body)
+    })
     this.ws.prependOnceListener('close', () => saveReject(new TimeoutError('remote socket closed'), 'requestResponse close'))
     this.ws.prependOnceListener('unexpected-response', err => saveReject(err, 'requestResponse unexpected-response'))
     this.ws.prependOnceListener('error', err => saveReject(err, 'requestResponse error'))
