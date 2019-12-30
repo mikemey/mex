@@ -20,6 +20,9 @@ block content
             td(scope="row") #{asset.hrname}
             td(data-balance=asset.symbol) #{asset.hramount}
             td
-              a(data-deposit=asset.symbol href=asset.hrefDeposit) Deposit
+              if asset.symbol === 'btc'
+                a(data-deposit=asset.symbol href=asset.hrefDeposit) Deposit
+              else
+                span Deposit (TBD)
             td
-              a(data-withdraw=asset.symbol href=asset.hrefWithdraw) Withdraw
+              span Withdraw (TBD)
