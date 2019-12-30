@@ -73,7 +73,7 @@ const redirectOutput = (stream, logger) => {
 const startAll = async () => {
   try {
     await chainsOrch.startNodes()
-    await PROCESS_DEFINITIONS.map(spawnProcess)
+    PROCESS_DEFINITIONS.map(spawnProcess)
   } catch (err) {
     console.log('Error starting process:', err)
     await stopAll()

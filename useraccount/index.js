@@ -44,7 +44,7 @@ class UserAccountService extends HttpServer {
       dbconnection.connect(this.dbConfig),
       this.balanceService.start(),
       super.start()
-    ]).catch(err => { this.logger.debug('start error:', err.message) })
+    ]).catch(err => { this.logger.error('start error:', err.message) })
   }
 
   stop () {
