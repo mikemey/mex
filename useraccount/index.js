@@ -51,7 +51,7 @@ class UserAccountService extends HttpServer {
   }
 
   start () {
-    return delay(50).then(() => Promise.all([
+    return delay(250).then(() => Promise.all([
       dbconnection.connect(this.dbConfig),
       this.balanceService.start(),
       super.start()
