@@ -71,8 +71,7 @@ class WSClient {
     }
 
     const connectTimeout = this._createTimeout(
-      err => saveEnding(() => reject(err), 'connecting timed out'),
-      'connecting timed out'
+      err => saveEnding(() => reject(err), 'connecting timed out'), 'connecting'
     )
 
     this.ws = new WebSocket(this.wsconfig.url, { headers: this.headers })
@@ -166,8 +165,7 @@ class WSClient {
     }
 
     const responseTimeout = this._createTimeout(
-      err => saveEnding(reject, err, this.logger.error, err.message),
-      'response timed out'
+      err => saveEnding(reject, err, this.logger.debug, err.message), 'response'
     )
 
     const saveReject = (err, message) => {
@@ -206,15 +204,15 @@ class WSClient {
     this._reset(resolve)
   }
 
-  _createTimeout (reject, message) {
-    this.logger.debug('creating timeout:', message)
+  _createTimeout (reject, name) {
+    this.logger.debug('creating timeout:', name)
     const timeout = setTimeout(() => {
-      this.logger.debug('timed out:', message)
-      reject(new TimeoutError(message))
+      this.logger.debug('timed out:', name)
+      reject(new TimeoutError(`${name} timed out`))
     }, this.wsconfig.timeout)
 
     const cancel = () => {
-      this.logger.debug('cancel timeout:', message)
+      this.logger.debug('cancel timeout:', name)
       clearTimeout(timeout)
     }
     return { cancel }
