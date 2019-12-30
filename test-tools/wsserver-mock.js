@@ -1,13 +1,13 @@
 const should = require('chai').should()
 const _ = require('underscore')
 
-const { WSServer } = require('../connectors')
+const { SocketServer } = require('../connectors')
 
-class WSServerMock extends WSServer {
+class SocketServerMock extends SocketServer {
   constructor (config, subCategory) {
     super(config)
     this.reset()
-    if (!subCategory) { throw new Error('WSServerMock requires log-subCategory') }
+    if (!subCategory) { throw new Error('SocketServerMock requires log-subCategory') }
     this.logger = this.logger.childLogger(subCategory)
   }
 
@@ -41,10 +41,10 @@ class WSServerMock extends WSServer {
     const mock = this.mockResponses.find(m => _.isEqual(m.req, request))
     if (mock) { return mock.res }
 
-    this.error = 'WSServerMock: unexpected request: ' + JSON.stringify(request) +
+    this.error = 'SocketServerMock: unexpected request: ' + JSON.stringify(request) +
       '\nMocks available:\n' + JSON.stringify(this.mockResponses)
     return Promise.resolve({})
   }
 }
 
-module.exports = WSServerMock
+module.exports = SocketServerMock

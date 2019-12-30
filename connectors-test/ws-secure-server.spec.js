@@ -1,6 +1,6 @@
 // const { WSSecureServer, WSClient } = require('../connectors')
 // const { WSServerMock } = require('../test-tools')
-// const { wsmessages: { error, withAction } } = require('../utils')
+// const { messages: { error, withAction } } = require('../utils')
 
 // describe('WSSecureServer', () => {
 //   const sessionMockToken = 'c2Vzc2lvbi1tb2NrLXRlc3R0b2tlbgo='

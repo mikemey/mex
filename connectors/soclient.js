@@ -1,7 +1,10 @@
 const { Dealer } = require('zeromq')
 const Joi = require('@hapi/joi')
 
-const { Logger, Validator, wsmessages: { createMessage, parseMessage } } = require('../utils')
+const {
+  Logger, Validator,
+  messages: { createMessage, parseMessage }
+} = require('../utils')
 const connectionUser = 'user'
 
 const configSchema = Joi.object({
@@ -27,10 +30,7 @@ const SocketClient = ({ address, authToken, timeout }, logCategory) => {
 
   const connect = () => {
     client = new Dealer(clientConfig)
-    client.events.on('handshake:error:auth', ({ error }) => {
-      logger.info('authentication error:', error.message)
-      stop(error)
-    })
+    client.events.on('handshake:error:auth', handleAuthError)
 
     client.plainUsername = connectionUser
     client.plainPassword = authToken
@@ -38,6 +38,11 @@ const SocketClient = ({ address, authToken, timeout }, logCategory) => {
     logger.info('connecting to:', address)
     client.connect(address)
     listenLoop()
+  }
+
+  const handleAuthError = ({ error }) => {
+    logger.info('authentication error:', error.message)
+    stop(error)
   }
 
   const listenLoop = async () => {
