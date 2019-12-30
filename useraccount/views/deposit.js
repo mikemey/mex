@@ -1,9 +1,11 @@
 /* global $ WebSocket */
 
 $(document).ready(() => {
-  const host = $(window.location)[0].host
+  const location = $(window.location)[0]
+  const host = location.host
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
   const path = document.getElementById('wspath').value
-  const wsurl = `ws://${host}${path}`
+  const wsurl = `${protocol}//${host}${path}`
 
   const ws = new WebSocket(wsurl)
   ws.onmessage = msg => {
