@@ -14,17 +14,31 @@ $(document).ready(() => {
   }
 })
 
-const setInvoiceEntry = ({ id, href, hrdate, hramount, block }) => {
-  const row = $(`tr[data-invoice="${id}"`)[0]
-  if (row) {
-    $(row).replaceWith(`<tr data-invoice="${id}">` +
-      `<td>${hrdate}</td><td>${hramount}</td>` +
-      `<td><a href="${block.href}" target="_blank">${block.id}</a></td>` +
-      `<td><a href="${href}" target="_blank">${id}</a></td></tr>`)
+const setInvoiceEntry = invoice => {
+  const row = $(`tr[data-invoice="${invoice.id}"`)[0]
+  if (row) { row.remove() }
+
+  const templateRow = $('tr[data-invoice="template-row"')[0]
+  const $clone = $(templateRow).clone()
+  $clone.removeClass('d-none')
+  setInvoiceIn($clone, invoice)
+  $('#invoices tr:first').before($clone)
+}
+
+const setInvoiceIn = (row, { id, href, hrdate, hramount, block }) => {
+  row.attr('data-invoice', id)
+  row.find('td:nth-child(1)').text(hrdate)
+  row.find('td:nth-child(2)').text(hramount)
+  if (block.href) {
+    row.find('td:nth-child(3) span').remove()
+    const blockAnchor = row.find('td:nth-child(3) a')
+    blockAnchor.removeClass('d-none')
+    blockAnchor.text(block.id)
+    blockAnchor.attr('href', block.href)
   } else {
-    $('#invoices tr:first').before(`<tr data-invoice="${id}">` +
-      `<td>${hrdate}</td><td>${hramount}</td>` +
-      `<td>${block.id}</td>` +
-      `<td><a href="${href}" target="_blank">${id}</a></td></tr>`)
+    row.find('td:nth-child(3) span').text(block.id)
   }
+  const txAnchor = row.find('td:nth-child(4) a')
+  txAnchor.text(id)
+  txAnchor.attr('href', href)
 }

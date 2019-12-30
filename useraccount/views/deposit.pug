@@ -28,6 +28,14 @@ block content
           th(scope="col") Block
           th(scope="col") Invoice
       tbody#invoices.small
+        tr.d-none(data-invoice='template-row')
+          td.px-3(scope="row") template
+          td.px-3 template
+          td.text-right.px-3
+            span template
+            a.d-none(href='template' target='_blank') template
+          td.px-3
+            a(href='template' target='_blank') template
         each invoice in invoices
           tr(data-invoice=invoice.id)
             td.px-3(scope="row") #{invoice.hrdate}
