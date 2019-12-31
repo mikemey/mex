@@ -84,6 +84,7 @@ const BalanceService = walletClient => {
     const balanceIds = invoices.map(({ userId, symbol }) => {
       return { _id: dbBalanceId(userId, symbol) }
     })
+    logger.debug('settle on existing balance IDs:', balanceIds)
     return updateBalances(balanceIds, invoices)
       .catch(err => {
         logger.error('error storing immediate balance update', err)
@@ -94,12 +95,11 @@ const BalanceService = walletClient => {
     const futureInvoices = invoices.map(({ userId, symbol, invoiceId, date, amount, blockheight }) => {
       return { _id: dbInvoiceId(userId, symbol, invoiceId), date, amount, blockheight }
     })
-    if (futureInvoices.length > 0) {
-      return unsettledInvoices.insertMany(futureInvoices)
-        .catch(err => {
-          logger.error('error storing unsettled invoices', err)
-        })
-    }
+    logger.debug('store invoices for later settlement:', futureInvoices.length)
+    return unsettledInvoices.insertMany(futureInvoices)
+      .catch(err => {
+        logger.error('error storing unsettled invoices', err)
+      })
   }
 
   const blockUpdate = async (_, message) => {
@@ -128,8 +128,10 @@ const BalanceService = walletClient => {
   const updateBalances = (balanceIds, invoices) => balances
     .find({ $or: balanceIds }).toArray()
     .then(existingBalances => {
+      logger.debug('existing balances:', existingBalances)
       const update = createBalanceUpdate(existingBalances, invoices)
-      logger.debug('balance updates:', update.length)
+      logger.debug('balance updates:', update)
+      logger.info('updating balances:', update.length)
       return balances.bulkWrite(update)
     })
 
