@@ -66,7 +66,6 @@ const processInvoices = async (invoicesCallback, event) => {
   logger.debug('new invoices event, received:', event.invoices.length)
   const $orClause = event.invoices.map(invoice => { return { address: invoice.address } })
   const userAddresses = await addressesColl.find({ $or: $orClause }).toArray()
-  logger.debug('relevant addresses:', userAddresses.length)
 
   const invOps = invoicesColl.initializeOrderedBulkOp()
 

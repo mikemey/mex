@@ -66,12 +66,10 @@ const create = config => {
         logger.error('getTransactionByHash error:', err.message)
         return
       }
-      logger.debug('new tx:', tx.txid)
       sendInvoiceUpdate(extractInvoices(tx))
     }
 
     const processBlock = async blockhash => {
-      logger.debug('incoming block:', blockhash)
       let block
       try {
         block = await wallet.getBlockByHash(blockhash)
