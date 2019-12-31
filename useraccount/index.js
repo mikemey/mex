@@ -14,7 +14,6 @@ const BalanceRouter = require('./balance-router')
 const BalanceService = require('./balance-service')
 
 const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
-const delay = require('util').promisify(setTimeout)
 
 const configSchema = Joi.object({
   httpserver: Joi.object().min(1).required(),
@@ -51,11 +50,11 @@ class UserAccountService extends HttpServer {
   }
 
   start () {
-    return delay(250).then(() => Promise.all([
+    return Promise.all([
       dbconnection.connect(this.dbConfig),
       this.balanceService.start(),
       super.start()
-    ]).catch(err => { this.logger.error('start error:', err.message) }))
+    ]).catch(err => { this.logger.error('start error:', err.message) })
   }
 
   stop () {

@@ -34,12 +34,15 @@ describe('Balance page', () => {
         return depositBtcPage.getDepositAddressSpan()
       })
       .then(addrElmt => { address = addrElmt.text() })
-      .then(() => cy.sendToAddress(address, '0.666'))
-      .then(() => cy.sendToAddress(address, '0.1'))
-      .then(() => cy.generateBlocksWithInfo(1))
-      .then(() => {
-        balancepage.visit()
-        balancepage.assetBalance('btc').should('have.text', '2.00000000')
-      })
+      .then(() => sendAndCheckBalance({ address, amounts: ['0.666', '0.1'], expectedBalance: '2.00000000' }))
+      .then(() => sendAndCheckBalance({ address, amounts: ['0.2231'], expectedBalance: '2.22310000' }))
   })
+
+  const sendAndCheckBalance = ({ amounts, symbol = 'btc', address, expectedBalance }) => Promise
+    .all(amounts.map(amt => cy.sendToAddress(address, amt)))
+    .then(() => cy.generateBlocksWithInfo(1))
+    .then(() => {
+      balancepage.visit()
+      balancepage.assetBalance(symbol).should('have.text', expectedBalance)
+    })
 })

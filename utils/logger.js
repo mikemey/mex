@@ -31,7 +31,7 @@ const Logger = category => {
     const [texts, errs] = args
       .filter(el => el !== undefined && el !== null)
       .reduce(([texts, errors], current) => {
-        if (current.constructor === Object) {
+        if (current.constructor === Object || Array.isArray(current)) {
           current = JSON.stringify(current)
         }
         return current instanceof Error

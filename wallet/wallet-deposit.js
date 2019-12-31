@@ -83,7 +83,9 @@ const processInvoices = async (invoicesCallback, event) => {
     logger.info('stored invoices event, created:', result.nInserted, 'updated:', result.nModified)
 
     const invoices = dbInvoices.map(toFlatInvoice)
-    invoicesCallback({ blockheight: event.blockheight, invoices })
+    const fullData = { blockheight: event.blockheight, invoices }
+    logger.debug('calling invoice-callback:', fullData)
+    invoicesCallback(fullData)
   } else {
     logger.debug('no relevant invoices in event')
   }
