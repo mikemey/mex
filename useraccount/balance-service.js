@@ -85,18 +85,20 @@ const BalanceService = walletClient => {
     const balanceQueryIds = invoices.map(({ userId, symbol }) => {
       return dbQueryById(userId, symbol)
     })
-    logger.debug('settle on existing balance ID. query:', balanceQueryIds)
-    return updateBalances(balanceQueryIds, invoices)
-      .catch(err => {
-        logger.error('error storing immediate balance update', err)
-      })
+    if (balanceQueryIds.length > 0) {
+      logger.info('invoice-update: settle on existing balance IDs. query:', balanceQueryIds)
+      return updateBalances(balanceQueryIds, invoices)
+        .catch(err => {
+          logger.error('error storing immediate balance update', err)
+        })
+    }
   }
 
   const storeForLaterSettlement = invoices => {
     const futureInvoices = invoices.map(({ userId, symbol, invoiceId, date, amount, blockheight }) => {
       return { _id: dbInvoiceId(userId, symbol, invoiceId), date, amount, blockheight }
     })
-    logger.debug('store invoices for later settlement:', futureInvoices.length)
+    logger.info('store invoices for later settlement:', futureInvoices.length)
     return unsettledInvoices.insertMany(futureInvoices)
       .catch(err => {
         logger.error('error storing unsettled invoices', err)
@@ -116,13 +118,16 @@ const BalanceService = walletClient => {
           return [balanceQueryIds, invoices]
         }, [[], []])
 
-      return updateBalances(balanceQueryIds, invoices)
-        .then(() => unsettledInvoices.deleteMany({
-          $or: unsettled.map(inv => { return { _id: inv._id } })
-        }))
-        .catch(err => {
-          logger.error('error storing block balance update', err)
-        })
+      if (balanceQueryIds.length > 0) {
+        logger.info('block-update: settle on existing balance IDs. query:', balanceQueryIds)
+        return updateBalances(balanceQueryIds, invoices)
+          .then(() => unsettledInvoices.deleteMany({
+            $or: unsettled.map(inv => { return { _id: inv._id } })
+          }))
+          .catch(err => {
+            logger.error('error storing block balance update', err)
+          })
+      }
     }
   }
 
