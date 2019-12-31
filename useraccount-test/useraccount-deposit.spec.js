@@ -38,6 +38,8 @@ describe('UserAccount Deposits', () => {
     }
   }
 
+  const isVisible = cheerio => (_, el) => !cheerio(el).hasClass('d-none')
+
   it('request address + deposit history from wallet service', async () => {
     const address = 'abccdef'
     const testSymbol = 'eth'
@@ -92,14 +94,17 @@ describe('UserAccount Deposits', () => {
       .get()
 
     const uiInvoices = $('tbody tr')
-      .map((_, el) => [extractColsFromRow(el)]) // <-- jquery's .map automatically flattens nested arrays, wtf?!
+      .filter(isVisible($))
+      .map((_, el) => [extractColsFromRow(el)]) // <-- .map automatically flattens nested arrays, wtf?!
       .get()
-    const uiLinks = $('tbody tr').map((_, tr) => {
-      const extractHrefFromCol = num => $(tr).find(`td:nth-child(${num}) a`).attr('href')
-      const block = extractHrefFromCol(3) || 'unconfirmed'
-      const tx = extractHrefFromCol(4)
-      return { block, tx }
-    }).get()
+    const uiLinks = $('tbody tr')
+      .filter(isVisible($))
+      .map((_, tr) => {
+        const extractHrefFromCol = num => $(tr).find(`td:nth-child(${num}) a`).attr('href')
+        const block = extractHrefFromCol(3) || 'unconfirmed'
+        const tx = extractHrefFromCol(4)
+        return { block, tx }
+      }).get()
 
     uiInvoices.should.deep.equal(expectedInvoiceRows)
     uiLinks.should.deep.equal(expectedInvoiceLinks)
