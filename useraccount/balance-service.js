@@ -23,6 +23,7 @@ const balances = collection('balances')
 const unsettledInvoices = collection('unsettled')
 
 const dbBalanceId = (userId, symbol) => { return { userId: ObjectId(userId), symbol } }
+const dbQueryById = (userId, symbol) => { return { '_id.userId': ObjectId(userId), '_id.symbol': symbol } }
 const dbInvoiceId = (userId, symbol, invoiceId) => { return { userId: ObjectId(userId), symbol, invoiceId } }
 
 const createBalanceUpdate = (existingBalances, newInvoices) => newInvoices
@@ -81,11 +82,11 @@ const BalanceService = walletClient => {
   }
 
   const settleImmediately = invoices => {
-    const balanceIds = invoices.map(({ userId, symbol }) => {
-      return { _id: dbBalanceId(userId, symbol) }
+    const balanceQueryIds = invoices.map(({ userId, symbol }) => {
+      return dbQueryById(userId, symbol)
     })
-    logger.debug('settle on existing balance IDs:', balanceIds)
-    return updateBalances(balanceIds, invoices)
+    logger.debug('settle on existing balance ID. query:', balanceQueryIds)
+    return updateBalances(balanceQueryIds, invoices)
       .catch(err => {
         logger.error('error storing immediate balance update', err)
       })
@@ -108,14 +109,14 @@ const BalanceService = walletClient => {
     const unsettled = await unsettledInvoices.find({ '_id.symbol': symbol, blockheight: { $lte: settleBlockheight } }).toArray()
 
     if (unsettled.length > 0) {
-      const [balanceIds, invoices] = unsettled
-        .reduce(([balanceIds, invoices], { _id: { userId, symbol }, amount }) => {
-          balanceIds.push({ _id: dbBalanceId(userId, symbol) })
+      const [balanceQueryIds, invoices] = unsettled
+        .reduce(([balanceQueryIds, invoices], { _id: { userId, symbol }, amount }) => {
+          balanceQueryIds.push(dbQueryById(userId, symbol))
           invoices.push({ userId, symbol, amount })
-          return [balanceIds, invoices]
+          return [balanceQueryIds, invoices]
         }, [[], []])
 
-      return updateBalances(balanceIds, invoices)
+      return updateBalances(balanceQueryIds, invoices)
         .then(() => unsettledInvoices.deleteMany({
           $or: unsettled.map(inv => { return { _id: inv._id } })
         }))
@@ -125,8 +126,8 @@ const BalanceService = walletClient => {
     }
   }
 
-  const updateBalances = (balanceIds, invoices) => balances
-    .find({ $or: balanceIds }).toArray()
+  const updateBalances = (balanceQueryIds, invoices) => balances
+    .find({ $or: balanceQueryIds }).toArray()
     .then(existingBalances => {
       logger.debug('existing balances:', existingBalances)
       const update = createBalanceUpdate(existingBalances, invoices)
