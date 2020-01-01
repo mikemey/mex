@@ -11,6 +11,13 @@ How far does it go:
     - exchange/trades (via websocket interface)
 - hit it hard & repeatedly with a load testing tool (e.g. artillery) to find the breaking point(s)  
 
+#### The Plan
+
+<p align="center">
+    <img src="arch-diagram.png" width="750px" />
+</p>
+
+
 ### Requirements
 
 - Node.js v13.0 (or higher)
@@ -40,11 +47,28 @@ A full configuration of all services is in `browser-test/orchestrator.e2e.js`.
 
 ### Testing
 
-- `npm test` - run all tests
-- `npm run module-test` or `./run_module_tests.sh` - run module tests only
-- `npm run e2e` - run browser tests (command-line only)
-- `npm run e2e open` - run browser tests with UI
+- `npm test` - runs all tests
+- `npm run module-test` or `./run_module_tests.sh` - runs only module tests
+- `npm run e2e` - runs browser tests (command-line only)
+- `npm run e2e open` - runs browser tests with UI
 
-### APIs
+To run module-specific tests:
+- `npm run connectors-test`
+- `npm run session-test`
+- `npm run useraccount-test`
+- `npm run utils-test`
+- `npm run wallet-test`
 
-For details see `README.md`s in each module
+### API documentation
+
+For details see `README.md` in modules:
+- [browser-test module](browser-test) - Cypress UI tests
+- [connectors module](connectors) - Websocket server/clients, Http server
+- Session service module (TBD)
+- Wallet service module (TBD)
+- Useraccount service module (TBD)
+
+#### Logging
+
+Log outputs can be configured with setting an environment variable `LOG_LEVEL`, 
+using levels: `none`, `error`, `info` (default), `http`, `debug`. 

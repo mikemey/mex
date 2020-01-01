@@ -7,7 +7,9 @@ Using [Cypress](https://github.com/cypress-io/cypress) to run UI tests against `
 `e2ehelper.sh` starts/stops all services (using `orchestrator.e2e.js`) and runs/opens cypress
 tests.
 
-##### `e2ehelper.sh`
+#### `e2ehelper.sh`
+
+Script to start/stop/run services and browser tests.
 ```
   Usage: e2ehelper.sh [ start | stop | run | open ]
 
@@ -25,7 +27,7 @@ All outputs are redirected to './browser-test/tmp.out.e2e'
 
 Service stdout/stderr streams are redirected to `tmp.out.e2e`; prefixed with the service name.
 
-##### `orchestrator.e2e.js`
+#### `orchestrator.e2e.js`
 
 Orchestrator to start/stop services:
 - start a single service directly: `node orchestrator.e2e.js [service-name]`

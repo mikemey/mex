@@ -9,10 +9,9 @@ Available implementations:
 
 ### `WSServer` in `wsserver.js`
 
-Base server implementation using WebSockets (using
-[uWebSockets.js](https://github.com/uNetworking/uWebSockets.js)). Acts as REQ/REP server
-(see [`received (request)`](#received-request)) and PUB server (see 
-[`offerTopics (...topics)`](#offerTopics-topics-void) and 
+Base server implementation using WebSockets ([uWebSockets.js](https://github.com/uNetworking/uWebSockets.js)).
+Acts as REQ/REP server (see [`received (request)`](#received-request)) 
+and PUB server (see [`offerTopics (...topics)`](#offerTopics-topics-void) and 
 [`broadcast (topic, message)`](#broadcast-topic-message-Promise)).
 
 Configured with constructor call. Request/response/broadcast messages are expected to 
@@ -47,7 +46,7 @@ incoming request `WSServer` passes the parsed request object to `received` and
 expects either an object or a `Promise` resolving to an object as return value,
 which is sent back to client: 
 
-```
+```javascript
 received (request) {
     return Promise.resolve({ server: 'response' })  
 }
@@ -191,7 +190,7 @@ Public functions of [`WSServer`](#wsserver-in-wsserverjs): `start`, `stop`, `off
 and `broadcast` work exactly as in parent class. **DO NOT** implement `received` function
 (this would disable the JWT check), instead use `secureReceived (request)`:
 
-```
+```javascript
 secureReceived (request) {
     return Promise.resolve({ server: 'response' })  
 }
@@ -220,8 +219,8 @@ If the incoming `request` can't be verified, an error response is returned witho
 
 Name              | Description               
 ----------------- | ---------------- 
-`wsserver`        | WSServer configuration (see [`WSServer` configuration](#configuration)
-`sessionService`  | WSClient configuration for `session` service (see [`WSClient` configuration](#configuration-1)
+`wsserver`        | WSServer configuration (see [`WSServer` configuration](#configuration))
+`sessionService`  | WSClient configuration for `session` service (see [`WSClient` configuration](#configuration-1))
 
 ```javascript
 const securedServer = new ExampleWSSecureServer({
