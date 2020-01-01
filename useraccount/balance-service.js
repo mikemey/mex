@@ -85,13 +85,11 @@ const BalanceService = walletClient => {
     const balanceQueryIds = invoices.map(({ userId, symbol }) => {
       return dbQueryById(userId, symbol)
     })
-    if (balanceQueryIds.length > 0) {
-      logger.info('invoice-update: settle on existing balance IDs. query:', balanceQueryIds)
-      return updateBalances(balanceQueryIds, invoices)
-        .catch(err => {
-          logger.error('error storing immediate balance update', err)
-        })
-    }
+    logger.info('invoice-update: settle on existing balance IDs. query:', balanceQueryIds)
+    return updateBalances(balanceQueryIds, invoices)
+      .catch(err => {
+        logger.error('error storing immediate balance update', err)
+      })
   }
 
   const storeForLaterSettlement = invoices => {
@@ -118,16 +116,14 @@ const BalanceService = walletClient => {
           return [balanceQueryIds, invoices]
         }, [[], []])
 
-      if (balanceQueryIds.length > 0) {
-        logger.info('block-update: settle on existing balance IDs. query:', balanceQueryIds)
-        return updateBalances(balanceQueryIds, invoices)
-          .then(() => unsettledInvoices.deleteMany({
-            $or: unsettled.map(inv => { return { _id: inv._id } })
-          }))
-          .catch(err => {
-            logger.error('error storing block balance update', err)
-          })
-      }
+      logger.info('block-update: settle on existing balance IDs. query:', balanceQueryIds)
+      return updateBalances(balanceQueryIds, invoices)
+        .then(() => unsettledInvoices.deleteMany({
+          $or: unsettled.map(inv => { return { _id: inv._id } })
+        }))
+        .catch(err => {
+          logger.error('error storing block balance update', err)
+        })
     }
   }
 
