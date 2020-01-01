@@ -51,8 +51,8 @@ const userAccountProcess = {
 }
 
 const walletProcess = {
-  command: 'wallets',
-  logname: ' wallets',
+  command: 'wallet',
+  logname: '  wallet',
   process: null,
   service: null,
   createService: () => new WalletService(walletServiceConfig)
