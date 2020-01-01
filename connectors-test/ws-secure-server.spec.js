@@ -58,7 +58,10 @@ describe('WSSecureServer', () => {
   const verifyMessages = withAction('verify')
   const verifyRequest = verifyMessages.build({ jwt: testJwt })
 
-  afterEach(() => userClient.stop().then(sessionServiceMock.errorCheck()))
+  afterEach(() => {
+    userClient.stop()
+    return sessionServiceMock.errorCheck()
+  })
 
   describe('session service running', () => {
     before(() => Promise.all([securedServer.start(), sessionServiceMock.start()]))

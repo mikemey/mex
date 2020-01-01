@@ -50,7 +50,8 @@ class SessionService extends WSServer {
   }
 
   stop () {
-    return super.stop().then(dbconnection.close)
+    super.stop()
+    return dbconnection.close()
   }
 
   received (message) {

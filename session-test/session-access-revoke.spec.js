@@ -11,17 +11,18 @@ describe('SessionService revoke', () => {
     .then(loginTestUser)
     .then(res => { testJwt = res.jwt }))
   after(stopService)
-  afterEach(() => wsClient.stop()
-    .then(clearRevokedTokenCache)
-  )
+  afterEach(() => {
+    wsClient.stop()
+    clearRevokedTokenCache()
+  })
 
   const revokeRequest = ({ jwt = testJwt, action = 'revoke' } = {}) => {
     return { action, jwt }
   }
-  const clearRevokedTokenCache = () =>
-    sessionService.accessService.revokedJwtCache.flushAll()
-  const expectRevokedTokenCacheSize = count =>
-    sessionService.accessService.revokedJwtCache.getStats().keys.should.equal(count)
+
+  const jwtCache = () => sessionService.accessService.revokedJwtCache
+  const clearRevokedTokenCache = () => jwtCache().flushAll()
+  const expectRevokedTokenCacheSize = count => jwtCache().getStats().keys.should.equal(count)
 
   const expectOkResponse = req => wsClient.send(req)
     .then(result => result.should.deep.equal({ action: 'revoke', status: OK_STATUS }))

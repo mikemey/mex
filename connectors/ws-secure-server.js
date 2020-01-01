@@ -34,7 +34,8 @@ class WSSecureServer extends WSServer {
   }
 
   stop () {
-    return this.sessionClient.stop().then(super.stop())
+    this.sessionClient.stop()
+    super.stop()
   }
 
   async received (message) {

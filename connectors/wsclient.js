@@ -100,7 +100,7 @@ class WSClient {
     this._reset()
   }
 
-  _reset (callback = () => { }) {
+  _reset () {
     this.logger.debug('resetting state')
     this.heartbeat.cancel()
     if (this.ws !== null) { this.ws.removeAllListeners() }
@@ -109,7 +109,6 @@ class WSClient {
     this.headers = { 'X-AUTH-TOKEN': this.wsconfig.authToken }
     this.messageHandler = new Map()
     this.topicHandler = new Map()
-    callback()
   }
 
   _openWebsocket (resolve, reject) {
@@ -187,7 +186,7 @@ class WSClient {
     }).catch(err => {
       this.logger.error('processing error:', err.message, err)
       const sendError = err instanceof TimeoutError ? err : new Error('disconnected')
-      this._stopSync()
+      this.stop()
       throw sendError
     })
   }
@@ -251,19 +250,15 @@ class WSClient {
   }
 
   stop () {
-    return new Promise((resolve) => this._stopSync(resolve))
-  }
-
-  _stopSync (resolve = () => { }) {
     this.logger.debug('closing connection...')
-    if (this.ws === null) return resolve()
+    if (this.ws === null) return
     try {
       this.ws.close()
       this.logger.info('stopped')
     } catch (err) {
       this.logger.error('error stopping:', err.message)
     }
-    this._reset(resolve)
+    this._reset()
   }
 
   _createTimeout (reject, name) {

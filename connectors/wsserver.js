@@ -42,7 +42,7 @@ const topicSubscriptionNOK = submsgs.nok()
 
 const unsubscribeOK = wsmessages.withAction(UNSUBSCRIBE_ACT).ok()
 
-const isInvalid = topic => topic.includes('{')
+const isInvalid = topic => topic.toString().includes('{')
 
 const removeSocketFromList = (socketList, ws) => {
   const csIndex = socketList.findIndex(c => c.ws === ws)
@@ -118,19 +118,16 @@ class WSServer {
   }
 
   stop () {
-    return new Promise(resolve => {
-      if (this.listenSocket) {
-        this.logger.debug('shutting down')
-        this.clientSockets.forEach(cs => cs.end())
-        this.clientSockets = []
-        uws.us_listen_socket_close(this.listenSocket)
-        this.listenSocket = null
-        this.logger.info('stopped')
-      } else {
-        this.logger.info('already stopped')
-      }
-      resolve()
-    })
+    if (this.listenSocket) {
+      this.logger.debug('shutting down')
+      this.clientSockets.forEach(cs => cs.end())
+      this.clientSockets = []
+      uws.us_listen_socket_close(this.listenSocket)
+      this.listenSocket = null
+      this.logger.info('stopped')
+    } else {
+      this.logger.info('already stopped')
+    }
   }
 
   _processMessage (clientSocket, buffer) {
@@ -183,7 +180,6 @@ class WSServer {
   }
 
   broadcast (topic, message) {
-    if (isInvalid(topic)) { return Promise.reject(Error(`invalid topic name [${topic}]`)) }
     const subscriber = this.topicSubscriptions.get(topic)
     if (!subscriber) {
       return Promise.reject(Error(`invalid topic [${topic}]`))
@@ -213,7 +209,7 @@ class WSServer {
     const subscriber = this.topicSubscriptions.get(request.topic)
     if (!subscriber) {
       clientSocket.logger.error('topic not available:', request.topic)
-      return Promise.resolve(topicSubscriptionNOK)
+      return topicSubscriptionNOK
     }
     const clientIx = subscriber.findIndex(subscr => subscr.ws === clientSocket.ws)
     if (clientIx < 0) {

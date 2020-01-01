@@ -52,7 +52,10 @@ describe('Websocket client', () => {
     const wsclient = defaultClient()
 
     beforeEach(() => mockServer.start())
-    afterEach(() => wsclient.stop().then(() => mockServer.stop()))
+    afterEach(() => {
+      wsclient.stop()
+      mockServer.stop()
+    })
 
     const delay = ms => () => new Promise(resolve => setTimeout(resolve, ms))
     const message = data => { return { mid: data } }

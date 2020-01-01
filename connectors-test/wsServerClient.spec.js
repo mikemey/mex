@@ -55,7 +55,7 @@ describe('Real WSServer + WSClient', () => {
       const send = (client, count) => client.send({ count }).then(res => res.should.deep.equal({ count }))
       const subscribe = (client, topic) => client.subscribe(topic, subscribeReceived(client)).then(res => res.status.should.equal('ok'))
       const broadcast = (topic, message) => wsserver.broadcast(topic, { message })
-      const stop = client => client.stop()
+      const stop = client => Promise.resolve(client.stop())
 
       return Promise
         .all([send(client1, 100), send(client2, 10), send(client3, 1)])
@@ -171,7 +171,7 @@ describe('Real WSServer + WSClient', () => {
 
     it('error when broadcast topic name contains curly braces', () => wsserver.broadcast('t{2', {})
       .then(() => { throw new Error('expected invalid topic error') })
-      .catch(err => err.message.should.equal('invalid topic name [t{2]'))
+      .catch(err => err.message.should.equal('invalid topic [t{2]'))
     )
 
     xit('re-subscribes when server connection closed', async () => {
