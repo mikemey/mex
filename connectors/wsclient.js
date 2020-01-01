@@ -206,7 +206,7 @@ class WSClient {
 
   unsubscribe (topic) {
     return this._internalSend(topicUnsubscribe(topic))
-      .then(() => this.topicHandler.delete(topic))
+      .finally(() => this.topicHandler.delete(topic))
   }
 
   _requestResponse (request, resolve, reject) {

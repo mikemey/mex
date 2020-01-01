@@ -120,7 +120,8 @@ describe('Real WSServer + WSClient', () => {
 
       await wsserver.broadcast(topic1, { m: 1 })
       await wsserver.broadcast(topic2, { m: 1 })
-      await wsclient.unsubscribe(topic1)
+      const unsubscribeRes = await wsclient.unsubscribe(topic1)
+      unsubscribeRes.should.deep.equal({ action: 'unsubscribe', status: 'ok' })
       await wsclient.unsubscribe(topic1)
 
       await wsserver.broadcast(topic1, { m: 1 })
