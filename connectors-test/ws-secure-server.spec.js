@@ -7,11 +7,11 @@ describe('WSSecureServer', () => {
   const wsSecureServerToken = 'd3Mtand0LXZlcmlmaWVyLXRlc3R0b2tlbgo='
 
   const sessionMockConfig = {
-    port: 12032, path: '/sessionmock', authorizedTokens: [sessionMockToken]
+    port: 12032, path: '/sessionmock', authTokens: [sessionMockToken]
   }
 
   const wsSecureServerConfig = {
-    wsserver: { port: 12033, path: '/jwt-checker', authorizedTokens: [wsSecureServerToken] },
+    wsserver: { port: 12033, path: '/jwt-checker', authTokens: [wsSecureServerToken] },
     sessionService: {
       url: `ws://localhost:${sessionMockConfig.port}${sessionMockConfig.path}`,
       authToken: sessionMockToken,

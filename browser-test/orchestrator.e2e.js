@@ -9,16 +9,16 @@ const { TestDataSetup: { dbConfig, seedTestData } } = require('../test-tools')
 
 const sessionServiceConfig = {
   jwtkey: 'c3VyZSB0aGlzIGlzIGEgcHJvZCBrZXkK',
-  wsserver: { path: '/session', port: 13043, authorizedTokens: ['ZTJlLXRlc3QtdG9rZW4K'] },
+  wsserver: { path: '/session', port: 13043, authTokens: ['ZTJlLXRlc3QtdG9rZW4K'] },
   db: dbConfig
 }
 
-const createClientConfig = ({ port, path, authorizedTokens: [authToken] }) => {
+const createClientConfig = ({ port, path, authTokens: [authToken] }) => {
   return { url: `ws://localhost:${port}${path}`, authToken, timeout: 2000, pingInterval: 30000 }
 }
 
 const walletServiceConfig = {
-  wsserver: { port: 13044, path: '/wallet', authorizedTokens: ['c291bmQgb2YgZGEgcG9saWNlCg=='] },
+  wsserver: { port: 13044, path: '/wallet', authTokens: ['c291bmQgb2YgZGEgcG9saWNlCg=='] },
   sessionService: createClientConfig(sessionServiceConfig.wsserver),
   chains: {
     btcnode: chainsOrch.getChainOrch('btc').defaultBtcAdapterConfig

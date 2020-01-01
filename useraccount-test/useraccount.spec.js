@@ -92,7 +92,7 @@ describe('UserAccountService', () => {
 
     const publicEndpoints = ['/version', '/login', '/register', '/unavailable']
     publicEndpoints.forEach(freePath => {
-      it(`${freePath} is available without authorization`, () => useragent.get(freePath).redirects(false)
+      it(`${freePath} is available without authentication`, () => useragent.get(freePath).redirects(false)
         .then(res => {
           res.should.have.status(200)
           res.should.have.cookie('x-session')

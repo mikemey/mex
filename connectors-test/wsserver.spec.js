@@ -26,8 +26,8 @@ describe('Websocket Server', () => {
   const path = '/wsserver-test'
   const testToken = 'dGhpc2lzYXRlc3RrZXkK'
 
-  const authorizedTokens = [testToken, 'YW5vdGhlci10ZXN0aW5nLXRva2VuCg==', 'b25lLW1vcmUtdGVzdGluZy10b2tlbgo=']
-  const wsserverConfig = { port, path, authorizedTokens }
+  const authTokens = [testToken, 'YW5vdGhlci10ZXN0aW5nLXRva2VuCg==', 'b25lLW1vcmUtdGVzdGluZy10b2tlbgo=']
+  const wsserverConfig = { port, path, authTokens }
   const wsserver = new ExampleWSServer(wsserverConfig)
 
   beforeEach(resetServerData)
@@ -139,7 +139,7 @@ describe('Websocket Server', () => {
       .finally(() => wsserver.stop())
     )
 
-    const allowedConfig = { path: '/test-123', port: 18000, authorizedTokens: ['a-token'] }
+    const allowedConfig = { path: '/test-123', port: 18000, authTokens: ['a-token'] }
     const configWith = (overwrite, expectedMessage) => {
       const errconfig = Object.assign({}, allowedConfig, overwrite)
       checkConfigError(errconfig, expectedMessage)
@@ -158,9 +158,9 @@ describe('Websocket Server', () => {
     it('path invalid', () => configWith({ path: '12345678901' }, '"path" not valid'))
     it('port required', () => configWithout('port', '"port" is required'))
     it('port not valid', () => configWith({ port: '70123' }, '"port" must be a valid port'))
-    it('authorizedTokens required', () => configWithout('authorizedTokens', '"authorizedTokens" is required'))
-    it('authorizedTokens not an array', () => configWith({ authorizedTokens: 'lala' }, '"authorizedTokens" must be an array'))
-    it('authorizedTokens contains non-string', () =>
-      configWith({ authorizedTokens: ['abcdefghijklmnopqrst', 3] }, '"authorizedTokens[1]" must be a string'))
+    it('authTokens required', () => configWithout('authTokens', '"authTokens" is required'))
+    it('authTokens not an array', () => configWith({ authTokens: 'lala' }, '"authTokens" must be an array'))
+    it('authTokens contains non-string', () =>
+      configWith({ authTokens: ['abcdefghijklmnopqrst', 3] }, '"authTokens[1]" must be a string'))
   })
 })

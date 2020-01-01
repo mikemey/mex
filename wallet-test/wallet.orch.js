@@ -7,9 +7,9 @@ const chainsOrch = require('./chains.orch')
 
 const sessionAuthToken = 'bW9jay1zZXNzaW9uLXRva2VuCg=='
 const walletAuthToken = 'd2FsbGV0LXNlcnZpY2UtdG9rZW4K'
-const sessionMockConfig = { path: '/wallet-sessionmock', port: 12600, authorizedTokens: [sessionAuthToken] }
+const sessionMockConfig = { path: '/wallet-sessionmock', port: 12600, authTokens: [sessionAuthToken] }
 
-const wsserverConfig = { port: 12043, path: '/wallet-test', authorizedTokens: [walletAuthToken] }
+const wsserverConfig = { port: 12043, path: '/wallet-test', authTokens: [walletAuthToken] }
 const walletServiceConfig = {
   wsserver: wsserverConfig,
   sessionService: {

@@ -8,7 +8,7 @@ describe('SessionService configuration', () => {
   const expectConfigError = (update, message) => {
     const config = {
       jwtkey: 'SmFzb24gTWVuZG96YQo=',
-      wsserver: { port, path, authorizedTokens: [testToken] },
+      wsserver: { port, path, authTokens: [testToken] },
       db: { url: 'mongodb://this.shouldn.t/matter', name: 'so wont this' }
     }
     update(config)

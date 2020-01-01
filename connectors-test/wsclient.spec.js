@@ -82,7 +82,7 @@ describe('Websocket client', () => {
       defaultClient({ url: `ws://localhost:${port + 1}/${path}`, authToken, timeout, pingInterval })
     ))
 
-    it('uses configured authorization key', () => wsclient.send(message(0))
+    it('uses configured authentication key', () => wsclient.send(message(0))
       .then(res => {
         res.should.deep.equal(mockServer.defaultResponse)
         mockServer.received.authTokens.should.include(authToken)

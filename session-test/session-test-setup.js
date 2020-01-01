@@ -15,7 +15,7 @@ const outdatedJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVkZTM2M2ZiZD
 
 const testConfig = {
   jwtkey: 'ZCdvaCwganVzdCBhIHRlc3RrZXkK',
-  wsserver: { port, path, authorizedTokens: [testToken] },
+  wsserver: { port, path, authTokens: [testToken] },
   db: dbConfig
 }
 const sessionService = new SessionService(testConfig)

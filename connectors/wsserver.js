@@ -6,7 +6,7 @@ const { Logger, Validator, wsmessages, randomHash } = require('../utils')
 const configSchema = Joi.object({
   port: Joi.number().port().required(),
   path: Validator.path,
-  authorizedTokens: Joi.array().items(Validator.secretToken('authorizedToken')).required()
+  authTokens: Joi.array().items(Validator.secretToken('authTokens')).required()
 })
 
 const ClientSocket = (ws, logger) => {
@@ -89,11 +89,11 @@ class WSServer {
         open: (ws, req) => {
           const clientSocket = this._createClientSocket(ws)
           const authToken = req.getHeader('x-auth-token')
-          if (!this.config.authorizedTokens.includes(authToken)) {
-            clientSocket.logger.error('authorization failed, closing socket')
+          if (!this.config.authTokens.includes(authToken)) {
+            clientSocket.logger.error('authentication failed, closing socket')
             return ws.close()
           }
-          clientSocket.logger.info('client authorized successful')
+          clientSocket.logger.info('client authentication successful')
         },
         message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
         drain: ws => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),

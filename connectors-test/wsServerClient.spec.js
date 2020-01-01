@@ -9,12 +9,12 @@ describe('Real WSServer + WSClient', () => {
   const port = 12201
   const path = '/wsserverclient'
 
-  const authorizedTokens = ['dGhpc2lzYXRlc3RrZXkK', 'YW5vdGhlci10ZXN0aW5nLXRva2VuCg==', 'b25lLW1vcmUtdGVzdGluZy10b2tlbgo=']
-  const wsserverConfig = { port, path, authorizedTokens }
+  const authTokens = ['dGhpc2lzYXRlc3RrZXkK', 'YW5vdGhlci10ZXN0aW5nLXRva2VuCg==', 'b25lLW1vcmUtdGVzdGluZy10b2tlbgo=']
+  const wsserverConfig = { port, path, authTokens }
   const wsserver = new WSServer(wsserverConfig)
   const createClient = ({
     url = `ws://localhost:${port}${path}`,
-    authToken = authorizedTokens[0],
+    authToken = authTokens[0],
     timeout = 200,
     pingInterval = 20,
     logCategory = 'ws-server-client-test'
@@ -42,10 +42,10 @@ describe('Real WSServer + WSClient', () => {
 
   describe('multiple clients', () => {
     it('send/receive messages + broadcast', () => {
-      const client1 = createClient({ authToken: authorizedTokens[0], logCategory: 'client1' })
-      const client2 = createClient({ authToken: authorizedTokens[1], logCategory: 'client2' })
-      const client3 = createClient({ authToken: authorizedTokens[2], logCategory: 'client3' })
-      const client4 = createClient({ authToken: authorizedTokens[0], logCategory: 'client4' })
+      const client1 = createClient({ authToken: authTokens[0], logCategory: 'client1' })
+      const client2 = createClient({ authToken: authTokens[1], logCategory: 'client2' })
+      const client3 = createClient({ authToken: authTokens[2], logCategory: 'client3' })
+      const client4 = createClient({ authToken: authTokens[0], logCategory: 'client4' })
 
       const subscribeReceived = client => (topic, message) => {
         client.broadcastReceived.push(Object.assign({ topic }, message))
