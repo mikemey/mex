@@ -12,7 +12,7 @@ const {
 } = require('../wallet.orch')
 
 describe('Wallet depositer - broadcast', () => {
-  const { mainWallet, faucetWallet, thirdPartyWallet, generateBlocks } = getChainOrch('btc')
+  const { mainWallet, faucetWallet, thirdPartyWallet, generateBlocksWithInfo } = getChainOrch('btc')
 
   const addressMsgs = withJwtMessages('address')
   const regUserAddressReq = (symbol = 'btc') => addressMsgs.build({ symbol })
@@ -25,7 +25,7 @@ describe('Wallet depositer - broadcast', () => {
 
   beforeEach(async () => {
     await dropTestDatabase()
-    await generateBlocks(1)
+    await generateBlocksWithInfo(1)
   })
   afterEach(() => wsClient.unsubscribe(INVOICE_TOPIC, BLOCKS_TOPIC))
 
@@ -77,7 +77,7 @@ describe('Wallet depositer - broadcast', () => {
       const userAddressRes = await wsClient.send(regUserAddressReq())
       confirmedTx._id.invoiceId = unconfirmedTx._id.invoiceId =
         await faucetWallet.sendToAddress(userAddressRes.address, amount.toDefaultUnit())
-      await generateBlocks(1)
+      await generateBlocksWithInfo(1)
     })().catch(done)
   }).timeout(10000)
 
@@ -125,7 +125,7 @@ describe('Wallet depositer - broadcast', () => {
         await faucetWallet.sendToAddress(userAddressRes.address, amount2.toDefaultUnit())
       await addOtherTransactions()
 
-      await generateBlocks(1)
+      await generateBlocksWithInfo(1)
     })().catch(done)
   }).timeout(10000)
 
@@ -164,7 +164,7 @@ describe('Wallet depositer - broadcast', () => {
 
       const userAddressRes = await wsClient.send(regUserAddressReq())
       await faucetWallet.sendToAddress(userAddressRes.address, '3.2')
-      await generateBlocks(1)
+      await generateBlocksWithInfo(1)
     })().catch(done)
   })
 })
