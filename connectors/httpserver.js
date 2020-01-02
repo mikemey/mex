@@ -52,7 +52,6 @@ const requestLogger = (suppressList, logger) => {
     : ']'
   )
   const format = ':date[iso]  http [:clientIP] :method :url [:status:redirectUrl [:res[content-length] bytes] - :response-time[0]ms :user-agent'
-
   const skip = req => suppressList.includes(req.originalUrl) || logger.skipLogLevel(LOG_LEVELS.http)
 
   return morgan(format, { skip })
@@ -72,23 +71,19 @@ class HttpServer {
   constructor (httpconfig) {
     this.server = null
     this.httpconfig = httpconfig
-    this.connections = {}
     Validator.oneTimeValidation(configSchema, this.httpconfig)
     this.logger = Logger(this.constructor.name)
   }
 
-  setupApp (_) { }
-  addRoutes (_) { throw new Error('missing addRoutes() implementation') }
+  setupApp (app) { }
+  addRoutes (pathRouter) { throw new Error('missing addRoutes() implementation') }
 
   start () {
     if (this.server !== null) { throw new Error('server already started') }
-    this.connections = {}
-
     return new Promise((resolve, reject) => {
       const server = this._createServer().listen(this.httpconfig.port, this.httpconfig.interface, () => {
         this.logger.info('started on port', server.address().port)
         this.logger.info('server version:', this.httpconfig.version)
-        this._addConnectionListeners(server)
         this.server = server
         resolve(server)
       })
@@ -119,14 +114,6 @@ class HttpServer {
     return app
   }
 
-  _addConnectionListeners (server) {
-    server.on('connection', conn => {
-      var key = `${conn.remoteAddress}:${conn.remotePort}`
-      this.connections[key] = conn
-      conn.on('close', () => delete this.connections[key])
-    })
-  }
-
   stop () {
     if (this.server === null) { return Promise.resolve() }
     return new Promise(resolve => {
@@ -137,10 +124,6 @@ class HttpServer {
         this.logger.info('server closed')
         resolve()
       })
-
-      for (const address in this.connections) {
-        this.connections[address].destroy()
-      }
     })
   }
 }
