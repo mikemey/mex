@@ -7,20 +7,22 @@ Available implementations:
 - [HttpServer](#httpserver-in-httpserverjs)
 
 
-
-### `WSServer` in `wsserver.js`
+---
+## WSServer in `wsserver.js`
 
 Base server implementation using [uWebSockets.js](https://github.com/uNetworking/uWebSockets.js).
+
 Acts as REQ/REP server (see [`received (request)`](#received-request)) 
 and PUB server (see [`offerTopics (...topics)`](#offerTopics-topics-void) and 
 [`broadcast (topic, message)`](#broadcast-topic-message-Promise)).
 
-Configured with constructor call. Request/response/broadcast messages are expected to 
-be objects (`JSON.parse`/`JSON.stringify` used for serialization).
+Configured in constructor call. Request/response/broadcast messages are expected to 
+be objects (`JSON.parse` and `JSON.stringify` used for serialization).
 
-Clients connecting need to send an authentication header `X-AUTH-TOKEN: 'auth-token-string'`.
+Clients need to send an authentication header `X-AUTH-TOKEN: 'auth-token-string'` in the
+initial connection request.
 
-#### Usage
+### Usage
 
 Extend `WSServer` class and pass a configuration object in constructor call:
 
@@ -45,7 +47,7 @@ Stops server.
 Implement `received (request) {}` function to receive requests. For an 
 incoming request `WSServer` passes the parsed request object to `received` and 
 expects either an object or a `Promise` resolving to an object as return value,
-which is sent back to client: 
+which is sent back to the requesting client: 
 
 ```javascript
 received (request) {
@@ -64,7 +66,7 @@ Broadcasts `message` to all clients subscribed to `topic`. As with the return va
 
 Returns a resolved `Promise` when all client-websockets have scheduled the `message` to be sent.
 
-#### Configuration
+### Configuration
 
 Name        | Description               | Example 
 ----------- | ----------------      | ----------------
@@ -84,8 +86,8 @@ const server = new ExampleWSServer({
 
 
 
-
-### `WSClient` in `wsclient.js`
+---
+## WSClient in `wsclient.js`
 
 Websocket client implementation for `WSServer` (using Node.js `'ws'` package). Sends 
 requests/receives server responses and can subscribe to broadcast messages.
@@ -100,7 +102,7 @@ All public functions `send`, `subscribe` and `unsubscribe` return a rejected Pro
 connecting/sending timeouts (`TimeoutError`) or a generic `Error('disconnected')` for
 any other failure case. In these cases the connection will be closed quietly.
 
-#### Usage
+### Usage
 
 Create an instance with a configuration object and a name for logging:
 
@@ -148,7 +150,7 @@ for each topic:
 [ { status: 'ok', action: 'unsubscribe' } ]
 ```
 
-#### Configuration
+### Configuration
 
 Name         |        Description               | Example 
 ------------ | -------------------------------- | ----------------
@@ -164,8 +166,8 @@ Name         |        Description               | Example
 
 
 
-
-### `WSSecureServer` in `ws-secure-server.js`
+---
+## WSSecureServer in `ws-secure-server.js`
 
 Extension of [`WSServer`](#wsserver-in-wsserverjs), adds additional JWT check for incoming requests.
 All requests are checked for a JWT token and sent to a `session` service for verification before 
@@ -175,7 +177,7 @@ if successful verification.
 Requires additional configuration for connecting to `session` service.
 
 
-#### Usage
+### Usage
 
 Similarly to `WSServer`, extend `WSSecureServer` class and pass a configuration object in constructor call:
 
@@ -217,7 +219,7 @@ If the incoming `request` can't be verified, an error response is returned witho
 { status: 'error', message: 'session-service user unavailable' }
 ``` 
 
-#### Configuration
+### Configuration
 
 Name              | Description               
 ----------------- | ---------------- 
@@ -241,8 +243,8 @@ const securedServer = new ExampleWSSecureServer({
 
 
 
-
-### `HttpServer` in `httpserver.js`
+---
+## HttpServer in `httpserver.js`
 
 Base http server implementation using [Express](http://expressjs.com/).
 
@@ -254,7 +256,7 @@ Setup:
 - creates `${path}/version` route responding with `${version} (server-start-date)`
 (see [configuration](#configuration-3))
 
-#### Usage
+### Usage
 
 Extend `HttpServer` class and pass a configuration object in constructor call. Implement
 
@@ -280,7 +282,7 @@ and starts listening on configured `interface`/`port`. Returns `Promise` resolvi
 ##### `stop (): Promise`
 Stops server.
 
-#### Configuration
+### Configuration
 
 Name                 | Description                      | Example 
 -------------------- | -------------------------------- | --------------------------------
