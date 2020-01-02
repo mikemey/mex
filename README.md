@@ -64,7 +64,7 @@ To run module-specific tests:
 For details see `README.md` in modules:
 - [browser-test module](browser-test) - Cypress UI tests
 - [connectors module](connectors) - Websocket server/clients, Http server
-- Session service module (TBD)
+- [Session service module](session)
 - Wallet service module (TBD)
 - Useraccount service module (TBD)
 
