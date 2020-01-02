@@ -1,7 +1,7 @@
 # mex
 
 This is a trial balloon implementation of a crypto-currency exchange service. Uses 
-websockets as service-to-service communication for improved performance (over http-requests).
+websockets as service-to-service communication protocol.
 
 #### Goals
 
@@ -34,13 +34,13 @@ if (os.platform() !== 'darwin') ...
 ```
 
 During the first test run, `wallet-test` downloads, installs and
-configures a Bitcoin regtest instance. 
+configures a Bitcoin regtest instance (in `wallet-test/chains/.regtest`) 
 
 ### Running
 
 Start all services: 
 
-`browser-test/e2ehelper.sh start` or `npm run e2e start` (which is also executes `e2ehelper.sh start`)
+`browser-test/e2ehelper.sh start` or `npm run e2e start` (which also executes `e2ehelper.sh start`)
  
 Service `useraccount` is running and accessible at `localhost:13500/uac` 
 A full configuration of all services is in `browser-test/orchestrator.e2e.js`.
