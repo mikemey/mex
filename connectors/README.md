@@ -4,6 +4,7 @@ Available implementations:
 - [WSServer](#wsserver-in-wsserverjs)
 - [WSClient](#wsclient-in-wsclientjs)
 - [WSSecureServer](#wssecureserver-in-ws-secure-serverjs)
+- [HttpServer](#httpserver-in-httpserverjs)
 
 
 
@@ -153,8 +154,8 @@ Name         |        Description               | Example
 ------------ | -------------------------------- | ----------------
 `url`          | Websocket URL of server                | `ws://localhost:1200/example-endpoint`
 `authToken`    | Authentication token <br> (base64 encoded, >= 20 chars long) | `dGhpc2lzYXRlc3RrZXkK`
-`timeout`      | Timeout (in ms) for connecting/waiting for response <br> (20 <= `timeout` <= 60000) | `2000`
-`pingInterval` | Interval (in ms) between pings <br> (20 <= `timeout` <= 100000) | `30000`
+`timeout`      | Timeout (ms) for connecting/waiting for response <br> (20 <= `timeout` <= 60000) | `2000`
+`pingInterval` | Interval (ms) between pings <br> (20 <= `timeout` <= 100000) | `30000`
 
 
 
@@ -235,4 +236,69 @@ const securedServer = new ExampleWSSecureServer({
 })
 ```
 
+
+
+
+
+
+
+### `HttpServer` in `httpserver.js`
+
+Base http server implementation using [Express](http://expressjs.com/).
+
+Setup:
+- adds request- and error-logger
+- adds cookie session middleware
+- adds csrf protection middleware
+- creates parent `path` router (using [configured](#configuration-3) `path`)
+- creates `${path}/version` route responding with `${version} (server-start-date)`
+(see [configuration](#configuration-3))
+
+#### Usage
+
+Extend `HttpServer` class and pass a configuration object in constructor call. Implement
+
+```javascript
+class HttpServerImpl extends HttpServer {
+    constructor () {
+        super(config)
+        ...
+    }
+}
+```
+
+##### `setupApp (app)`
+(Optional) Implement `setupApp` to customize express app. 
+
+##### `addRoutes (pathRouter)`
+(Required) Implement `addRoutes` to add endpoint-routes to parent `path` router (see [configuration](#configuration-3)). 
+
+##### `start (): Promise`
+Creates server (calling [`setupApp (app)`](#setupApp-app) + [`addRoutes (pathRouter)`](#addroutes-pathrouter))
+and starts listening on configured `interface`/`port`. Returns `Promise` resolving to `server` instance or rejects with error.
+
+##### `stop (): Promise`
+Stops server.
+
+#### Configuration
+
+Name                 | Description                      | Example 
+-------------------- | -------------------------------- | --------------------------------
+`secret`             | secret used for cookie session <br> (base64 encoded, >= 20 chars long) | `ZHVkZSwganVzdCBmb3IgdGhlIGRvY3MK`
+`version`            | server version (used in `${path}/version` response)    | `1.0.1`
+`interface`          | server binding interface <br> (valid IP address)        | `127.0.0.1`
+`port`               | server port (number:  0 - 65535)                | `12020`
+`path`               | base path used for all routes <br> (must match `/^\/[a-zA-Z0-9-]{2,30}$/`) | `/server-path`
+`suppressRequestLog` | (array) disable request logs for specified routes <br> (`path` is prefixed automatically) | `[ '/version' ]`
+
+```javascript
+const server = new HttpServerImpl({ 
+    secret: 'ZHVkZSwganVzdCBmb3IgdGhlIGRvY3MK',
+    version: '1.0.1',
+    path: '/server-path',
+    port: 12020,
+    interface: '127.0.0.1',
+    suppressRequestLog: [ '/version' ]
+})
+```
 
