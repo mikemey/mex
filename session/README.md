@@ -1,7 +1,7 @@
 # Session service
 
 
-Session service (based on [WSServer](../browser-test#wsserver-in-wsserverjs)); deals
+Session service (based on [WSServer](../connectors#wsserver-in-wsserverjs)); deals
 with registering users, issuing (login user), verifying and revoking JWTs.
 
 
@@ -9,7 +9,7 @@ with registering users, issuing (login user), verifying and revoking JWTs.
 
 Name         |        Description               | Example 
 ------------ | -------------------------------- | ----------------
-`wsserver`  | [Websocket server configuration](../browser-test#configuration) | see example below
+`wsserver`  | [Websocket server configuration](../connectors#configuration) | see example below
 `jwtkey`    | JWT secret to sign tokens          | `ZCdvaCwganVzdCBhIHRlc3RrZXkK`
 `db.url`    | MongoDB url         | `mongodb://127.0.0.1:27017`
 `db.name`   | MongoDB name        | `testdb`
