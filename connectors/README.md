@@ -9,7 +9,7 @@ Available implementations:
 
 ### `WSServer` in `wsserver.js`
 
-Base server implementation using WebSockets ([uWebSockets.js](https://github.com/uNetworking/uWebSockets.js)).
+Base server implementation using [uWebSockets.js](https://github.com/uNetworking/uWebSockets.js).
 Acts as REQ/REP server (see [`received (request)`](#received-request)) 
 and PUB server (see [`offerTopics (...topics)`](#offerTopics-topics-void) and 
 [`broadcast (topic, message)`](#broadcast-topic-message-Promise)).
@@ -139,11 +139,12 @@ When a broadcast message is received the given `callback` is called with the bro
 `topic` and `message` object.
 
 
-##### `unsubscribe (topic)`
+##### `unsubscribe (...topics): Promise`
 
-Unsubscribes from `topic`. Returns always an OK response (if send/receive cycle was successful):
+Unsubscribes from `topics`. Always returns an array of OK responses (if send/receive cycle was successful)
+for each topic:
 ```javascript
-{ status: 'ok', action: 'unsubscribe' }
+[ { status: 'ok', action: 'unsubscribe' } ]
 ```
 
 #### Configuration

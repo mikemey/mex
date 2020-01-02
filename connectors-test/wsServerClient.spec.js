@@ -121,7 +121,7 @@ describe('Real WSServer + WSClient', () => {
       await wsserver.broadcast(topic1, { m: 1 })
       await wsserver.broadcast(topic2, { m: 1 })
       const unsubscribeRes = await wsclient.unsubscribe(topic1)
-      unsubscribeRes.should.deep.equal({ action: 'unsubscribe', status: 'ok' })
+      unsubscribeRes.should.deep.equal([{ action: 'unsubscribe', status: 'ok' }])
       await wsclient.unsubscribe(topic1)
 
       await wsserver.broadcast(topic1, { m: 1 })
@@ -130,6 +130,21 @@ describe('Real WSServer + WSClient', () => {
       await pause(15)
       received.topic1.count.should.equal(1)
       received.topic2.count.should.equal(2)
+    })
+
+    it('mulitple unsubscribes from multiple topics', async () => {
+      const topic1 = 't1'
+      wsserver.offerTopics(topic1)
+      let counter = 0
+      await wsclient.subscribe(topic1, () => counter++)
+      await wsserver.broadcast(topic1, { m: 1 })
+
+      const unsubscribeRes = await wsclient.unsubscribe('unrelated', topic1)
+      unsubscribeRes.should.deep.equal([{ action: 'unsubscribe', status: 'ok' }, { action: 'unsubscribe', status: 'ok' }])
+      await wsserver.broadcast(topic1, { m: 1 })
+
+      await pause(15)
+      counter.should.equal(1)
     })
 
     it('ignores closed clients', async () => {

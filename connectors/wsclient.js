@@ -204,9 +204,11 @@ class WSClient {
     return this._internalSend(topicSubscription(topic), addTopicCallback)
   }
 
-  unsubscribe (topic) {
-    return this._internalSend(topicUnsubscribe(topic))
+  unsubscribe (...topics) {
+    return Promise.all(topics.map(topic => this
+      ._internalSend(topicUnsubscribe(topic))
       .finally(() => this.topicHandler.delete(topic))
+    ))
   }
 
   _requestResponse (request, resolve, reject) {
