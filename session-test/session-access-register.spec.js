@@ -52,7 +52,7 @@ describe('SessionService register', () => {
     it('duplicate user name', () => {
       const request = registerReq()
       return wsClient.send(request).then(assertRegisterOk)
-        .then(() => expectNokResponse(request, `duplicate name [${request.email}]`))
+        .then(() => expectNokResponse(request, `duplicate email [${request.email}]`))
     })
 
     it('username not an email', () => expectNokResponse(registerReq({ email: randomString(12) }), 'email invalid'))

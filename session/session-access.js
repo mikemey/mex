@@ -32,7 +32,7 @@ const createAccessService = (secretBuffer, jwtExpirationSecs) => {
     .then(() => registerOK)
     .catch(err => {
       logger.error(err.message)
-      if (isUserExists(err)) { return registerResponse.nok(`duplicate name [${message.email}]`) }
+      if (isUserExists(err)) { return registerResponse.nok(`duplicate email [${message.email}]`) }
       throw err
     })
 
