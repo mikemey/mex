@@ -32,7 +32,7 @@ describe('Registration', () => {
     loginpage.assertPageActive()
     regpage.visit()
     regpage.register(duplicate, 'abcdefgh').registerButton().click()
-    regpage.errorMsg().contains(/^duplicate name.*/)
+    regpage.errorMsg().contains(/^duplicate email.*/)
   })
 
   it('password + confirmation mismatch', () => {
