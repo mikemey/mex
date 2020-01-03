@@ -55,6 +55,7 @@ describe('Wallet depositer - broadcast', () => {
         if (expectConfirmedTxs) {
           const expectedConfirmedResponse = {
             blockheight: currentBlockHeight + 1,
+            symbol: 'btc',
             invoices: [confirmedTx].map(toExpectedInvoice)
           }
           checkDateAndRemove(expectedConfirmedResponse, message)
@@ -63,6 +64,7 @@ describe('Wallet depositer - broadcast', () => {
         } else {
           const expectedUnconfirmedResponse = {
             blockheight: currentBlockHeight,
+            symbol: 'btc',
             invoices: [unconfirmedTx].map(toExpectedInvoice)
           }
           checkDateAndRemove(expectedUnconfirmedResponse, message)
@@ -103,13 +105,21 @@ describe('Wallet depositer - broadcast', () => {
         if (callbackCount < 3) {
           const invoices = (isFirstTxFirst ? [unconfirmedTx1] : [unconfirmedTx2])
             .map(toExpectedInvoice)
-          const expectedInvoices = { blockheight: currentBlockHeight, invoices }
+          const expectedInvoices = {
+            blockheight: currentBlockHeight,
+            symbol: 'btc',
+            invoices
+          }
           checkDateAndRemove(expectedInvoices, message)
           message.should.deep.equal(expectedInvoices)
         } else {
           const invoices = (isFirstTxFirst ? [confirmedTx1, confirmedTx2] : [confirmedTx2, confirmedTx1])
             .map(toExpectedInvoice)
-          const expectedBlockInvoices = { blockheight: nextBlockHeight, invoices }
+          const expectedBlockInvoices = {
+            blockheight: nextBlockHeight,
+            symbol: 'btc',
+            invoices
+          }
           checkDateAndRemove(expectedBlockInvoices, message)
           message.should.deep.equal(expectedBlockInvoices)
           done()

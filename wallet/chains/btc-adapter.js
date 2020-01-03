@@ -100,7 +100,7 @@ const create = config => {
     }, [])
 
     const sendInvoiceUpdate = invoices => invoices.length > 0 && invoicesCallback && invoicesCallback({
-      type: 'invoices', blockheight: data.currentBlockHeight, invoices
+      type: 'invoices', blockheight: data.currentBlockHeight, symbol, invoices
     })
 
     const sendBlockUpdate = blockheight => invoicesCallback && invoicesCallback({

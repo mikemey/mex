@@ -97,12 +97,14 @@ describe('UserAccount balance', () => {
 
     const unconfirmedMessage = {
       blockheight: 381,
+      symbol: 'btc',
       invoices: [
         { userId: newUserId, symbol, invoiceId: '123', date: 'irrelevant', amount: '77777777', blockheight: null }
       ]
     }
     const confirmedMessage = {
       blockheight: 382,
+      symbol: 'btc',
       invoices: [
         { userId: newUserId, symbol, invoiceId: '123', date: 'irrelevant', amount: '77777777', blockheight: 382 },
         { userId: orchestrator.testUserId, symbol, invoiceId: '124', date: 'irrelevant', amount: '111111111', blockheight: 382 },
@@ -128,6 +130,7 @@ describe('UserAccount balance', () => {
     const otherUserId = 'abcdeabcdabcdeabcdeabcde'
     const confirmedMessage = {
       blockheight: 401,
+      symbol: 'eth',
       invoices: [
         { userId: orchestrator.testUserId, symbol, invoiceId: '200', date: 'irrelevant', amount: '1111111111', blockheight: 401 },
         { userId: orchestrator.testUserId, symbol, invoiceId: '201', date: 'irrelevant', amount: '55555555555', blockheight: 401 },
@@ -136,6 +139,7 @@ describe('UserAccount balance', () => {
     }
     const unconfirmedMessage = {
       blockheight: 402,
+      symbol: 'eth',
       invoices: [
         { userId: orchestrator.testUserId, symbol, invoiceId: '203', date: 'irrelevant', amount: '999999999999', blockheight: 402 }
       ]

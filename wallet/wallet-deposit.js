@@ -62,16 +62,16 @@ const startListening = listenerCallback => {
   })
 }
 
-const processInvoices = async (invoicesCallback, event) => {
-  logger.debug('new invoices event, received:', event.invoices.length)
-  const $orClause = event.invoices.map(invoice => { return { address: invoice.address } })
+const processInvoices = async (invoicesCallback, { blockheight, symbol, invoices }) => {
+  logger.debug('new invoices event, received:', invoices.length)
+  const $orClause = invoices.map(invoice => { return { address: invoice.address } })
   const userAddresses = await addressesColl.find({ $or: $orClause }).toArray()
 
   const invOps = invoicesColl.initializeOrderedBulkOp()
 
   const dbInvoices = userAddresses
     .reduce((allInvoices, userAddress) => {
-      const eventInvoices = event.invoices.filter(inv => inv.address === userAddress.address)
+      const eventInvoices = invoices.filter(inv => inv.address === userAddress.address)
       const dbInvoices = eventInvoices.map(invoice => addBulkOperation(invOps, invoice, userAddress))
       allInvoices.push(...dbInvoices)
       return allInvoices
@@ -82,8 +82,8 @@ const processInvoices = async (invoicesCallback, event) => {
     const result = await invOps.execute()
     logger.info('stored invoices event, created:', result.nInserted, 'updated:', result.nModified)
 
-    const invoices = dbInvoices.map(toFlatInvoice)
-    const fullData = { blockheight: event.blockheight, invoices }
+    const flatInvoices = dbInvoices.map(toFlatInvoice)
+    const fullData = { blockheight, symbol, invoices: flatInvoices }
     logger.debug('calling invoice-callback:', fullData)
     invoicesCallback(fullData)
   } else {
@@ -116,8 +116,7 @@ const toFlatInvoice = ({ _id: { userId, symbol, invoiceId }, date, amount, block
   return { userId: userId.toString(), symbol, invoiceId, date, amount, blockheight }
 }
 
-const processBlock = (blockCallback, event) => {
-  const { symbol, blockheight } = event
+const processBlock = (blockCallback, { symbol, blockheight }) => {
   return blockCallback({ symbol, blockheight })
 }
 

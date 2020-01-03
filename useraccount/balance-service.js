@@ -75,7 +75,7 @@ const BalanceService = walletClient => {
 
     const invoices = message.invoices.filter(invoice => invoice.blockheight)
     if (invoices.length > 0) {
-      return requiredConfirmations.get(invoices[0].symbol) <= 1
+      return requiredConfirmations.get(message.symbol) <= 1
         ? settleImmediately(invoices)
         : storeForLaterSettlement(invoices)
     }
