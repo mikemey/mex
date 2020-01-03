@@ -80,8 +80,4 @@ describe('Wallet depositer - general/address', () => {
     it('unkown asset', () => expectNewAddressError(req => { req.asset = 'ukn' }))
     it('additional request parameters', () => expectNewAddressError(req => { req.additional = 'param' }))
   })
-
-  describe('future tests', () => {
-    xit('ensure collection indices', async () => { })
-  })
 })

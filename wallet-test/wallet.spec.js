@@ -30,5 +30,10 @@ describe('Wallet service', () => {
         (() => new WalletService(config)).should.throw(Error, params.error)
       })
     })
+
+    xit('ensure collection indices', async () => {
+      // on addresses.address
+      // for invoices.find({ '_id.userId': ObjectId(id), '_id.symbol': symbol })
+    })
   })
 })
