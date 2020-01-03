@@ -139,7 +139,7 @@ OK/NOK subscription results:
 ```
 
 When a broadcast message is received the given `callback` is called with the broadcasted
-`topic` and `message` object.
+`topic` name and a `message` object.
 
 
 ##### `unsubscribe (...topics): Promise`
@@ -232,7 +232,7 @@ const securedServer = new ExampleWSSecureServer({
     sessionService: {
         url: 'ws://localhost:12010/session',
         authToken: 'YW5vdGhlcnRlc3RrZXkK',
-        timeout: 200,
+        timeout: 2000,
         pingInterval: 30000
     }
 })

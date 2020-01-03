@@ -42,8 +42,8 @@ Start all services:
 
 `browser-test/e2ehelper.sh start` or `npm run e2e start` (which also executes `e2ehelper.sh start`)
  
-Service `useraccount` is running and accessible at `localhost:13500/uac` 
-A full configuration of all services is in `browser-test/orchestrator.e2e.js`.
+Service `useraccount` is running and accessible at `localhost:13500/uac`. 
+Full configuration of all services is in `browser-test/orchestrator.e2e.js`.
 
 ### Testing
 
@@ -64,9 +64,15 @@ To run module-specific tests:
 For details see `README.md` in modules:
 - [browser-test module](browser-test) - Cypress UI tests
 - [connectors module](connectors) - Websocket server/clients, Http server
-- [Session service module](session)
-- Wallet service module (TBD)
+- [Session service](session)
+- [Wallet service](wallet)
 - Useraccount service module (TBD)
+
+#### Value units
+
+Values are stored/transmitted as Strings in their base-unit (see [assets definition](metadata/assets.json)),
+calculations use [BigInt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/bigint)
+(converted only when required). 
 
 #### Logging
 

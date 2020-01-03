@@ -1,16 +1,16 @@
-# Session service
+# Session service API
 
 
-Session service (based on [WSServer](../connectors#wsserver-in-wsserverjs)); deals
-with registering users, issuing (login user), verifying and revoking JWTs.
+Session service (based on [WSServer](../connectors#wsserver-in-wsserverjs))
+provides user registration + login (= issuing JWT), verifying and revoking JWTs.
 
 
 ### Configuration
 
 Name         |        Description               | Example 
 ------------ | -------------------------------- | ----------------
-`wsserver`  | [Websocket server configuration](../connectors#configuration) | see example below
-`jwtkey`    | JWT secret to sign tokens          | `ZCdvaCwganVzdCBhIHRlc3RrZXkK`
+`wsserver`  | [Websocket server configuration](../connectors#configuration) | see example
+`jwtkey`    | JWT secret for signing tokens          | `ZCdvaCwganVzdCBhIHRlc3RrZXkK`
 `db.url`    | MongoDB url         | `mongodb://127.0.0.1:27017`
 `db.name`   | MongoDB name        | `testdb`
 
@@ -31,9 +31,9 @@ const sessionService = new SessionService({
 })
 ```
 
-### Messages
+## Messages
 
-All messages are JSON objects, request messages require an `action` parameter.
+All request/response messages are objects, request messages require an `action` property.
 
 Available messages:
 
@@ -42,7 +42,7 @@ Available messages:
 - [Verify JWT](#verify-jwt)
 - [Revoke JWT](#revoke-jwt)
 
-If an `action` parameter is not recognized (must be one of `register`, `login`, `verify`, `revoke`), 
+If an `action` property is not recognized (must be one of `register`, `login`, `verify`, `revoke`), 
 service responds with:
 ```javascript
 { status: 'error', message: 'invalid request' }
@@ -52,11 +52,11 @@ service responds with:
 
 ##### Request
 
-Parameter       |        Description               | Example 
+Property       |        Description               | Example 
 ------------ | -------------------------------- | ----------------
 `action`          | `register` action                | `register` 
 `email`    | User email <br> (details: [@hapi/joi](https://hapi.dev/family/joi/?v=16.1.8#stringemailoptions), 2 domain segments required) | `test_user@email.com`
-`password`      | User password <br> (sha256 digest of plain password, hex encoded, length === 64 chars) | `a15c020c905a5d41606ccfe450d7b` `21b260b4d2b3882ec733d776f3dacb41ae6`
+`password`      | User password <br> (sha256 digest of plain password, hex encoded, length == 64 chars) | `a15c020c905a5d41606ccfe450d7b21b` `260b4d2b3882ec733d776f3dacb41ae6`
 
 Example:
 ```javascript
@@ -90,9 +90,9 @@ Example:
 
 ###### Any other error
 
-- missing `action`, `email`, `password` parameter
+- missing `action`, `email`, `password` property
 - Password not 64 characters
-- additional, unrecognized parameter
+- additional, unrecognized property
 
 ```javascript
 { status: 'error', message: 'invalid request' }
@@ -105,11 +105,11 @@ Example:
 
 ##### Request
 
-Parameter       |        Description               | Example 
+Property       |        Description               | Example 
 ------------ | -------------------------------- | ----------------
 `action`          | `login` action                | `login` 
 `email`    | User email <br> (details: [@hapi/joi](https://hapi.dev/family/joi/?v=16.1.8#stringemailoptions), 2 domain segments required) | `test_user@email.com`
-`password`      | User password <br> (sha256 digest of plain password, hex encoded, length === 64 chars) | `a15c020c905a5d41606ccfe450d7b21b` `260b4d2b3882ec733d776f3dacb41ae6`
+`password`      | User password <br> (sha256 digest of plain password, hex encoded, length == 64 chars) | `a15c020c905a5d41606ccfe450d7b21b` `260b4d2b3882ec733d776f3dacb41ae6`
 
 Example:
 ```javascript
@@ -124,7 +124,7 @@ Example:
 
 ###### Successful login
 
-Parameter       |        Description               | Example 
+Property       |        Description               | Example 
 ------------ | -------------------------------- | ----------------
 `action`      | `login` action                  | `login` 
 `status`      | `ok` response status                  | `ok` 
@@ -158,9 +158,9 @@ Parameter       |        Description               | Example
 
 ###### Any other error
 
-- missing `action`, `email`, `password` parameter
+- missing `action`, `email`, `password` property
 - Password not 64 characters
-- additional, unrecognized parameter
+- additional, unrecognized property
 
 ```javascript
 { status: 'error', message: 'invalid request' }
@@ -175,7 +175,7 @@ Parameter       |        Description               | Example
 
 ##### Request
 
-Parameter       |        Description             
+Property       |        Description             
 ------------ | -------------------------------- 
 `action`          | `verify` action                
 `jwt`        | JWT token to verify
@@ -191,7 +191,7 @@ Example:
 
 ###### Successful verification
 
-Parameter       |        Description             
+Property       |        Description             
 ------------ | -------------------------------- 
 `action`      | `verify` action                  
 `status`      | `ok` response status                   
@@ -223,9 +223,9 @@ Parameter       |        Description
 
 ###### Any other error
 
-- missing `action` or `jwt` parameter
+- missing `action` or `jwt` property
 - invalid JWT format
-- additional, unrecognized parameter
+- additional, unrecognized property
 
 ```javascript
 { status: 'error', message: 'invalid request' }
@@ -239,7 +239,7 @@ Parameter       |        Description
 
 ##### Request
 
-Parameter       |        Description             
+Property       |        Description             
 ------------ | -------------------------------- 
 `action`          | `revoke` action               
 `jwt`        | JWT token to revoke  
@@ -262,9 +262,9 @@ Example:
 
 ###### Any other error
 
-- missing `action` or `jwt` parameter
+- missing `action` or `jwt` property
 - invalid JWT format
-- additional, unrecognized parameter
+- additional, unrecognized property
 
 ```javascript
 { status: 'error', message: 'invalid request' }
