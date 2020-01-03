@@ -35,6 +35,24 @@ class ExampleWSServer extends WSServer {
 }
 ```
 
+#### Configuration
+
+Name        | Description               | Example 
+----------- | ----------------      | ----------------
+`port`        | TCP port (number: 0 - 65535)                         | `1200`
+`path`        | WS endpoint path <br> (matching `/^\/[a-zA-Z0-9-]{2,30}$/`) | `/example-endpoint`
+`authTokens`  | Array of allowed authentication tokens <br> (base64 encoded, >= 20 chars long) | `[ 'dGhpc2lzYXRlc3RrZXkK' ]`
+
+```javascript
+const server = new ExampleWSServer({ 
+    port: 12000, 
+    path: '/example-endpoint', 
+    authTokens: [ 'dGhpc2lzYXRlc3RrZXkK' ]
+})
+```
+
+#### Functions
+
 ##### `start (): Promise`
 Starts server using configuration passed into constructor. Returns a resolved promise
 when server is listening, or rejects with error.
@@ -65,22 +83,6 @@ Broadcasts `message` to all clients subscribed to `topic`. As with the return va
 `message` is expected to be an object (serializable with `JSON.stringify`).
 
 Returns a resolved `Promise` when all client-websockets have scheduled the `message` to be sent.
-
-### Configuration
-
-Name        | Description               | Example 
------------ | ----------------      | ----------------
-`port`        | TCP port (number: 0 - 65535)                         | `1200`
-`path`        | WS endpoint path <br> (matching `/^\/[a-zA-Z0-9-]{2,30}$/`) | `/example-endpoint`
-`authTokens`  | Array of allowed authentication tokens <br> (base64 encoded, >= 20 chars long) | `[ 'dGhpc2lzYXRlc3RrZXkK' ]`
-
-```javascript
-const server = new ExampleWSServer({ 
-    port: 12000, 
-    path: '/example-endpoint', 
-    authTokens: [ 'dGhpc2lzYXRlc3RrZXkK' ]
-})
-```
 
 
 
@@ -116,6 +118,17 @@ const config = {
 const wsclient =  new WSClient(config), 'logger-name')
 ```
 
+#### Configuration
+
+Name         |        Description               | Example 
+------------ | -------------------------------- | ----------------
+`url`          | Websocket URL of server                | `ws://localhost:1200/example-endpoint`
+`authToken`    | Authentication token <br> (base64 encoded, >= 20 chars long) | `dGhpc2lzYXRlc3RrZXkK`
+`timeout`      | Timeout (ms) for connecting/waiting for response <br> (20 <= `timeout` <= 60000) | `2000`
+`pingInterval` | Interval (ms) between pings <br> (20 <= `timeout` <= 100000) | `30000`
+
+#### Functions
+
 ##### `send (request): Promise`
 
 Attempts to connect to the configured `url` (if not connected) and sends 
@@ -150,16 +163,6 @@ for each topic:
 [ { status: 'ok', action: 'unsubscribe' } ]
 ```
 
-### Configuration
-
-Name         |        Description               | Example 
------------- | -------------------------------- | ----------------
-`url`          | Websocket URL of server                | `ws://localhost:1200/example-endpoint`
-`authToken`    | Authentication token <br> (base64 encoded, >= 20 chars long) | `dGhpc2lzYXRlc3RrZXkK`
-`timeout`      | Timeout (ms) for connecting/waiting for response <br> (20 <= `timeout` <= 60000) | `2000`
-`pingInterval` | Interval (ms) between pings <br> (20 <= `timeout` <= 100000) | `30000`
-
-
 
 
 
@@ -190,6 +193,27 @@ class ExampleWSSecureServer extends WSSecureServer {
 }
 ```
 
+#### Configuration
+
+Name              | Description               
+----------------- | ---------------- 
+`wsserver`        | WSServer configuration (see [`WSServer` configuration](#configuration))
+`sessionService`  | WSClient configuration for `session` service (see [`WSClient` configuration](#configuration-1))
+
+```javascript
+const securedServer = new ExampleWSSecureServer({
+    wsserver: { port: 12005, path: '/jwt-secured', authTokens: ['dGhpc2lzYXRlc3RrZXkK'] },
+    sessionService: {
+        url: 'ws://localhost:12010/session',
+        authToken: 'YW5vdGhlcnRlc3RrZXkK',
+        timeout: 2000,
+        pingInterval: 30000
+    }
+})
+```
+
+#### Functions
+
 Public functions of [`WSServer`](#wsserver-in-wsserverjs): `start`, `stop`, `offerTopics` 
 and `broadcast` work exactly as in parent class. **DO NOT** implement `received` function
 (this would disable the JWT check), instead use `secureReceived (request)`:
@@ -218,25 +242,6 @@ If the incoming `request` can't be verified, an error response is returned witho
 ```javascript
 { status: 'error', message: 'session-service user unavailable' }
 ``` 
-
-### Configuration
-
-Name              | Description               
------------------ | ---------------- 
-`wsserver`        | WSServer configuration (see [`WSServer` configuration](#configuration))
-`sessionService`  | WSClient configuration for `session` service (see [`WSClient` configuration](#configuration-1))
-
-```javascript
-const securedServer = new ExampleWSSecureServer({
-    wsserver: { port: 12005, path: '/jwt-secured', authTokens: ['dGhpc2lzYXRlc3RrZXkK'] },
-    sessionService: {
-        url: 'ws://localhost:12010/session',
-        authToken: 'YW5vdGhlcnRlc3RrZXkK',
-        timeout: 2000,
-        pingInterval: 30000
-    }
-})
-```
 
 
 
@@ -269,20 +274,7 @@ class HttpServerImpl extends HttpServer {
 }
 ```
 
-##### `setupApp (app)`
-(Optional) Implement `setupApp` to customize express app. 
-
-##### `addRoutes (pathRouter)`
-(Required) Implement `addRoutes` to add endpoint-routes to parent `path` router (see [configuration](#configuration-3)). 
-
-##### `start (): Promise`
-Creates server (calling [`setupApp (app)`](#setupApp-app) + [`addRoutes (pathRouter)`](#addroutes-pathrouter))
-and starts listening on configured `interface`/`port`. Returns `Promise` resolving to `server` instance or rejects with error.
-
-##### `stop (): Promise`
-Stops server.
-
-### Configuration
+#### Configuration
 
 Name                 | Description                      | Example 
 -------------------- | -------------------------------- | --------------------------------
@@ -303,4 +295,18 @@ const server = new HttpServerImpl({
     suppressRequestLog: [ '/version' ]
 })
 ```
+
+#### Functions
+##### `setupApp (app)`
+(Optional) Implement `setupApp` to customize express app. 
+
+##### `addRoutes (pathRouter)`
+(Required) Implement `addRoutes` to add endpoint-routes to parent `path` router (see [configuration](#configuration-3)). 
+
+##### `start (): Promise`
+Creates server (calling [`setupApp (app)`](#setupApp-app) + [`addRoutes (pathRouter)`](#addroutes-pathrouter))
+and starts listening on configured `interface`/`port`. Returns `Promise` resolving to `server` instance or rejects with error.
+
+##### `stop (): Promise`
+Stops server.
 
