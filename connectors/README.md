@@ -1,5 +1,15 @@
 ## connectors
 
+#### Motivation
+
+TBD:
+- perf comparison WS to HTTP
+- usage in microservice architecture
+- abstraction of socket connection handling
+- timeouts
+- back pressure handling 
+
+
 Available implementations:
 - [WSServer](#wsserver-in-wsserverjs)
 - [WSClient](#wsclient-in-wsclientjs)
@@ -51,7 +61,7 @@ const server = new ExampleWSServer({
 })
 ```
 
-#### Functions
+### Functions
 
 ##### `start (): Promise`
 Starts server using configuration passed into constructor. Returns a resolved promise
@@ -127,7 +137,7 @@ Name         |        Description               | Example
 `timeout`      | Timeout (ms) for connecting/waiting for response <br> (20 <= `timeout` <= 60000) | `2000`
 `pingInterval` | Interval (ms) between pings <br> (20 <= `timeout` <= 100000) | `30000`
 
-#### Functions
+### Functions
 
 ##### `send (request): Promise`
 
@@ -212,7 +222,7 @@ const securedServer = new ExampleWSSecureServer({
 })
 ```
 
-#### Functions
+### Functions
 
 Public functions of [`WSServer`](#wsserver-in-wsserverjs): `start`, `stop`, `offerTopics` 
 and `broadcast` work exactly as in parent class. **DO NOT** implement `received` function
@@ -296,7 +306,8 @@ const server = new HttpServerImpl({
 })
 ```
 
-#### Functions
+### Functions
+
 ##### `setupApp (app)`
 (Optional) Implement `setupApp` to customize express app. 
 
