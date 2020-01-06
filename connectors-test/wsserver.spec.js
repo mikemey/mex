@@ -3,7 +3,7 @@ const { randomString, errors, wsmessages } = require('../utils')
 const { WSServer } = require('../connectors')
 const WSClientInterceptor = require('./interceptor/wsclient-interceptor')
 
-describe('Websocket Server', () => {
+describe.only('Websocket Server', () => {
   const defServerData = { expected: {}, resolve: true, response: {}, err: null }
   let currentServerData = defServerData
   const resetServerData = () => { currentServerData = Object.assign({}, defServerData) }
@@ -58,6 +58,14 @@ describe('Websocket Server', () => {
     }
 
     describe('access tokens', () => {
+      const expectUnauthorizedError = wssConfigOverride => clientMock.connect(wssConfigOverride)
+        .then(() => { throw new Error('expected websocket to close') })
+        .catch(err => {
+          clientMock.isOpen().should.equal(false, 'socket closed')
+          err.message.should.equal('Unexpected server response: 401')
+        })
+        .finally(() => clientMock.resetInterceptors())
+
       const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
         .then(() => { throw new Error('expected websocket to close') })
         .catch(err => {
@@ -77,17 +85,17 @@ describe('Websocket Server', () => {
 
       it('when no access token', () => {
         clientMock.interceptors.headers = {}
-        return expectSocketHangup()
+        return expectUnauthorizedError()
       })
 
       it('when invalid token', () => {
         clientMock.interceptors.headers = { 'X-AUTH-TOKEN': testToken + 'x' }
-        return expectSocketHangup()
+        return expectUnauthorizedError()
       })
 
       it('when incorrect path', () => expectSocketHangup({ path: wsserverConfig.path + 'x' }))
 
-      it('when payload too large', () => expectSocketClosed({ action: randomString(4 * 1024) }))
+      it.only('when payload too large', () => expectSocketClosed({ action: randomString(4 * 1024) }))
 
       it('when sender closes socket immediately', () => {
         clientMock.interceptors.afterSendAction = ws => ws.close()

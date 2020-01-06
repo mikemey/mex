@@ -1,4 +1,4 @@
-const uws = require('uWebSockets.js')
+// const uws = require('uWebSockets.js')
 const {
   Logger,
   wsmessages: { createRawMessage, extractMessage, OK_STATUS }

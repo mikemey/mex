@@ -1,4 +1,4 @@
-const uws = require('uWebSockets.js')
+const Websocket = require('ws')
 const Joi = require('@hapi/joi')
 
 const { Logger, Validator, wsmessages, randomHash } = require('../utils')
@@ -9,28 +9,18 @@ const configSchema = Joi.object({
   authTokens: Joi.array().items(Validator.secretToken('authTokens')).required()
 })
 
-const ClientSocket = (ws, logger) => {
-  const send = message => {
-    try { return ws.send(message) } catch (err) {
-      logger.error(err)
-      return false
-    }
-  }
+const { promisify } = require('util')
 
-  const end = () => {
-    try { return ws.end() } catch (err) {
+const ClientSocket = (ws, logger) => {
+  const send = promisify(ws.send)
+
+  const close = () => {
+    try { return ws.close() } catch (err) {
       logger.error('error while closing:', err)
     }
   }
 
-  const getBufferedAmount = () => {
-    try { return ws.getBufferedAmount() } catch (err) {
-      logger.error('error getting buffered amount:', err.message)
-      return 0
-    }
-  }
-
-  return { ws, logger, send, end, getBufferedAmount }
+  return { ws, logger, send, close }
 }
 
 const SUBSCRIBE_ACT = 'subscribe'
@@ -56,11 +46,12 @@ class WSServer {
   constructor (config) {
     Validator.oneTimeValidation(configSchema, config)
 
-    this.listenSocken = null
+    this.server = null
     this.config = config
     this.clientSockets = []
     this.topicSubscriptions = new Map()
     this.logger = Logger(this.constructor.name)
+    this.bla = 0
   }
 
   _createClientSocket (ws) {
@@ -84,58 +75,92 @@ class WSServer {
 
   start () {
     return new Promise((resolve, reject) => {
-      uws.App({}).ws(this.config.path, {
-        maxPayloadLength: 4 * 1024,
-        open: (ws, req) => {
-          const clientSocket = this._createClientSocket(ws)
-          const authToken = req.getHeader('x-auth-token')
-          if (!this.config.authTokens.includes(authToken)) {
-            clientSocket.logger.error('authentication failed, closing socket')
-            return ws.close()
+      this.server = new Websocket.Server({
+        port: this.config.port,
+        maxPayload: 4 * 1024,
+        path: this.config.path,
+        verifyClient: ({ req }, done) => {
+          const authToken = req.headers['x-auth-token']
+          const hasValidToken = this.config.authTokens.includes(authToken)
+          if (!hasValidToken) {
+            this.logger.error('authentication failed, closing socket')
           }
-          clientSocket.logger.info('client authentication successful')
-        },
-        message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
-        drain: ws => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
-        close: ws => {
-          const clientSocket = this._removeClientSocket(ws)
-          if (clientSocket) {
-            clientSocket.logger.debug('socket closed.')
-          }
+          done(hasValidToken)
         }
-      }).listen(this.config.port, socket => {
-        if (socket) {
-          this.logger.info('listening on port', this.config.port)
-          this.listenSocket = socket
-          resolve()
-        } else {
-          const msg = `failed to listen on port ${this.config.port}`
-          this.logger.error(msg)
-          reject(Error(msg))
-        }
+      }, resolve)
+
+      this.server.on('listening', () => {
+        this.logger.info('listening on port', this.config.port)
+      })
+
+      this.server.on('connection', ws => {
+        const clientSocket = this._createClientSocket(ws)
+        clientSocket.logger.debug('connected')
+        ws.on('message', data => this._processMessage(clientSocket, data))
+        ws.on('error', () => { })
+        ws.on('close', () => { })
+      })
+
+      this.server.on('close', () => {
+        this.logger.info('stopped')
+      })
+
+      this.server.on('error', err => {
+        const msg = `failed to listen on port ${this.config.port}`
+        this.logger.error(msg, err.message)
+        reject(Error(msg))
       })
     })
   }
 
+  // uws.App({}).ws(this.config.path, {
+  //   maxPayloadLength: 4 * 1024,
+  //   open: (ws, req) => {
+  //     const clientSocket = this._createClientSocket(ws)
+  //     const authToken = req.getHeader('x-auth-token')
+  //     if (!this.config.authTokens.includes(authToken)) {
+  //       clientSocket.logger.error('authentication failed, closing socket')
+  //       return ws.close()
+  //     }
+  //     clientSocket.logger.info('client authentication successful')
+  //   },
+  //   message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
+  //   drain: ws => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
+  //   close: ws => {
+  //     const clientSocket = this._removeClientSocket(ws)
+  //     if (clientSocket) {
+  //       clientSocket.logger.debug('socket closed.')
+  //     }
+  //   }
+  // }).listen(this.config.port, socket => {
+  //   if (socket) {
+  //     this.logger.info('listening on port', this.config.port)
+  //     this.listenSocket = socket
+  //     resolve()
+  //   } else {
+  //     const msg = `failed to listen on port ${this.config.port}`
+  //     this.logger.error(msg)
+  //     reject(Error(msg))
+  //   }
+  // })
+
   stop () {
-    if (this.listenSocket) {
+    if (this.server) {
       this.logger.debug('shutting down')
-      this.clientSockets.forEach(cs => cs.end())
+      this.clientSockets.forEach(cs => cs.close())
       this.clientSockets = []
-      uws.us_listen_socket_close(this.listenSocket)
-      this.listenSocket = null
-      this.logger.info('stopped')
+      this.server.close()
+      this.server = null
     } else {
       this.logger.info('already stopped')
     }
   }
 
-  _processMessage (clientSocket, buffer) {
+  _processMessage (clientSocket, data) {
     const incoming = { msg: null, dropConnection: false }
     return new Promise((resolve, reject) => {
       try {
-        const raw = String.fromCharCode.apply(null, new Uint8Array(buffer))
-        incoming.msg = wsmessages.extractMessage(raw)
+        incoming.msg = wsmessages.extractMessage(data)
         incoming.msg.prettyId = `<${incoming.msg.id}>`
         clientSocket.logger.debug('received:', incoming.msg.prettyId, incoming.msg.body)
         resolve(incoming.msg.body)
@@ -153,23 +178,21 @@ class WSServer {
         return clientSocket.send(message)
       })
       .catch(err => {
-        clientSocket.logger.error('sending error:', err)
+        clientSocket.logger.error('sending error:', err.message, err)
         incoming.dropConnection = true
         return false
       })
       .then(sendResultOk => {
-        const buffered = clientSocket.getBufferedAmount()
-        clientSocket.logger.debug('send result', incoming.msg.prettyId, 'OK:', sendResultOk, ' buffered:', buffered)
+        clientSocket.logger.debug('send result', incoming.msg.prettyId, 'OK:', sendResultOk)
 
         if (!sendResultOk) { this._sendingError(clientSocket, 'send result NOK') }
-        if (buffered > 0) { this._sendingError(clientSocket, `buffer not empty: ${buffered}`) }
         if (incoming.dropConnection) { this._sendingError(clientSocket, 'closing connection') }
       })
   }
 
   _sendingError (clientSocket, message) {
     clientSocket.logger.error(message)
-    clientSocket.end()
+    clientSocket.close()
   }
 
   offerTopics (...topics) {

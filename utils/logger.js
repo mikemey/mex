@@ -29,9 +29,8 @@ const Logger = category => {
     if (skipLogLevel(level)) { return }
 
     const [texts, errs] = args
-      .filter(el => el !== undefined && el !== null)
       .reduce(([texts, errors], current) => {
-        if (current.constructor === Object || Array.isArray(current)) {
+        if (current && (current.constructor === Object || Array.isArray(current))) {
           current = JSON.stringify(current)
         }
         return current instanceof Error
