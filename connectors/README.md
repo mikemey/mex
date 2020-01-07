@@ -20,7 +20,7 @@ Available implementations:
 ---
 ## WSServer in `wsserver.js`
 
-Base server implementation using [uWebSockets.js](https://github.com/uNetworking/uWebSockets.js).
+Base websocket server implementation.
 
 Acts as REQ/REP server (see [`received (request)`](#received-request)) 
 and PUB server (see [`offerTopics (...topics)`](#offerTopics-topics-void) and 

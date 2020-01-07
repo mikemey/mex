@@ -5,7 +5,7 @@ const setTimeoutPromise = util.promisify(setTimeout)
 const { WSClient } = require('../connectors')
 const WSServerInterceptor = require('./interceptor/wsserver-interceptor')
 
-describe('Websocket client', () => {
+xdescribe('Websocket client', () => {
   const port = 12345
   const path = 'testwsclient'
   const authToken = '12345678901234567890'

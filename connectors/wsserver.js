@@ -9,10 +9,11 @@ const configSchema = Joi.object({
   authTokens: Joi.array().items(Validator.secretToken('authTokens')).required()
 })
 
-const { promisify } = require('util')
-
 const ClientSocket = (ws, logger) => {
-  const send = promisify(ws.send)
+  const send = message => new Promise((resolve, reject) => {
+    ws.send(message, reject)
+    resolve(true)
+  })
 
   const close = () => {
     try { return ws.close() } catch (err) {
@@ -51,7 +52,6 @@ class WSServer {
     this.clientSockets = []
     this.topicSubscriptions = new Map()
     this.logger = Logger(this.constructor.name)
-    this.bla = 0
   }
 
   _createClientSocket (ws) {
@@ -75,40 +75,49 @@ class WSServer {
 
   start () {
     return new Promise((resolve, reject) => {
+      const sublog = this.logger.childLogger(randomHash())
       this.server = new Websocket.Server({
         port: this.config.port,
         maxPayload: 4 * 1024,
         path: this.config.path,
-        verifyClient: ({ req }, done) => {
+        verifyClient: ({ req }) => {
           const authToken = req.headers['x-auth-token']
           const hasValidToken = this.config.authTokens.includes(authToken)
           if (!hasValidToken) {
             this.logger.error('authentication failed, closing socket')
           }
-          done(hasValidToken)
+          return hasValidToken
         }
       }, resolve)
 
       this.server.on('listening', () => {
-        this.logger.info('listening on port', this.config.port)
+        sublog.info('listening on port', this.config.port)
       })
 
       this.server.on('connection', ws => {
         const clientSocket = this._createClientSocket(ws)
         clientSocket.logger.debug('connected')
         ws.on('message', data => this._processMessage(clientSocket, data))
-        ws.on('error', () => { })
-        ws.on('close', () => { })
+        ws.on('error', err => {
+          console.log('------------- NOTHING YET')
+          console.log(err)
+          console.log('------------- NOTHING YET')
+        })
+        ws.on('close', () => {
+          this._removeClientSocket(ws)
+          clientSocket.logger.debug('socket closed.')
+        })
       })
 
       this.server.on('close', () => {
-        this.logger.info('stopped')
+        sublog.info('stopped')
       })
 
       this.server.on('error', err => {
         const msg = `failed to listen on port ${this.config.port}`
-        this.logger.error(msg, err.message)
+        sublog.error(msg, err.message)
         reject(Error(msg))
+        this.server.close()
       })
     })
   }

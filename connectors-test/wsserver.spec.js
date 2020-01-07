@@ -58,21 +58,17 @@ describe.only('Websocket Server', () => {
     }
 
     describe('access tokens', () => {
-      const expectUnauthorizedError = wssConfigOverride => clientMock.connect(wssConfigOverride)
+      const expectError = (wssConfigOverride, errorMessage) => clientMock.connect(wssConfigOverride)
         .then(() => { throw new Error('expected websocket to close') })
         .catch(err => {
           clientMock.isOpen().should.equal(false, 'socket closed')
-          err.message.should.equal('Unexpected server response: 401')
+          err.message.should.equal(errorMessage)
         })
         .finally(() => clientMock.resetInterceptors())
 
-      const expectSocketHangup = wssConfigOverride => clientMock.connect(wssConfigOverride)
-        .then(() => { throw new Error('expected websocket to close') })
-        .catch(err => {
-          clientMock.isOpen().should.equal(false, 'socket closed')
-          err.message.should.equal('socket hang up')
-        })
-        .finally(() => clientMock.resetInterceptors())
+      const expectUnauthorizedError = () => expectError({}, 'Unexpected server response: 401')
+      const expectClientError = wssConfigOverride =>
+        expectError(wssConfigOverride, 'Unexpected server response: 400')
 
       const expectSocketClosed = request => clientMock.connect()
         .then(() => clientMock.send(request))
@@ -93,9 +89,9 @@ describe.only('Websocket Server', () => {
         return expectUnauthorizedError()
       })
 
-      it('when incorrect path', () => expectSocketHangup({ path: wsserverConfig.path + 'x' }))
+      it('when incorrect path', () => expectClientError({ path: wsserverConfig.path + 'x' }))
 
-      it.only('when payload too large', () => expectSocketClosed({ action: randomString(4 * 1024) }))
+      it('when payload too large', () => expectSocketClosed({ action: randomString(4 * 1024) }))
 
       it('when sender closes socket immediately', () => {
         clientMock.interceptors.afterSendAction = ws => ws.close()
@@ -139,11 +135,11 @@ describe.only('Websocket Server', () => {
     })
   })
 
-  describe('server configuration/usage error', () => {
-    it('when already running', () => wsserver.start()
+  describe.only('server configuration/usage error', () => {
+    it.only('when already running', () => wsserver.start()
       .then(() => wsserver.start())
       .then(() => { throw new Error('expected start error') })
-      .catch(err => err.message.should.equal(`failed to listen on port ${wsserverConfig.port}`))
+      .catch(err => err.message.should.equal('server already started'))
       .finally(() => wsserver.stop())
     )
 
