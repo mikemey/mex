@@ -43,7 +43,8 @@ Start all services:
 `browser-test/e2ehelper.sh start` or `npm run e2e start` (which also executes `e2ehelper.sh start`)
  
 Service `useraccount` is running and accessible at `localhost:13500/uac`. 
-Full configuration of all services is in `browser-test/orchestrator.e2e.js`.
+The full configuration of running services is in `browser-test/orchestrator.e2e.js`, 
+documentation for `e2ehelper.sh` in [browser-test module](browser-test).
 
 ### Testing
 
