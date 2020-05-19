@@ -3,7 +3,7 @@ const { randomString, errors, wsmessages } = require('../utils')
 const { WSServer } = require('../connectors')
 const WSClientInterceptor = require('./interceptor/wsclient-interceptor')
 
-describe.only('Websocket Server', () => {
+describe('Websocket Server', () => {
   const defServerData = { expected: {}, resolve: true, response: {}, err: null }
   let currentServerData = defServerData
   const resetServerData = () => { currentServerData = Object.assign({}, defServerData) }
@@ -135,13 +135,18 @@ describe.only('Websocket Server', () => {
     })
   })
 
-  describe.only('server configuration/usage error', () => {
-    it.only('when already running', () => wsserver.start()
-      .then(() => wsserver.start())
-      .then(() => { throw new Error('expected start error') })
-      .catch(err => err.message.should.equal('server already started'))
-      .finally(() => wsserver.stop())
-    )
+  describe('server configuration/usage error', () => {
+    it('when already running', () => {
+      const server1 = new ExampleWSServer(wsserverConfig)
+      return server1.start()
+        .then(() => wsserver.start())
+        .then(() => { throw new Error('expected start error') })
+        .catch(err => err.message.should.equal('server already started'))
+        .finally(() => {
+          server1.stop()
+          wsserver.stop()
+        })
+    })
 
     const allowedConfig = { path: '/test-123', port: 18000, authTokens: ['a-token'] }
     const configWith = (overwrite, expectedMessage) => {

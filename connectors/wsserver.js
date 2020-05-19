@@ -98,11 +98,7 @@ class WSServer {
         const clientSocket = this._createClientSocket(ws)
         clientSocket.logger.debug('connected')
         ws.on('message', data => this._processMessage(clientSocket, data))
-        ws.on('error', err => {
-          console.log('------------- NOTHING YET')
-          console.log(err)
-          console.log('------------- NOTHING YET')
-        })
+        ws.on('error', err => this.logger.error(err.message, err))
         ws.on('close', () => {
           this._removeClientSocket(ws)
           clientSocket.logger.debug('socket closed.')
@@ -114,44 +110,15 @@ class WSServer {
       })
 
       this.server.on('error', err => {
-        const msg = `failed to listen on port ${this.config.port}`
+        const msg = err.code && err.code === 'EADDRINUSE'
+          ? 'server already started'
+          : `failed to listen on port ${this.config.port}`
         sublog.error(msg, err.message)
         reject(Error(msg))
         this.server.close()
       })
     })
   }
-
-  // uws.App({}).ws(this.config.path, {
-  //   maxPayloadLength: 4 * 1024,
-  //   open: (ws, req) => {
-  //     const clientSocket = this._createClientSocket(ws)
-  //     const authToken = req.getHeader('x-auth-token')
-  //     if (!this.config.authTokens.includes(authToken)) {
-  //       clientSocket.logger.error('authentication failed, closing socket')
-  //       return ws.close()
-  //     }
-  //     clientSocket.logger.info('client authentication successful')
-  //   },
-  //   message: (ws, buffer) => this._processMessage(this._getClientSocket(ws), buffer),
-  //   drain: ws => this._getClientSocket(ws).logger.error('socket backpressure:', ws.getBufferedAmount()),
-  //   close: ws => {
-  //     const clientSocket = this._removeClientSocket(ws)
-  //     if (clientSocket) {
-  //       clientSocket.logger.debug('socket closed.')
-  //     }
-  //   }
-  // }).listen(this.config.port, socket => {
-  //   if (socket) {
-  //     this.logger.info('listening on port', this.config.port)
-  //     this.listenSocket = socket
-  //     resolve()
-  //   } else {
-  //     const msg = `failed to listen on port ${this.config.port}`
-  //     this.logger.error(msg)
-  //     reject(Error(msg))
-  //   }
-  // })
 
   stop () {
     if (this.server) {
