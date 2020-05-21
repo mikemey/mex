@@ -5,13 +5,13 @@ const setTimeoutPromise = util.promisify(setTimeout)
 const { WSClient } = require('../connectors')
 const WSServerInterceptor = require('./interceptor/wsserver-interceptor')
 
-xdescribe('Websocket client', () => {
+describe('Websocket client', () => {
   const port = 12345
-  const path = 'testwsclient'
+  const path = '/testwsclient'
   const authToken = '12345678901234567890'
   const timeout = 250
   const pingInterval = 60000
-  const defTestConfig = { url: `ws://localhost:${port}/${path}`, authToken, timeout, pingInterval }
+  const defTestConfig = { url: `ws://localhost:${port}${path}`, authToken, timeout, pingInterval }
   const defaultClient = (config = defTestConfig) => new WSClient(Object.assign({}, config), 'ws-test-client')
 
   describe('configuration checks', () => {
@@ -162,26 +162,6 @@ xdescribe('Websocket client', () => {
         mockServer.interceptors.stopProcessing = true
       }
       return checkForTimeout(wsclient)
-    })
-
-    it('recovers from remote socket.end before response', () => {
-      mockServer.interceptors.responsePromise = ws => {
-        ws.end()
-        mockServer.interceptors.stopProcessing = true
-      }
-      return checkForTimeout(wsclient)
-    })
-
-    it('recovers from remote socket.close after response', () => {
-      mockServer.interceptors.afterResponse = ws => ws.close()
-      return checkForTimeout(wsclient)
-    })
-
-    it('clean resend after socket.end after response', () => {
-      mockServer.interceptors.afterResponse = ws => ws.end()
-      return wsclient.send(message('works out'))
-        .then(() => mockServer.resetInterceptors())
-        .then(canSendMessages)
     })
   })
 })
