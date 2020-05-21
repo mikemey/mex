@@ -24,7 +24,6 @@ describe('Login', () => {
   it('existing user attempts logins', () => {
     homepage.visit()
     loginpage.assertPageActive()
-    loginpage.email().should('have.focus')
     loginpage.message().contains('Please log-in')
 
     loginpage.login('X' + registeredUser.email, registeredUser.password)

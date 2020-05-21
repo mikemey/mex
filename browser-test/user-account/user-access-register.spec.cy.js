@@ -10,7 +10,6 @@ describe('Registration', () => {
 
   it('has correct form fields', () => {
     regpage.assertPageActive()
-    regpage.email().should('have.focus')
     regpage.email().should('have.attr', 'type', 'email')
       .should('have.attr', 'placeholder', 'Email')
     regpage.password().should('have.attr', 'type', 'password')
