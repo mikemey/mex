@@ -35,6 +35,11 @@ const errorResponse = (res, view, message, email) => res.render(view, { error: m
 
 const hash = data => crypto.createHash('sha256').update(data).digest('hex')
 
+const ipLogFrom = req => {
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  return `[${ip}]`
+}
+
 class AccessRouter {
   constructor (sessionClient, httpConfig) {
     this.sessionClient = sessionClient
@@ -56,8 +61,8 @@ class AccessRouter {
   createAuthenticationCheck () {
     const verifyMessages = withAction('verify')
 
-    const redirectToLogin = (res, flag = 'auth') => {
-      this.logger.info('authentication required')
+    const redirectToLogin = (req, res, flag = 'auth') => {
+      this.logger.info(ipLogFrom(req), 'authentication required')
       return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag }))
     }
 
@@ -74,12 +79,12 @@ class AccessRouter {
                 break
               }
               case NOK_STATUS: {
-                redirectToLogin(res)
+                redirectToLogin(req, res)
                 break
               }
               default: {
                 this.logger.error('session service verification error:', result.message)
-                redirectToLogin(res, 'unavailable')
+                redirectToLogin(req, res, 'unavailable')
               }
             }
           })
@@ -88,7 +93,7 @@ class AccessRouter {
             errorResponse(res, SERVICE_UNAVAILABLE, 'Session service unavailable, sorry!')
           })
       } else {
-        redirectToLogin(res)
+        redirectToLogin(req, res)
       }
     }
   }
@@ -119,7 +124,10 @@ class AccessRouter {
       return this.sessionClient.send(registerMessages.build({ email, password: hash(password) }))
         .then(result => {
           switch (result.status) {
-            case OK_STATUS: return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag: 'reg' }))
+            case OK_STATUS: {
+              this.logger.info(ipLogFrom(req), 'user registration:', email)
+              return res.redirect(303, this.loginPath + '?' + querystring.stringify({ flag: 'reg' }))
+            }
             case NOK_STATUS: {
               this.logger.info('registration failed:', result.message)
               return errorResponse(res, REGISTER, result.message, email)
@@ -143,6 +151,7 @@ class AccessRouter {
         .then(result => {
           switch (result.status) {
             case OK_STATUS: {
+              this.logger.info(ipLogFrom(req), 'user login:', email)
               req.session.jwt = result.jwt
               return res.redirect(303, this.homePath)
             }
