@@ -61,7 +61,7 @@ describe('Deposit page', () => {
         depositBtcPage.invoiceCount().should('have.length', 4)
         depositBtcPage.assertInvoice(newTransactionId, null, '1.98700000', 'unconfirmed')
         depositBtcPage.assertInvoiceLinks(newTransactionId, null,
-          `https://live.blockcypher.com/btc/tx/${newTransactionId}/`)
+          `https://live.blockcypher.com/btc-testnet/tx/${newTransactionId}/`)
 
         return cy.generateUnrelatedTxs()
       })
@@ -72,8 +72,8 @@ describe('Deposit page', () => {
         depositBtcPage.assertInvoice(newTransactionId, null, '1.98700000', blockHeight)
 
         depositBtcPage.assertInvoiceLinks(newTransactionId,
-          `https://live.blockcypher.com/btc/block/${blockHeight}/`,
-          `https://live.blockcypher.com/btc/tx/${newTransactionId}/`
+          `https://live.blockcypher.com/btc-testnet/block/${blockHeight}/`,
+          `https://live.blockcypher.com/btc-testnet/tx/${newTransactionId}/`
         )
       })
   })
