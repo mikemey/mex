@@ -8,8 +8,8 @@
       "base": "satoshi"
     },
     "links": {
-      "block": "https://live.blockcypher.com/btc/block/<<blockheight>>/",
-      "tx": "https://live.blockcypher.com/btc/tx/<<txid>>/"
+      "block": "https://live.blockcypher.com/btc-testnet/block/<<blockheight>>/",
+      "tx": "https://live.blockcypher.com/btc-testnet/tx/<<txid>>/"
     }
   },
   "eth": {

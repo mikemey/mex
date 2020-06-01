@@ -34,13 +34,13 @@ describe('Deposit page', () => {
 
       depositBtcPage.assertInvoiceLinks('47a307cfafab57381a8eb7a740efd35370c5212cfd404a8c8d41c2d9d63c92a7',
         null,
-        'https://live.blockcypher.com/btc/tx/47a307cfafab57381a8eb7a740efd35370c5212cfd404a8c8d41c2d9d63c92a7/')
+        'https://live.blockcypher.com/btc-testnet/tx/47a307cfafab57381a8eb7a740efd35370c5212cfd404a8c8d41c2d9d63c92a7/')
       depositBtcPage.assertInvoiceLinks('12bc96ecda588deecd3b37fdcbaf4aff6518b57b988a4e8c05365409c3c59f24',
-        'https://live.blockcypher.com/btc/block/3/',
-        'https://live.blockcypher.com/btc/tx/12bc96ecda588deecd3b37fdcbaf4aff6518b57b988a4e8c05365409c3c59f24/')
+        'https://live.blockcypher.com/btc-testnet/block/3/',
+        'https://live.blockcypher.com/btc-testnet/tx/12bc96ecda588deecd3b37fdcbaf4aff6518b57b988a4e8c05365409c3c59f24/')
       depositBtcPage.assertInvoiceLinks('c27712bb0c607336d5625bf2196ddab0217c9f1bd77fa68fc1c00f75067e8535',
-        'https://live.blockcypher.com/btc/block/2/',
-        'https://live.blockcypher.com/btc/tx/c27712bb0c607336d5625bf2196ddab0217c9f1bd77fa68fc1c00f75067e8535/')
+        'https://live.blockcypher.com/btc-testnet/block/2/',
+        'https://live.blockcypher.com/btc-testnet/tx/c27712bb0c607336d5625bf2196ddab0217c9f1bd77fa68fc1c00f75067e8535/')
       cy.go('back')
       balancepage.assertPageActive()
     })
