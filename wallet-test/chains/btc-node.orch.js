@@ -9,7 +9,7 @@ const BitcoinClient = require('bitcoin-core')
 const { Logger } = require('../../utils')
 const logger = Logger('btc node orchestrator')
 
-const btcversion = '0.19.0.1'
+const btcversion = '0.20.0'
 const dataDir = path.join(__dirname, '.regtest')
 
 const btcClientConfig = {
@@ -50,7 +50,8 @@ const btcConfigFile = {
         zmqpubhashtx: zmqConfig,
         zmqpubrawtx: zmqConfig,
         zmqpubhashblock: zmqConfig,
-        zmqpubrawblock: zmqConfig
+        zmqpubrawblock: zmqConfig,
+        fallbackfee: '0.0002'
       }
     }
   }
@@ -70,7 +71,7 @@ const oscheck = () => {
 }
 
 const installBinaries = () => {
-  logger.info('installing regtest to', dataDir)
+  logger.info('installing Bitcoin-regtest to', dataDir)
   fs.mkdirSync(dataDir)
   return download(setupCfg.btcBinUrl, dataDir, { extract: true })
 }
