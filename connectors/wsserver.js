@@ -191,6 +191,7 @@ class WSServer {
     return Promise.all(subscriber.map(clientSocket => {
       const sendResultOk = clientSocket.send(broadcastmsg)
       if (!sendResultOk) { this._sendingError(clientSocket, 'broadcast result NOK') }
+      return sendResultOk
     }))
   }
 

@@ -13,7 +13,7 @@ const AccessRouter = require('./access-router')
 const BalanceRouter = require('./balance-router')
 const BalanceService = require('./balance-service')
 
-const defconfig = JSON.parse(fs.readFileSync(`${__dirname}/defaults.json`))
+const defconfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'defaults.json')))
 
 const configSchema = Joi.object({
   httpserver: Joi.object().min(1).required(),
@@ -24,14 +24,8 @@ const configSchema = Joi.object({
 })
 
 const getVendorLinks = vendorPath => process.env.NODE_ENV === 'PROD'
-  ? {
-    scripts: ['https://code.jquery.com/jquery-3.5.1.min.js'],
-    styles: ['https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css']
-  }
-  : {
-    scripts: [`${vendorPath}/jquery-3.5.1.min.js`],
-    styles: [`${vendorPath}/bootstrap-4.5.0.min.css`]
-  }
+  ? { scripts: ['https://code.jquery.com/jquery-3.5.1.min.js'], styles: ['https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css'] }
+  : { scripts: [`${vendorPath}/jquery-3.5.1.min.js`], styles: [`${vendorPath}/bootstrap-4.5.0.min.css`] }
 
 class UserAccountService extends HttpServer {
   constructor (config) {

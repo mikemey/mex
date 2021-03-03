@@ -24,7 +24,7 @@ const seedTestData = () => {
         .filter(seedFile => seedFile.endsWith('json'))
         .map(seedFile => {
           const fullPath = path.join(__dirname, seedDir, seedFile)
-          childProcess.execSync(`mongoimport ${commonArgs} ${fullPath}`)
+          return childProcess.execSync(`mongoimport ${commonArgs} ${fullPath}`)
         })
       ).catch(reject).then(resolve)
     })

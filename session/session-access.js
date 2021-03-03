@@ -60,7 +60,8 @@ const createAccessService = (secretBuffer, jwtExpirationSecs) => {
 
   const revokeToken = message => new Promise((resolve, reject) => {
     verify(message.jwt, secretBuffer, err => {
-      err ? logger.error('revoke jwt failed:', err.message)
+      err
+        ? logger.error('revoke jwt failed:', err.message)
         : revokedJwtCache.set(message.jwt, true)
       resolve(revokeOK)
     })
