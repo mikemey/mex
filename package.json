@@ -34,7 +34,7 @@
     "express": "4.17.1",
     "express-ws": "4.0.0",
     "jsonwebtoken": "8.5.1",
-    "moment": "2.29.1",
+    "moment": "2.29.2",
     "mongodb": "3.6.4",
     "mongoose": "5.11.18",
     "mongoose-long": "0.3.2",
